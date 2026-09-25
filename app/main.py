@@ -6,8 +6,8 @@ from fastapi.responses import JSONResponse
 from fastmcp.utilities.lifespan import combine_lifespans
 from pydantic import ValidationError
 
-from app import web
-from app.api import router
+from app.web import router as web_router
+from app.api import router as api_router
 from app.auth import SWAGGER_CLIENT_ID, register_browser_clients
 from app.mcp import error_message, mcp
 from app.services import Forbidden, Invalid, NotFound
@@ -27,8 +27,8 @@ app = FastAPI(
     lifespan=combine_lifespans(mcp_app.lifespan, lifespan),
     swagger_ui_init_oauth={"clientId": SWAGGER_CLIENT_ID, "usePkceWithAuthorizationCodeGrant": True, "scopes": "read:user"},
 )
-app.include_router(router)
-app.include_router(web.router)
+app.include_router(api_router)
+app.include_router(web_router)
 
 
 @app.get("/up", include_in_schema=False)
