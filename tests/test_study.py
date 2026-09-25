@@ -92,11 +92,21 @@ def test_new_allowance_resets_at_4am_local(db, user):
     deck = make_deck(db, user, new_per_day=1)
     old, q = make_questions(db, user, deck, 2)
     day_start = study.study_day_start(user, datetime.now(UTC))
-    db.add(Review(user_id=user.id, question_id=old.id, selected=[], correct=True, confidence="confident", rating=3, was_new=True, reviewed_at=day_start - timedelta(minutes=1)))
+    db.add(
+        Review(
+            user_id=user.id, question_id=old.id, selected=[], correct=True, confidence="confident", rating=3,
+            was_new=True, reviewed_at=day_start - timedelta(minutes=1),
+        )
+    )
     db.commit()
     assert study.next_question(db, user, start(db, user, deck))["question"]["id"] in (old.id, q.id)
 
-    db.add(Review(user_id=user.id, question_id=old.id, selected=[], correct=True, confidence="confident", rating=3, was_new=True, reviewed_at=day_start + timedelta(seconds=1)))
+    db.add(
+        Review(
+            user_id=user.id, question_id=old.id, selected=[], correct=True, confidence="confident", rating=3,
+            was_new=True, reviewed_at=day_start + timedelta(seconds=1),
+        )
+    )
     db.commit()
     assert study.next_question(db, user, start(db, user, deck))["finished"]
 

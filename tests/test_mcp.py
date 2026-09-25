@@ -1,10 +1,13 @@
 import asyncio
 from types import SimpleNamespace
 
+import pytest
+
 from conftest import question_in
 from fastapi.testclient import TestClient
 from fastmcp import Client, FastMCP
 from fastmcp.exceptions import ToolError
+from key_value.aio.stores.memory import MemoryStore
 
 from app import auth as auth_module, config, mcp as mcp_module
 
@@ -18,7 +21,9 @@ TOOLS = {
 def run(monkeypatch, steps, login="alice"):
     """Run async steps against the MCP server in memory, as a signed-in GitHub user."""
     claims = {"sub": "100", "login": login, "name": login, "email": None}
-    monkeypatch.setattr(mcp_module, "get_access_token", lambda: SimpleNamespace(claims=claims))
+    monkeypatch.setattr(
+        mcp_module, "get_access_token", lambda: SimpleNamespace(claims=claims)
+    )
 
     async def main():
         async with Client(mcp_module.mcp) as client:
@@ -40,10 +45,20 @@ def test_full_session_without_answer_leakage(monkeypatch):
     async def steps(client):
         deck = (await client.call_tool("create-deck", {"name": "AWS"})).data["deck"]
         await client.call_tool(
-            "create-questions", {"deck_id": deck["id"], "questions": [question_in("S3").model_dump(exclude_none=True)]}
+            "create-questions",
+            {
+                "deck_id": deck["id"],
+                "questions": [question_in("S3").model_dump(exclude_none=True)],
+            },
         )
-        session = (await client.call_tool("start-session", {"deck_id": deck["id"]})).data
-        nxt = (await client.call_tool("next-question", {"session_id": session["session_id"]})).data
+        session = (
+            await client.call_tool("start-session", {"deck_id": deck["id"]})
+        ).data
+        nxt = (
+            await client.call_tool(
+                "next-question", {"session_id": session["session_id"]}
+            )
+        ).data
         leaked = [o for o in nxt["question"]["options"] if set(o) != {"id", "text"}]
         result = (
             await client.call_tool(
@@ -56,7 +71,11 @@ def test_full_session_without_answer_leakage(monkeypatch):
                 },
             )
         ).data
-        done = (await client.call_tool("next-question", {"session_id": session["session_id"]})).data
+        done = (
+            await client.call_tool(
+                "next-question", {"session_id": session["session_id"]}
+            )
+        ).data
         return leaked, nxt, result, done
 
     leaked, nxt, result, done = run(monkeypatch, steps)
@@ -72,7 +91,12 @@ def test_errors_are_tool_errors(monkeypatch):
         except ToolError as exc:
             return str(exc)
 
-    assert "not found" in run(monkeypatch, steps)
+    result = run(monkeypatch, steps)
+
+    if result is None:
+        pytest.fail("Expected a ToolError but none was raised")
+
+    assert "not found" in result
 
 
 def test_not_allowlisted_is_rejected(monkeypatch):
@@ -82,7 +106,10 @@ def test_not_allowlisted_is_rejected(monkeypatch):
         except ToolError as exc:
             return str(exc)
 
-    assert "not allowed" in run(monkeypatch, steps, login="mallory")
+    result = run(monkeypatch, steps, login="mallory")
+    if result is None:
+        pytest.fail("Expected a ToolError but none was raised")
+    assert "not allowed" in result
 
 
 def test_oauth_metadata_served_when_github_configured(monkeypatch):
@@ -104,10 +131,12 @@ def test_oauth_metadata_served_when_github_configured(monkeypatch):
 
 
 def test_browser_clients_registered(monkeypatch):
-    for name, value in {"GITHUB_CLIENT_ID": "id", "GITHUB_CLIENT_SECRET": "secret", "JWT_SIGNING_KEY": "k" * 32}.items():
+    for name, value in {
+        "GITHUB_CLIENT_ID": "id",
+        "GITHUB_CLIENT_SECRET": "secret",
+        "JWT_SIGNING_KEY": "k" * 32,
+    }.items():
         monkeypatch.setattr(config, name, value)
-    from key_value.aio.stores.memory import MemoryStore
-
     monkeypatch.setattr(auth_module, "PostgreSQLStore", lambda url: MemoryStore())
     monkeypatch.setattr(config, "STORAGE_ENCRYPTION_KEY", "e" * 32)
     provider = auth_module.build_auth()
@@ -115,8 +144,24 @@ def test_browser_clients_registered(monkeypatch):
 
     async def main():
         await auth_module.register_browser_clients()
+
+        if provider is None:
+            pytest.fail("Expected provider to be initialized")
+
         return [await provider.get_client(c) for c in ("web", "swagger-ui")]
 
     web, swagger = asyncio.run(main())
+
+    if web is None or swagger is None:
+        pytest.fail("Expected browser clients to be registered")
+
+    if web.redirect_uris is None:
+        pytest.fail("Expected web client to have redirect URIs")
+
+    if swagger.redirect_uris is None:
+        pytest.fail("Expected swagger client to have redirect URIs")
+
     assert [str(u) for u in web.redirect_uris] == [f"{config.APP_URL}/"]
-    assert [str(u) for u in swagger.redirect_uris] == [f"{config.APP_URL}/docs/oauth2-redirect"]
+    assert [str(u) for u in swagger.redirect_uris] == [
+        f"{config.APP_URL}/docs/oauth2-redirect"
+    ]

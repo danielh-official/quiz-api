@@ -124,7 +124,7 @@ def next_new(db: Session, user: User, decks: dict[int, Deck], root_id: int, now:
 
 
 def start_session(db: Session, user: User, deck_id: int, size: int | None = None) -> dict[str, Any]:
-    from app.services.stats import counts
+    from app.services.stats import counts  # pylint: disable=import-outside-toplevel  # import cycle
 
     deck = get_deck(db, user, deck_id)
     session = StudySession(user_id=user.id, deck_id=deck.id, size=max(1, min(size or deck.session_size, 500)), answered=0)

@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from app import config
 
 engine = create_engine(config.DATABASE_URL.replace("postgresql://", "postgresql+psycopg://", 1), pool_pre_ping=True)
-SessionLocal = sessionmaker(engine, expire_on_commit=False)
+SessionLocal = sessionmaker(engine, expire_on_commit=False)  # pylint: disable=invalid-name  # SQLAlchemy convention
 
 
 def get_db() -> Iterator[Session]:

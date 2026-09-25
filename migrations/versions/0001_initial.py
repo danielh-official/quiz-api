@@ -4,6 +4,7 @@ Revision ID: 0001
 Revises: 
 """
 
+# pylint: disable=invalid-name  # alembic requires these module and variable names
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql

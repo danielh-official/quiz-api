@@ -52,7 +52,8 @@ def counts(db: Session, user: User, decks: dict[int, Deck]) -> dict[int, dict[st
     return out
 
 
-def performance(db: Session, user: User, deck_id: int | None = None) -> dict[str, Any]:
+def performance(  # pylint: disable=too-many-locals
+    db: Session, user: User, deck_id: int | None = None) -> dict[str, Any]:
     """Counts, calibration, misconceptions, leeches and notes for one deck (with subdecks) or everything."""
     decks = user_decks(db, user)
     per = counts(db, user, decks)

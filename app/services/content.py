@@ -85,7 +85,7 @@ def deck_dict(deck: Deck) -> dict[str, Any]:
 
 def list_decks(db: Session, user: User) -> list[dict[str, Any]]:
     """Every deck, depth-first, with due/new/total counts that include subdecks."""
-    from app.services.stats import counts
+    from app.services.stats import counts  # pylint: disable=import-outside-toplevel  # import cycle
 
     decks = user_decks(db, user)
     per_deck = counts(db, user, decks)
@@ -103,7 +103,7 @@ def list_decks(db: Session, user: User) -> list[dict[str, Any]]:
 
 def deck_detail(db: Session, user: User, deck_id: int, page: int = 1) -> dict[str, Any]:
     """Deck settings, path, direct subdecks and a page of its own questions (with answers)."""
-    from app.services.stats import counts
+    from app.services.stats import counts  # pylint: disable=import-outside-toplevel  # import cycle
 
     deck = get_deck(db, user, deck_id)
     decks = user_decks(db, user)

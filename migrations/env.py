@@ -4,7 +4,7 @@ from app.db import engine
 from app.models import Base
 
 
-def include_object(obj, name, type_, reflected, compare_to):
+def include_object(_obj, name, _type, _reflected, _compare_to):
     return name != "kv_store"  # FastMCP OAuth storage manages its own table
 
 

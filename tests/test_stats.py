@@ -42,4 +42,4 @@ def test_users_are_isolated(db, user, other):
     answer(db, user, study.start_session(db, user, deck.id)["session_id"], q)
 
     assert stats.performance(db, other)["counts"] == {"due": 0, "new": 0, "total": 0}
-    assert content.list_decks(db, other) == []
+    assert not content.list_decks(db, other)

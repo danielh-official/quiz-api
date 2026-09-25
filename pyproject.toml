@@ -36,9 +36,26 @@ pythonpath = ["."]
 source-roots = ["."]
 init-hook = "import sys; sys.path.append('tests')"
 
+[tool.pylint.format]
+max-line-length = 130
+
 [tool.pylint.messages_control]
-# False positive on SQLAlchemy's func.count() / func.now().
-disable = ["not-callable"]
+disable = [
+    "not-callable",  # false positive on SQLAlchemy's func.count() / func.now()
+    "missing-module-docstring",  # docstrings only where they add something
+    "missing-class-docstring",
+    "missing-function-docstring",
+    "too-few-public-methods",  # ORM and pydantic models
+    "redefined-outer-name",  # pytest fixtures
+    "cyclic-import",  # content/stats/study import each other; the back-edges are lazy imports
+]
+
+[tool.pylint.design]
+max-args = 8  # MCP tool signatures are the tool schema
+max-positional-arguments = 8
+
+[tool.pylint.variables]
+allowed-redefined-builtins = ["type"]  # question "type" is an API field name
 
 [tool.pylint.typecheck]
 # Dynamic attributes pylint can't see: SQLAlchemy's func.* and alembic's op/context proxies.

@@ -3,7 +3,7 @@ from conftest import answer, make_deck, make_questions, question_in
 from pydantic import ValidationError
 
 from app.models import Review
-from app.schemas import OptionIn, QuestionIn, QuestionUpdate
+from app.schemas import AnswerIn, OptionIn, QuestionIn, QuestionUpdate
 from app.services import NotFound, content, study
 
 
@@ -63,7 +63,6 @@ def test_grading_is_exact_match(db, user):
     right = next(o["id"] for o in q.options if o["correct"])
     wrong = next(o["id"] for o in q.options if not o["correct"])
     one_right_one_wrong = [right, wrong]
-    from app.schemas import AnswerIn
 
     result = study.submit_answer(
         db, user, session["session_id"], AnswerIn(question_id=q.id, selected=one_right_one_wrong, confidence="confident")

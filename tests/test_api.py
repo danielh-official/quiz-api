@@ -66,7 +66,7 @@ def test_study_loop_over_rest(client):
     assert client.get(f"/sessions/{session['session_id']}/next").json()["finished"] is True
 
 
-def test_invalid_batch_creates_nothing(client, db):
+def test_invalid_batch_creates_nothing(client):
     login_as()
     deck = client.post("/decks", json={"name": "AWS"}).json()
     bad = question_in("bad").model_dump()

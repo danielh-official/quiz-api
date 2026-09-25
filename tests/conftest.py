@@ -4,6 +4,7 @@ os.environ["DATABASE_URL"] = os.environ.get("TEST_DATABASE_URL", "postgresql://q
 for name in ("GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET"):
     os.environ.pop(name, None)  # auth stays off; tests stub the token layer
 
+# pylint: disable=wrong-import-position  # env vars above must be set before app modules import config
 import pytest
 from alembic import command
 from alembic.config import Config
@@ -11,7 +12,7 @@ from sqlalchemy.orm import sessionmaker
 
 from app import config, db as db_module, mcp as mcp_module
 from app.models import User
-from app.schemas import AnswerIn, OptionIn, QuestionIn
+from app.schemas import AnswerIn, DeckCreate, OptionIn, QuestionIn
 from app.services import content, study
 
 
@@ -68,8 +69,6 @@ def question_in(stem="Q", type="single", correct=None) -> QuestionIn:
 
 
 def make_deck(db, user, name="Deck", **fields):
-    from app.schemas import DeckCreate
-
     return content.create_deck(db, user, DeckCreate(name=name, **fields))
 
 
