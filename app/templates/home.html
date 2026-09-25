@@ -1,6 +1,11 @@
 {% extends "layout.html" %}
 {% block content %}
-{% if user %}
+{% if mock %}
+<div class="card row">
+    <div>Dev mode: signed in as <strong>@{{ user.login }}</strong>. GitHub sign-in is mocked because no GitHub
+        credentials are set.</div>
+</div>
+{% elif user %}
 <div class="card row">
     <div>Signed in as <strong>@{{ user.login }}</strong> <span class="muted">· timezone {{ user.timezone }}</span></div>
     <form method="post" action="/logout"><button class="link">Sign out</button></form>
@@ -55,7 +60,9 @@
 <p>Browse and try every endpoint in the interactive docs (click <em>Authorize</em> to sign in there too),
     or call it with your access token.</p>
 <p><a class="button" href="/docs" target="_blank">Open API docs</a></p>
-{% if user %}
+{% if mock %}
+<p class="muted">Sign-in is mocked, so REST requests need no token.</p>
+{% elif user %}
 <label for="token">Bearer token</label>
 <div class="token"><input id="token" type="password" readonly value="{{ token }}" data-copy></div>
 <p class="warn">Treat this like a password: anyone with it can read and change your quizzes.</p>

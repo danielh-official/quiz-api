@@ -71,7 +71,13 @@ def to_home() -> RedirectResponse:
 
 def home_page(user: User | None, token: str = "", error: str | None = None, status_code: int = 200) -> HTMLResponse:
     return render(
-        "home.html", status_code, user=user, token=token, error=error, plugin_marketplace=config.PLUGIN_MARKETPLACE
+        "home.html",
+        status_code,
+        user=user,
+        token=token,
+        error=error,
+        plugin_marketplace=config.PLUGIN_MARKETPLACE,
+        mock=auth_module.MOCK,
     )
 
 
