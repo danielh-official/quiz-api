@@ -69,8 +69,5 @@ Pushes to `main` deploy to AWS Lambda through `.github/workflows/deploy.yml` aft
 ## Conventions
 
 - `ponytail:` comments mark deliberate simplifications and name the upgrade path.
-- Skipped on purpose; don't add unasked: per-user rate limiting in the app (the API Gateway throttle in `infra/` is
-  only a cost ceiling), OAuth scopes, personal access tokens, Google sign-in (needs a custom FastMCP
-  `OAuthProvider`), deck sharing, and running more than one instance (migrations run on every start).
 - Changing the plugin's MCP URL: edit `plugins/quiz-api/.mcp.json`, bump `version` in `plugin.json`, then run
   `claude plugin validate plugins/quiz-api`.
