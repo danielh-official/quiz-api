@@ -42,9 +42,28 @@ encrypted. The same bearer tokens work for `/mcp` and for the REST API. The sign
 
 ## Connect an AI
 
-- **Claude Code**: run `claude mcp add --transport http quiz-api http://localhost:8000/mcp`, then `/mcp` to sign in.
+- **Claude Code**: install the plugin (below), or run
+  `claude mcp add --transport http quiz-api http://localhost:8000/mcp`. Then run `/mcp` to sign in.
 - **Claude.ai**: add a custom connector with `<APP_URL>/mcp`. Claude.ai needs a public HTTPS `APP_URL`.
 - **ChatGPT**: turn on developer mode, then create a connector with `<APP_URL>/mcp` and OAuth.
+
+### Claude Code plugin
+
+`plugins/quiz-api/` bundles the MCP server config (`.mcp.json`) and the `quiz-api` skill, which covers the study
+loop, writing good questions and reviewing progress. `.claude-plugin/marketplace.json` makes this repo a plugin
+marketplace.
+
+```bash
+claude plugin marketplace add /Users/danielh/GitHub/quiz-api   # or owner/repo once it's on GitHub
+claude plugin install quiz-api@quiz-api
+```
+
+The plugin points at `http://localhost:8000/mcp`. Change the URL in `plugins/quiz-api/.mcp.json` once the server
+is deployed, and bump `version` in `plugin.json` so installs pick it up. Validate with
+`claude plugin validate plugins/quiz-api`.
+
+For Claude.ai or ChatGPT, zip the skill folder (`cd plugins/quiz-api/skills && zip -r quiz-api.zip quiz-api`)
+and upload it under Skills.
 
 ## REST API
 

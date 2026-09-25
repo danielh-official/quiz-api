@@ -1,0 +1,17 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "quiz-api",
+  "description": "Quiz API plugins for Claude Code.",
+  "owner": {
+    "name": "Daniel (Haven) Hotyanov",
+    "url": "https://github.com/danielh-official"
+  },
+  "plugins": [
+    {
+      "name": "quiz-api",
+      "description": "Study and write spaced-repetition multiple-choice quizzes with Quiz API.",
+      "source": "./plugins/quiz-api",
+      "category": "productivity"
+    }
+  ]
+}
