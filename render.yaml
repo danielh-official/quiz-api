@@ -1,0 +1,25 @@
+# Render Blueprint: New > Blueprint, pick this repo. Postgres lives on Neon (Render's free db expires).
+services:
+  - type: web
+    name: quiz-api
+    runtime: docker  # builds the Dockerfile's last stage (prod); migrations run on start
+    plan: free
+    region: oregon  # keep next to the Neon db (AWS us-west-2)
+    healthCheckPath: /up
+    envVars:
+      - key: APP_URL  # https://<service>.onrender.com, no trailing slash
+        sync: false
+      - key: DATABASE_URL  # Neon direct (non-pooled) URL, without &channel_binding=require (asyncpg rejects it)
+        sync: false
+      - key: GITHUB_CLIENT_ID
+        sync: false
+      - key: GITHUB_CLIENT_SECRET
+        sync: false
+      - key: ALLOWED_USERS
+        sync: false
+      - key: PLUGIN_MARKETPLACE
+        sync: false
+      - key: JWT_SIGNING_KEY
+        generateValue: true
+      - key: STORAGE_ENCRYPTION_KEY
+        generateValue: true
