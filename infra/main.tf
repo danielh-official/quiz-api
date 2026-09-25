@@ -51,10 +51,13 @@ variable "plugin_marketplace" {
   type    = string
   default = ""
 }
-variable "github_repo" {
-  type        = string
-  default     = "danielh-official/quiz-api"
-  description = "owner/name of the repo whose main branch may deploy (.github/workflows/deploy.yml)"
+variable "github_subject_prefix" {
+  type    = string
+  default = "repo:danielh-official@49914607/quiz-api@1387401042"
+  # The OIDC subject of the repo whose main branch may deploy (.github/workflows/deploy.yml). This repo uses GitHub's
+  # immutable subjects (owner and repo IDs), so a renamed or re-created repo can't take over the role. Look it up with
+  # `gh api repos/OWNER/REPO/actions/oidc/customization/sub` (sub_claim_prefix).
+  description = "GitHub OIDC subject prefix of the deploying repo"
 }
 variable "budget_email" {
   type        = string
@@ -249,7 +252,7 @@ resource "aws_iam_role" "github_deploy" {
       Condition = {
         StringEquals = {
           "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-          "token.actions.githubusercontent.com:sub" = "repo:${var.github_repo}:ref:refs/heads/main"
+          "token.actions.githubusercontent.com:sub" = "${var.github_subject_prefix}:ref:refs/heads/main"
         }
       }
     }]
