@@ -65,7 +65,7 @@ def test_home_signed_in(client: TestClient) -> None:
     signed_in(client)
     response = client.get("/")
     assert "@alice" in response.text and 'action="/logout"' in response.text
-    assert "Bearer the-token" in response.text and 'action="/login"' not in response.text
+    assert 'type="password" readonly value="the-token"' in response.text and 'action="/login"' not in response.text
     assert response.headers["cache-control"] == "no-store"
 
 

@@ -42,9 +42,7 @@
   <h2>3. Use the REST API directly</h2>
   <p>Browse and try every endpoint at <a href="/docs">/docs</a> (click <em>Authorize</em> to sign in there too),
     or call it with your access token.</p>
-  <!--if:signed-in--><details>
-    <summary>Show my access token</summary>
-    <p class="warn">Treat this like a password: anyone with it can read and change your quizzes.</p>
-    <pre data-copy>curl -H "Authorization: Bearer {{TOKEN}}" {{APP_URL}}/decks</pre>
-  </details><!--/if:signed-in-->
+  <!--if:signed-in--><label for="token">Bearer token</label>
+  <div class="token"><input id="token" type="password" readonly value="{{TOKEN}}" data-copy></div>
+  <p class="warn">Treat this like a password: anyone with it can read and change your quizzes.</p><!--/if:signed-in-->
   <!--if:signed-out--><p class="muted">Sign in above to see your access token.</p><!--/if:signed-out-->
