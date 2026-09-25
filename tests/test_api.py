@@ -43,6 +43,12 @@ def test_no_github_creds_off_localhost_refuses_to_start(monkeypatch: pytest.Monk
         auth_module.build_auth()
 
 
+def test_no_github_creds_in_production_refuses_to_start_even_on_localhost(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(config, "APP_ENV", "production")
+    with pytest.raises(RuntimeError, match="GITHUB_CLIENT_ID"):
+        auth_module.build_auth()
+
+
 def test_login_not_allowlisted_is_403(client: TestClient, db: Session) -> None:
     login_as("mallory")
     assert client.get("/me").status_code == 403

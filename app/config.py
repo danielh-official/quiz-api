@@ -2,6 +2,8 @@ import os
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://quiz:secret@localhost:5433/quiz")
 APP_URL = os.environ.get("APP_URL", "http://localhost:8000").rstrip("/")
+# "production" in the prod image: GitHub sign-in is then required even if APP_URL says localhost.
+APP_ENV = os.environ.get("APP_ENV", "")
 
 GITHUB_CLIENT_ID = os.environ.get("GITHUB_CLIENT_ID", "")
 GITHUB_CLIENT_SECRET = os.environ.get("GITHUB_CLIENT_SECRET", "")

@@ -21,8 +21,9 @@ Postgres listens on `localhost:5433`, with two databases: `quiz` and `test`. Mig
 container starts.
 
 Locally, sign-in is mocked: with no GitHub credentials in `.env` and `APP_URL` on localhost, every request (REST,
-MCP and the web pages) is the user `dev`, with no token or GitHub round trip. Any other `APP_URL` without GitHub
-credentials refuses to start, so production can't end up open by accident.
+MCP and the web pages) is the user `dev`, with no token or GitHub round trip. Without GitHub credentials, the server
+refuses to start on any other `APP_URL`, and always in the production image (`APP_ENV=production` in the Dockerfile),
+so production can't end up open by accident.
 
 - http://localhost:8000/ is the home page: how to connect an AI, plus your account (and, with real sign-in, your
   access token for the REST API).

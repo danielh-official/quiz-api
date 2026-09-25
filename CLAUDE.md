@@ -35,8 +35,8 @@ mypy and pylint aren't dev dependencies; run them with `--with` as above. Migrat
   in a `kv_store` table (auto-created, not in Alembic). One bearer token works for REST and MCP. `resolve_user`
   checks `ALLOWED_USERS`, then upserts the user keyed by GitHub's numeric `sub`, not the login. Without
   `GITHUB_CLIENT_ID`/`SECRET` on a localhost `APP_URL`, `auth` is `None` and `MOCK` is on: `token_claims` and
-  `mcp.caller()` return `MOCK_CLAIMS` (user `dev`, allowlist skipped). Without them anywhere else, `build_auth`
-  raises at startup. Tests turn `MOCK` off in conftest; mock tests turn it back on.
+  `mcp.caller()` return `MOCK_CLAIMS` (user `dev`, allowlist skipped). Without them anywhere else, or with
+  `APP_ENV=production` (set in the Dockerfile's prod stage), `build_auth` raises at startup. Tests turn `MOCK` off in conftest; mock tests turn it back on.
 - **Web (`app/web.py`, `app/templates/`)**: server-rendered Jinja pages. `/login` runs the PKCE flow server-side as
   the pre-registered `web` client and stores the token in the HttpOnly `quiz_session` cookie.
 - **Study (`app/services/study.py`)**: FSRS with no learning steps, so every interval is whole days. The rating

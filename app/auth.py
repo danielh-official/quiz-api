@@ -24,10 +24,12 @@ from app.services import Forbidden
 
 
 def build_auth() -> GitHubProvider | None:
-    """None when GitHub isn't configured, which is only allowed on localhost (mocked sign-in, see MOCK)."""
+    """None when GitHub isn't configured, which is only allowed locally (mocked sign-in, see MOCK)."""
     if not (config.GITHUB_CLIENT_ID and config.GITHUB_CLIENT_SECRET):
-        if urlsplit(config.APP_URL).hostname not in ("localhost", "127.0.0.1"):
-            raise RuntimeError("GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET must be set when APP_URL isn't localhost.")
+        if config.APP_ENV == "production" or urlsplit(config.APP_URL).hostname not in ("localhost", "127.0.0.1"):
+            raise RuntimeError(
+                "GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET must be set in production and when APP_URL isn't localhost."
+            )
         return None
     for name in ("JWT_SIGNING_KEY", "STORAGE_ENCRYPTION_KEY"):
         if not getattr(config, name):
