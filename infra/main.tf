@@ -51,6 +51,11 @@ variable "plugin_marketplace" {
   type    = string
   default = ""
 }
+variable "github_repo" {
+  type        = string
+  default     = "danielh-official/quiz-api"
+  description = "owner/name of the repo whose main branch may deploy (.github/workflows/deploy.yml)"
+}
 variable "budget_email" {
   type        = string
   default     = ""
@@ -126,6 +131,10 @@ resource "aws_lambda_function" "app" {
       AWS_LWA_ASYNC_INIT           = "true" # migrations + imports may outlast Lambda's 10s init phase
       HOME                         = "/tmp" # the only writable path; Lambda's user has no home directory
     }
+  }
+
+  lifecycle {
+    ignore_changes = [image_uri] # CI and deploy/aws.sh ship code; image_uri only matters when creating the function
   }
 
   depends_on = [aws_cloudwatch_log_group.lambda, aws_iam_role_policy_attachment.logs]
@@ -221,6 +230,55 @@ resource "cloudflare_dns_record" "app" {
   comment = "Quiz API on AWS (Terraform, quiz-api)"
 }
 
+# CI deploys: GitHub Actions on the repo's main branch trades its OIDC token for this role, which can only push to the
+# ECR repository and point the function at a new image. No AWS keys live in GitHub.
+
+resource "aws_iam_openid_connect_provider" "github" {
+  url            = "https://token.actions.githubusercontent.com"
+  client_id_list = ["sts.amazonaws.com"]
+}
+
+resource "aws_iam_role" "github_deploy" {
+  name = "${local.name}-github-deploy"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Federated = aws_iam_openid_connect_provider.github.arn }
+      Action    = "sts:AssumeRoleWithWebIdentity"
+      Condition = {
+        StringEquals = {
+          "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
+          "token.actions.githubusercontent.com:sub" = "repo:${var.github_repo}:ref:refs/heads/main"
+        }
+      }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "github_deploy" {
+  role = aws_iam_role.github_deploy.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      { Effect = "Allow", Action = "ecr:GetAuthorizationToken", Resource = "*" },
+      {
+        Effect = "Allow"
+        Action = [
+          "ecr:BatchCheckLayerAvailability", "ecr:BatchGetImage", "ecr:CompleteLayerUpload",
+          "ecr:InitiateLayerUpload", "ecr:PutImage", "ecr:UploadLayerPart",
+        ]
+        Resource = aws_ecr_repository.app.arn
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["lambda:GetFunction", "lambda:GetFunctionConfiguration", "lambda:UpdateFunctionCode"]
+        Resource = aws_lambda_function.app.arn
+      },
+    ]
+  })
+}
+
 # AWS has no hard spending cap: email when the month's spend passes $1 or is forecast to pass $5. Counts only the
 # services this stack uses, so the rest of the account's bill (subscriptions, other projects) doesn't trip it.
 # ponytail: filters by service, so another project's Lambda or API Gateway spend counts too; tag the resources and
@@ -264,6 +322,10 @@ resource "aws_budgets_budget" "monthly" {
 
 output "repository_url" {
   value = aws_ecr_repository.app.repository_url
+}
+
+output "github_deploy_role_arn" {
+  value = aws_iam_role.github_deploy.arn
 }
 
 output "url" {

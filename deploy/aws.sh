@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
-# Build the prod image, push it to ECR and apply infra/ with Terraform. Settings come from .env.aws (gitignored):
-# DOMAIN_NAME, DATABASE_URL, GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, JWT_SIGNING_KEY, STORAGE_ENCRYPTION_KEY,
-# ALLOWED_USERS, CLOUDFLARE_API_TOKEN, and optionally PLUGIN_MARKETPLACE and BUDGET_EMAIL.
+# Apply infra/ with Terraform and deploy the local checkout's prod image. Pushes to main deploy through CI instead
+# (.github/workflows/deploy.yml): run this for infrastructure changes, or to ship without pushing.
+# Settings come from .env.aws (gitignored): DOMAIN_NAME, DATABASE_URL, GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET,
+# JWT_SIGNING_KEY, STORAGE_ENCRYPTION_KEY, ALLOWED_USERS, CLOUDFLARE_API_TOKEN, and optionally PLUGIN_MARKETPLACE
+# and BUDGET_EMAIL.
 set -euo pipefail
 umask 077 # the Terraform state holds secrets: keep new files private
 cd "$(dirname "$0")/.."
@@ -28,4 +30,6 @@ docker build --platform linux/arm64 --provenance=false --target prod -t "$repo:l
 docker push "$repo:latest"
 image=$(docker inspect --format '{{index .RepoDigests 0}}' "$repo:latest") # by digest, so a new image redeploys
 
-tf apply -var "image_uri=$image"
+tf apply -var "image_uri=$image" # infrastructure; creates the function on the first run
+aws lambda update-function-code --function-name quiz-api --image-uri "$image" --query LastUpdateStatus --output text
+aws lambda wait function-updated-v2 --function-name quiz-api
