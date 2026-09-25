@@ -106,6 +106,12 @@ Don't skip `update-session` either, even for a quick session.
 recent misconceptions, leeches (questions forgotten repeatedly) and the user's notes. Use it to suggest what to
 study next, to rewrite unclear leeches, or to write new questions targeting weak spots.
 
+For "am I ready for the exam?", pass `exam_date` and read `readiness`: `seen` of `questions` is coverage,
+`predicted_recall` is the FSRS chance of remembering a seen question on that day, and `expected_score` counts
+unseen questions as wrong. `by_deck` splits it per subdeck. Combine it with calibration and misconceptions (a high
+recall with many confident misses means the scheduler hasn't caught up yet), name the weakest subdecks, and say
+how many days of study are left and how many unseen questions that means per day.
+
 ## Limits
 
 There are no delete tools — deleting decks or questions is done by the user through the REST API.
