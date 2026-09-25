@@ -105,7 +105,9 @@ database.
 Cost for a personal instance is close to $0: Lambda's always-free allowance (1M requests and 400,000 GB-seconds a
 month) covers it, the HTTP API is $1 per million requests, and ECR keeps only the last 3 images (about $0.10 per
 GB-month). AWS has no hard spending cap; set `BUDGET_EMAIL` to get an email when a month passes $1 or is forecast
-to pass $5.
+to pass $5. The HTTP API throttles to 5 requests per second (bursts of 20), so a bot flood gets 429s at the gateway
+instead of running the function: the worst case stays a few dollars a day rather than unbounded. This is a cost
+ceiling at the edge, not per-user rate limiting in the app.
 
 1. Install the AWS CLI, Terraform and Docker, and sign in with `aws login`.
 2. Create a Cloudflare API token with **Zone → DNS → Edit** on your zone only.

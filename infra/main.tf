@@ -168,6 +168,13 @@ resource "aws_apigatewayv2_stage" "app" {
   api_id      = aws_apigatewayv2_api.app.id
   name        = "$default"
   auto_deploy = true
+
+  # Cost ceiling against bots: requests over the limit get a 429 here and never run the function. The gateway may
+  # still bill them at $1 per million. One person studying stays far below this.
+  default_route_settings {
+    throttling_rate_limit  = 5  # requests per second, sustained
+    throttling_burst_limit = 20 # short bursts, e.g. a client firing several tool calls at once
+  }
 }
 
 resource "aws_lambda_permission" "api" {
