@@ -10,7 +10,7 @@ from typing import Annotated, Any
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, Request
-from fastapi.responses import HTMLResponse, RedirectResponse, Response
+from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse, Response
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
@@ -94,6 +94,12 @@ def home(claims: Claims, user: SessionUser) -> HTMLResponse:
     if claims is not None and user is None:  # valid token, but no longer allowlisted
         response.delete_cookie(SESSION_COOKIE)
     return response
+
+
+@router.get("/robots.txt", response_class=PlainTextResponse)
+def robots() -> str:
+    """Keep crawlers off: a sign-in page on a shared host domain is what phishing scanners go looking for."""
+    return "User-agent: *\nDisallow: /\n"
 
 
 @router.get("/token", response_model=None)

@@ -12,9 +12,9 @@
 </div>
 {% else %}
 <div class="card row">
-    <div>Sign in with GitHub to create your account and get an access token.
-        Access is limited to approved GitHub users.</div>
-    <form method="post" action="/login"><button class="button">Sign in with GitHub</button></form>
+    <div>A personal instance: only its owner's approved GitHub accounts can use it. To use Quiz API yourself, run
+        your own copy (below).</div>
+    <form method="post" action="/login"><button class="link">Owner sign-in</button></form>
 </div>
 {% endif %}
 {% if error %}
@@ -26,13 +26,14 @@
 <ol>
     <li>Fork <a href="https://github.com/danielh-official/quiz-api" target="_blank">danielh-official/quiz-api</a>.</li>
     <li>Create a Postgres database (for example a free <a href="https://neon.tech" target="_blank">Neon</a> project).</li>
-    <li>Deploy the repo's Dockerfile. On <a href="https://render.com" target="_blank">Render</a>, New → Blueprint picks
-        up <code>render.yaml</code>.</li>
+    <li>Deploy the repo's Dockerfile to <a href="https://render.com" target="_blank">Render</a>,
+        <a href="https://railway.com" target="_blank">Railway</a> or <a href="https://fly.io" target="_blank">Fly</a>,
+        ideally on your own domain. The README has steps for each, and how to avoid being mistaken for phishing.</li>
     <li>Create a GitHub OAuth app with your server's URL as the homepage and <code>&lt;URL&gt;/auth/callback</code> as
         the callback.</li>
     <li>Set <code>APP_URL</code>, <code>DATABASE_URL</code>, <code>GITHUB_CLIENT_ID</code>,
-        <code>GITHUB_CLIENT_SECRET</code> and <code>ALLOWED_USERS</code> (your GitHub login). Render generates the
-        signing and encryption keys for you.</li>
+        <code>GITHUB_CLIENT_SECRET</code>, <code>ALLOWED_USERS</code> (your GitHub login),
+        <code>JWT_SIGNING_KEY</code> and <code>STORAGE_ENCRYPTION_KEY</code>.</li>
 </ol>
 <p class="muted">The README covers local development and every setting.</p>
 
@@ -76,8 +77,6 @@
     or call it with your access token.</p>
 <p><a class="button" href="/docs" target="_blank">Open API docs</a></p>
 {% if user %}
-<p><a class="button" href="/token">Show my access token</a></p>
-{% else %}
-<p class="muted">Sign in above to see your access token.</p>
+<p><a href="/token">Your REST API token</a></p>
 {% endif %}
 {% endblock %}

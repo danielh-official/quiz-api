@@ -4,6 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
     <title>Quiz API</title>
     <style>
         :root {
@@ -132,23 +133,6 @@
             right: 8px;
         }
 
-        .token {
-            display: flex;
-            gap: 8px;
-            margin: 8px 0;
-        }
-
-        .token input {
-            flex: 1;
-            min-width: 0;
-            background: var(--code);
-            color: var(--text);
-            border: 0;
-            border-radius: 8px;
-            padding: 10px 12px;
-            font: 14px ui-monospace, SFMono-Regular, Menlo, monospace;
-        }
-
         a {
             color: var(--accent);
         }
@@ -186,11 +170,13 @@
         <h1>Quiz API</h1>
         <p class="muted">Spaced-repetition quizzes you study and write with Claude, ChatGPT or any MCP client.</p>
         {% block content %}{% endblock %}
+        <p class="muted">Open source: <a href="https://github.com/danielh-official/quiz-api">danielh-official/quiz-api</a>.
+            Not affiliated with GitHub, Anthropic or OpenAI.</p>
     </main>
     <script>
         // Copy buttons: the only client-side behaviour.
         document.querySelectorAll("[data-copy]").forEach((el) => {
-            const text = el.value ?? el.textContent;  // <input> or <pre>
+            const text = el.textContent;
             const button = document.createElement("button");
             button.type = "button";
             button.className = "copy";
@@ -200,7 +186,7 @@
                 button.textContent = "Copied";
                 setTimeout(() => (button.textContent = "Copy"), 1500);
             };
-            el.tagName === "INPUT" ? el.after(button) : el.append(button);
+            el.append(button);
         });
     </script>
 </body>

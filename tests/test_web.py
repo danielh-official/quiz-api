@@ -52,6 +52,11 @@ def test_home_signed_out(client: TestClient) -> None:
     assert f"{config.APP_URL}/mcp" in page and 'href="/docs"' in page and "{{" not in page and "{%" not in page
     assert "claude plugin install" not in page  # no marketplace configured
     assert "sessionStorage" not in page and "fetch(" not in page  # no client-side rendering
+    assert "noindex" in page and "Sign in with GitHub" not in page  # sign-in isn't the page's call to action
+
+
+def test_robots_disallows_everything(client: TestClient) -> None:
+    assert client.get("/robots.txt").text == "User-agent: *\nDisallow: /\n"
 
 
 def test_home_shows_plugin_when_marketplace_set(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -72,13 +77,14 @@ def test_home_signed_in(client: TestClient) -> None:
 def test_token_page_shows_token(client: TestClient) -> None:
     signed_in(client)
     response = client.get("/token")
-    assert 'type="password" readonly value="the-token"' in response.text and "@alice" in response.text
+    assert "<pre data-copy>the-token</pre>" in response.text and "@alice" in response.text
+    assert 'type="password"' not in response.text  # password fields off a sign-in page read as credential harvesting
     assert response.headers["cache-control"] == "no-store"
 
 
 def test_token_page_shows_placeholder_when_mocked(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(auth_module, "MOCK", True)
-    assert f'value="{web.MOCK_TOKEN}"' in client.get("/token").text
+    assert f"<pre data-copy>{web.MOCK_TOKEN}</pre>" in client.get("/token").text
 
 
 def test_token_page_signed_out_goes_home(client: TestClient) -> None:
