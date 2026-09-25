@@ -60,7 +60,9 @@ def test_grading_is_exact_match(db, user):
     deck = make_deck(db, user)
     q = content.create_questions(db, user, deck.id, [question_in("S2", "select_two")])[0]
     session = study.start_session(db, user, deck.id)
-    one_right_one_wrong = [q.options[0]["id"], q.options[4]["id"]]
+    right = next(o["id"] for o in q.options if o["correct"])
+    wrong = next(o["id"] for o in q.options if not o["correct"])
+    one_right_one_wrong = [right, wrong]
     from app.schemas import AnswerIn
 
     result = study.submit_answer(
