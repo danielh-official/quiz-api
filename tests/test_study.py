@@ -155,3 +155,15 @@ def test_reset_progress_keeps_note_and_suspension(db, user):
     db.refresh(card)
     assert card.last_reviewed_at is None and card.reps == 0
     assert card.note == "mine" and card.suspended_at is not None
+
+
+def test_next_question_puts_answer_in_every_position(db, user):
+    deck = make_deck(db, user)
+    [q] = make_questions(db, user, deck)
+    correct = next(o["id"] for o in q.options if o["correct"])
+    session = start(db, user, deck)
+    seen = {
+        [o["id"] for o in study.next_question(db, user, session)["question"]["options"]].index(correct)
+        for _ in range(200)
+    }
+    assert seen == {0, 1, 2, 3}

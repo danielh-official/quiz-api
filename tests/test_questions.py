@@ -30,7 +30,7 @@ def test_option_texts_must_be_distinct():
 def test_option_ids_survive_reordering_and_edits(db, user):
     deck = make_deck(db, user)
     [q] = make_questions(db, user, deck)
-    original = {o["text"]: o["id"] for o in q.options}
+    stored = [o["id"] for o in q.options]
     reordered = [OptionIn(**o) for o in reversed(q.options)]
     reordered[0].text = "Edited text"  # keeps its id
     reordered[1] = OptionIn(text="Brand new", correct=reordered[1].correct)  # no id -> fresh id
@@ -38,9 +38,9 @@ def test_option_ids_survive_reordering_and_edits(db, user):
     updated = content.update_question(db, user, q.id, QuestionUpdate(options=reordered))
 
     ids = [o["id"] for o in updated.options]
-    assert ids[0] == original["Q0 option 3"]
-    assert ids[1] not in original.values()
-    assert ids[2:] == [original["Q0 option 1"], original["Q0 option 0"]]
+    assert ids[0] == stored[3]
+    assert ids[1] not in stored
+    assert ids[2:] == [stored[1], stored[0]]
     assert len(set(ids)) == 4
 
 
@@ -101,3 +101,13 @@ def test_search_matches_option_text_not_json_keys(db, user):
     make_questions(db, user, deck, 2)
     assert len(content.search_questions(db, user, "Q1 option")["questions"]) == 1
     assert content.search_questions(db, user, "correct")["questions"] == []
+
+
+def correct_positions(options) -> set[int]:
+    return {i for i, o in enumerate(options) if o["correct"]}
+
+
+def test_stored_option_order_is_shuffled(db, user):
+    deck = make_deck(db, user)
+    questions = make_questions(db, user, deck, 40)  # authored with the answer always first
+    assert len({min(correct_positions(q.options)) for q in questions}) > 1

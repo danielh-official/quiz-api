@@ -206,7 +206,8 @@ def create_questions(db: Session, user: User, deck_id: int, items: list[Question
             deck_id=deck.id,
             type=item.type,
             stem=item.stem,
-            options=option_rows(item.options, set()),
+            # Authors (LLMs especially) tend to put the answer first; don't let stored order leak it.
+            options=option_rows(random.sample(item.options, len(item.options)), set()),
             explanation=item.explanation,
         )
         for item in items
