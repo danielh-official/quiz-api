@@ -4,7 +4,7 @@ services:
     name: quiz-api
     runtime: docker  # builds the Dockerfile's last stage (prod); migrations run on start
     plan: free
-    region: oregon  # keep next to the Neon db (AWS us-west-2)
+    region: virginia  # keep next to the Neon db (AWS us-east-1)
     healthCheckPath: /up
     envVars:
       - key: APP_URL  # https://<service>.onrender.com, no trailing slash
