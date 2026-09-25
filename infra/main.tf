@@ -221,7 +221,10 @@ resource "cloudflare_dns_record" "app" {
   comment = "Quiz API on AWS (Terraform, quiz-api)"
 }
 
-# AWS has no hard spending cap: email when the month's spend passes $1 or is forecast to pass $5.
+# AWS has no hard spending cap: email when the month's spend passes $1 or is forecast to pass $5. Counts only the
+# services this stack uses, so the rest of the account's bill (subscriptions, other projects) doesn't trip it.
+# ponytail: filters by service, so another project's Lambda or API Gateway spend counts too; tag the resources and
+# filter on an activated cost allocation tag if that ever matters.
 
 resource "aws_budgets_budget" "monthly" {
   count        = var.budget_email == "" ? 0 : 1
@@ -230,6 +233,17 @@ resource "aws_budgets_budget" "monthly" {
   limit_amount = "5"
   limit_unit   = "USD"
   time_unit    = "MONTHLY"
+
+  cost_filter {
+    name = "Service" # names as Cost Explorer shows them
+    values = [
+      "AWS Lambda",
+      "Amazon API Gateway",
+      "Amazon EC2 Container Registry (ECR)",
+      "AmazonCloudWatch",
+      "AWS Certificate Manager",
+    ]
+  }
 
   notification {
     comparison_operator        = "GREATER_THAN"
