@@ -6,3 +6,4 @@ __pycache__/
 .env.aws
 infra/.terraform/
 infra/terraform.tfstate*
+infra/.terraform.tfstate.lock.info
