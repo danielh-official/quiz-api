@@ -2,6 +2,7 @@
 
 from collections.abc import Iterator
 from contextlib import contextmanager
+from datetime import date
 from typing import Annotated, Any
 
 from fastmcp import FastMCP
@@ -105,11 +106,13 @@ def search_questions(
 @mcp.tool(name="get-performance", annotations=READ)
 def get_performance(
     deck_id: Annotated[int | None, Field(description="Deck to report on (with subdecks). Omit for all decks.")] = None,
+    exam_date: Annotated[date | None, Field(description="Predict readiness for this day instead of now.")] = None,
 ) -> dict[str, Any]:
     """The user's performance: due/new counts, calibration (accuracy per confidence level), recent misconceptions
-    (wrong while confident), most-forgotten questions (leeches) and the user's notes. Use it to find weak spots."""
+    (wrong while confident), most-forgotten questions (leeches), the user's notes and readiness (coverage and
+    FSRS-predicted recall, overall and per subdeck). Use it to find weak spots or judge exam readiness."""
     with caller() as (db, user):
-        return stats.performance(db, user, deck_id)
+        return stats.performance(db, user, deck_id, exam_date)
 
 
 @mcp.tool(name="create-deck", annotations=WRITE)

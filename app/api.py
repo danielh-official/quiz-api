@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Body, Depends, Query, Response
@@ -121,5 +122,5 @@ def update_session(session_id: int, data: SessionUpdate, db: Db, user: Me) -> Js
 
 
 @router.get("/stats")
-def get_stats(db: Db, user: Me, deck_id: int | None = None) -> Json:
-    return stats.performance(db, user, deck_id)
+def get_stats(db: Db, user: Me, deck_id: int | None = None, exam_date: date | None = None) -> Json:
+    return stats.performance(db, user, deck_id, exam_date)

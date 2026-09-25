@@ -101,7 +101,7 @@ Every route needs `Authorization: Bearer <token>`, except `/up`, the web pages (
 | GET | `/sessions/{id}/next` | Next question without answers, or the summary when done |
 | POST | `/sessions/{id}/answers` | `question_id`, `selected` (option ids), `confidence` |
 | PATCH | `/sessions/{id}` | `summary`: the running free-form summary, replaced on each call |
-| GET | `/stats?deck_id=` | Calibration, misconceptions, leeches, notes |
+| GET | `/stats?deck_id=&exam_date=` | Calibration, misconceptions, leeches, notes, readiness |
 
 MCP tools: list-decks, get-deck, search-questions, get-performance, create-deck, update-deck,
 create-questions, update-question, start-session, next-question, submit-answer, update-session,
