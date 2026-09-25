@@ -69,12 +69,11 @@ def to_home() -> RedirectResponse:
     return RedirectResponse("/", status_code=303)
 
 
-def home_page(user: User | None, token: str = "", error: str | None = None, status_code: int = 200) -> HTMLResponse:
+def home_page(user: User | None, error: str | None = None, status_code: int = 200) -> HTMLResponse:
     return render(
         "home.html",
         status_code,
         user=user,
-        token=token,
         error=error,
         plugin_marketplace=config.PLUGIN_MARKETPLACE,
         mock=auth_module.MOCK,
@@ -89,11 +88,20 @@ def login_error(error: str, status_code: int) -> HTMLResponse:
 
 
 @router.get("/")
-def home(request: Request, claims: Claims, user: SessionUser) -> HTMLResponse:
-    response = home_page(user, request.cookies.get(SESSION_COOKIE, "") if user is not None else "")
+def home(claims: Claims, user: SessionUser) -> HTMLResponse:
+    response = home_page(user)
     if claims is not None and user is None:  # valid token, but no longer allowlisted
         response.delete_cookie(SESSION_COOKIE)
     return response
+
+
+@router.get("/token", response_model=None)
+def token_page(request: Request, user: SessionUser) -> Response:
+    """The signed-in user's bearer token for the REST API, kept off the home page."""
+    token = request.cookies.get(SESSION_COOKIE)
+    if user is None or token is None:  # signed out, or mocked sign-in (no token)
+        return to_home()
+    return render("token.html", user=user, token=token)
 
 
 @router.get("/login", response_model=None)

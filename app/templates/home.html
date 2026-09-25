@@ -78,9 +78,7 @@
 {% if mock %}
 <p class="muted">Sign-in is mocked, so REST requests need no token.</p>
 {% elif user %}
-<label for="token">Bearer token</label>
-<div class="token"><input id="token" type="password" readonly value="{{ token }}" data-copy></div>
-<p class="warn">Treat this like a password: anyone with it can read and change your quizzes.</p>
+<p><a class="button" href="/token">Show my access token</a></p>
 {% else %}
 <p class="muted">Sign in above to see your access token.</p>
 {% endif %}

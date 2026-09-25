@@ -1,0 +1,10 @@
+{% extends "layout.html" %}
+{% block content %}
+<p><a href="/">← Back</a></p>
+<h2>Your access token</h2>
+<p>Signed in as <strong>@{{ user.login }}</strong>. Send this token with REST API requests:</p>
+<pre data-copy>Authorization: Bearer &lt;token&gt;</pre>
+<label for="token">Bearer token</label>
+<div class="token"><input id="token" type="password" readonly value="{{ token }}" data-copy></div>
+<p class="warn">Treat this like a password: anyone with it can read and change your quizzes.</p>
+{% endblock %}

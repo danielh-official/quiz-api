@@ -65,8 +65,20 @@ def test_home_signed_in(client: TestClient) -> None:
     signed_in(client)
     response = client.get("/")
     assert "@alice" in response.text and 'action="/logout"' in response.text
-    assert 'type="password" readonly value="the-token"' in response.text and 'action="/login"' not in response.text
+    assert 'href="/token"' in response.text and "the-token" not in response.text and 'action="/login"' not in response.text
     assert response.headers["cache-control"] == "no-store"
+
+
+def test_token_page_shows_token(client: TestClient) -> None:
+    signed_in(client)
+    response = client.get("/token")
+    assert 'type="password" readonly value="the-token"' in response.text and "@alice" in response.text
+    assert response.headers["cache-control"] == "no-store"
+
+
+def test_token_page_signed_out_goes_home(client: TestClient) -> None:
+    response = client.get("/token")
+    assert response.status_code == 303 and response.headers["location"] == "/"
 
 
 def test_home_drops_session_no_longer_allowlisted(client: TestClient) -> None:
