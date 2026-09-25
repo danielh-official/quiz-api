@@ -15,9 +15,10 @@ The server lives at `<APP_URL>/mcp` (streamable HTTP, OAuth with GitHub sign-in;
 
 - Claude Code with the quiz-api plugin: the server is already configured. Run `/mcp`, pick quiz-api and sign in.
 - Claude Code without the plugin: `claude mcp add --transport http quiz-api <APP_URL>/mcp`, then `/mcp` to sign in.
-- Claude.ai / Claude Desktop: Settings → Connectors → Add custom connector → `<APP_URL>/mcp`.
-- ChatGPT: Settings → Apps & Connectors → Advanced → Developer mode, then create a connector with `<APP_URL>/mcp`
-  and OAuth.
+- Claude.ai / Claude Desktop: Customize → Connectors → "+" → Add custom connector → `<APP_URL>/mcp`
+  (Team/Enterprise: an owner adds it first under Organization settings → Connectors). Needs a public URL.
+- ChatGPT (Plus, Pro, Business, Enterprise, Edu; web): Settings → Security and login → Developer mode, then
+  ChatGPT Plugins → "+" → create a developer-mode app with `<APP_URL>/mcp` and OAuth.
 
 If no quiz-api tools are available, tell the user how to connect instead of pretending to quiz them.
 

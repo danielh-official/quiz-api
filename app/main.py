@@ -1,3 +1,5 @@
+import html
+import re
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -35,14 +37,20 @@ def up() -> dict[str, str]:
     return {"status": "ok"}
 
 
-ROOT = Path(__file__).parent.parent
-UI = (ROOT / "app/ui.html").read_text().replace("{{APP_URL}}", config.APP_URL).replace("{{CLIENT_ID}}", WEB_CLIENT_ID)
+UI = (Path(__file__).parent / "ui.html").read_text()
 
 
 @app.get("/", include_in_schema=False)
 def home() -> HTMLResponse:
     """Sign-up page: GitHub sign-in, then connection instructions."""
-    return HTMLResponse(UI)
+    page = UI if config.PLUGIN_MARKETPLACE else re.sub(r"<!--plugin-->.*?<!--/plugin-->", "", UI, flags=re.S)
+    for key, value in {
+        "APP_URL": config.APP_URL,
+        "CLIENT_ID": WEB_CLIENT_ID,
+        "PLUGIN_MARKETPLACE": html.escape(config.PLUGIN_MARKETPLACE),
+    }.items():
+        page = page.replace("{{" + key + "}}", value)
+    return HTMLResponse(page)
 
 
 @app.exception_handler(NotFound)

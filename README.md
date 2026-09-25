@@ -44,8 +44,13 @@ encrypted. The same bearer tokens work for `/mcp` and for the REST API. The sign
 
 - **Claude Code**: install the plugin (below), or run
   `claude mcp add --transport http quiz-api http://localhost:8000/mcp`. Then run `/mcp` to sign in.
-- **Claude.ai**: add a custom connector with `<APP_URL>/mcp`. Claude.ai needs a public HTTPS `APP_URL`.
-- **ChatGPT**: turn on developer mode, then create a connector with `<APP_URL>/mcp` and OAuth.
+- **Claude.ai / Claude Desktop**: Customize → Connectors → "+" → Add custom connector → `<APP_URL>/mcp`. The
+  connection comes from Anthropic's servers, so `APP_URL` must be publicly reachable (not localhost).
+- **ChatGPT** (Plus, Pro, Business, Enterprise, Edu; web): Settings → Security and login → Developer mode, then
+  ChatGPT Plugins → "+" → create a developer-mode app with `<APP_URL>/mcp` and OAuth.
+
+The sign-up page shows the plugin install commands when `PLUGIN_MARKETPLACE` is set (e.g. the repo path, or
+`owner/repo` once published); otherwise it shows only `claude mcp add`.
 
 ### Claude Code plugin
 
@@ -58,7 +63,7 @@ claude plugin marketplace add /Users/danielh/GitHub/quiz-api   # or owner/repo o
 claude plugin install quiz-api@quiz-api
 ```
 
-The plugin points at `http://localhost:8000/mcp`. Change the URL in `plugins/quiz-api/.mcp.json` once the server
+The plugin points at `http://localhost:8000/mcp`. Keep it in sync with `APP_URL`: change the URL in `plugins/quiz-api/.mcp.json` once the server
 is deployed, and bump `version` in `plugin.json` so installs pick it up. Validate with
 `claude plugin validate plugins/quiz-api`.
 

@@ -60,10 +60,17 @@
     <p>The MCP server lives at:</p>
     <pre data-copy>{{APP_URL}}/mcp</pre>
     <ul>
-      <li><strong>Claude Code</strong>: run the command below, then <code>/mcp</code> and sign in.
+      <li><strong>Claude Code</strong>:
+        <!--plugin-->install the plugin, which adds the MCP server and a study skill:
+        <pre data-copy>claude plugin marketplace add {{PLUGIN_MARKETPLACE}}</pre>
+        <pre data-copy>claude plugin install quiz-api@quiz-api</pre>
+        Start a new session, run <code>/mcp</code>, pick <code>plugin:quiz-api:quiz-api</code> and sign in.
+        Without the plugin, <!--/plugin-->run the command below, then <code>/mcp</code> and sign in.
         <pre data-copy>claude mcp add --transport http quiz-api {{APP_URL}}/mcp</pre></li>
-      <li><strong>Claude.ai / Claude Desktop</strong>: Settings → Connectors → Add custom connector → paste the URL above.</li>
-      <li><strong>ChatGPT</strong>: Settings → Apps &amp; Connectors → Advanced → turn on Developer mode, then create a connector with the URL above and OAuth.</li>
+      <li><strong>Claude.ai / Claude Desktop</strong>: Customize → Connectors → <strong>+</strong> → Add custom connector →
+        paste the URL above. On Team and Enterprise, an owner first adds it under Organization settings → Connectors.</li>
+      <li><strong>ChatGPT</strong> (Plus, Pro, Business, Enterprise, Edu; web only): Settings → Security and login →
+        turn on Developer mode. Then ChatGPT Plugins → <strong>+</strong> → create a developer-mode app with the URL above and OAuth.</li>
     </ul>
     <p class="muted">Claude.ai and ChatGPT need a public HTTPS address; localhost only works with Claude Code.</p>
 
@@ -75,6 +82,9 @@
       <li>“Quiz me on my AWS deck.”</li>
       <li>“Where am I weakest? Write new questions for those topics.”</li>
     </ul>
+    <p class="muted">Tip: Claude Code's prompt suggestions (the greyed-out next message) can give answers away. Study from a
+      folder whose <code>.claude/settings.json</code> turns them off:</p>
+    <pre data-copy>{ "promptSuggestionEnabled": false }</pre>
 
     <h2>3. Use the REST API directly</h2>
     <p>Browse and try every endpoint at <a href="/docs">/docs</a> (click <em>Authorize</em> to sign in there too),

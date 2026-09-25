@@ -94,3 +94,11 @@ def test_home_page_wired_to_web_client(client):
     page = client.get("/").text
     assert 'const CLIENT_ID = "web"' in page
     assert f"{config.APP_URL}/mcp" in page and "{{" not in page
+    assert "claude plugin install" not in page  # no marketplace configured
+
+
+def test_home_page_shows_plugin_when_marketplace_set(client, monkeypatch):
+    monkeypatch.setattr(config, "PLUGIN_MARKETPLACE", "someone/quiz-api")
+    page = client.get("/").text
+    assert "claude plugin marketplace add someone/quiz-api" in page
+    assert "claude mcp add" in page  # fallback stays
