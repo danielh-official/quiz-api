@@ -19,7 +19,7 @@ jobs:
         options: --health-cmd "pg_isready -U quiz" --health-interval 2s --health-retries 15
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@v10.2.0 # no moving major tag for v10
       - run: uv sync --frozen
       - run: uv run pytest
       - run: uv run --with mypy mypy app tests
