@@ -11,6 +11,8 @@ CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --
 FROM base AS prod
 # Refuses to start without GitHub sign-in, even if APP_URL is missing and falls back to localhost.
 ENV APP_ENV=production
+# Turns Lambda invocations into HTTP requests to uvicorn (template.yaml); inert on other hosts.
+COPY --from=public.ecr.aws/awsguru/aws-lambda-adapter:1.1.0 /lambda-adapter /opt/extensions/lambda-adapter
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev
 COPY app app

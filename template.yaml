@@ -1,0 +1,95 @@
+# AWS SAM: the Dockerfile's prod image on Lambda, behind an HTTP API on your own domain. Deploy with deploy/aws.sh.
+# Lambda's always-free allowance covers a personal instance; the HTTP API costs $1 per million requests.
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: Quiz API
+
+Parameters:
+  DomainName:
+    Type: String
+    Description: Public hostname, e.g. quiz-api.example.com (APP_URL is https://<DomainName>)
+  DatabaseUrl:
+    Type: String
+    NoEcho: true
+  GithubClientId:
+    Type: String
+  GithubClientSecret:
+    Type: String
+    NoEcho: true
+  JwtSigningKey:
+    Type: String
+    NoEcho: true
+  StorageEncryptionKey:
+    Type: String
+    NoEcho: true
+  AllowedUsers:
+    Type: String
+  PluginMarketplace:
+    Type: String
+    Default: ""
+
+Resources:
+  Function:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      Architectures: [arm64]
+      MemorySize: 1024  # more memory means more CPU: faster cold starts, still well inside the free allowance
+      Timeout: 30  # the HTTP API gives up at 30s anyway
+      # ponytail: migrations run on every cold start (the image's CMD). Fine at personal scale; if concurrent cold
+      # starts ever race a new migration, run `alembic upgrade head` in deploy/aws.sh and override the command here.
+      Environment:
+        Variables:
+          APP_URL: !Sub https://${DomainName}
+          DATABASE_URL: !Ref DatabaseUrl
+          GITHUB_CLIENT_ID: !Ref GithubClientId
+          GITHUB_CLIENT_SECRET: !Ref GithubClientSecret
+          JWT_SIGNING_KEY: !Ref JwtSigningKey
+          STORAGE_ENCRYPTION_KEY: !Ref StorageEncryptionKey
+          ALLOWED_USERS: !Ref AllowedUsers
+          PLUGIN_MARKETPLACE: !Ref PluginMarketplace
+          AWS_LWA_READINESS_CHECK_PATH: /up
+          AWS_LWA_ASYNC_INIT: "true"  # migrations + imports may outlast Lambda's 10s init phase
+          HOME: /tmp  # the only writable path; Lambda's user has no home directory
+      Events:
+        Http:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref Api
+    Metadata:
+      Dockerfile: Dockerfile
+      DockerContext: .
+      DockerBuildTarget: prod
+
+  Api:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      DisableExecuteApiEndpoint: true  # reachable only on DomainName
+
+  Certificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: !Ref DomainName
+      ValidationMethod: DNS  # the deploy waits until you add the validation CNAME it prints
+
+  Domain:
+    Type: AWS::ApiGatewayV2::DomainName
+    Properties:
+      DomainName: !Ref DomainName
+      DomainNameConfigurations:
+        - CertificateArn: !Ref Certificate
+          EndpointType: REGIONAL
+          SecurityPolicy: TLS_1_2
+
+  Mapping:
+    Type: AWS::ApiGatewayV2::ApiMapping
+    Properties:
+      ApiId: !Ref Api
+      DomainName: !Ref Domain
+      Stage: $default
+    DependsOn: ApiApiGatewayDefaultStage  # the stage SAM generates for Api
+
+Outputs:
+  DnsTarget:
+    Description: Point a CNAME for DomainName here (Cloudflare, DNS only)
+    Value: !GetAtt Domain.RegionalDomainName
