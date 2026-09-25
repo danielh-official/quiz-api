@@ -22,6 +22,7 @@ from app.models import User
 from app.services import Forbidden
 
 SESSION_COOKIE = "quiz_session"
+MOCK_TOKEN = "mocked-sign-in"  # shown on /token locally; mocked sign-in accepts any token
 LOGIN_COOKIE = "quiz_login"  # "<state>.<PKCE verifier>" while a sign-in is in flight
 SECURE_COOKIES = config.APP_URL.startswith("https://")
 TEMPLATES = Environment(
@@ -98,10 +99,10 @@ def home(claims: Claims, user: SessionUser) -> HTMLResponse:
 @router.get("/token", response_model=None)
 def token_page(request: Request, user: SessionUser) -> Response:
     """The signed-in user's bearer token for the REST API, kept off the home page."""
-    token = request.cookies.get(SESSION_COOKIE)
-    if user is None or token is None:  # signed out, or mocked sign-in (no token)
+    token = request.cookies.get(SESSION_COOKIE) or (MOCK_TOKEN if auth_module.MOCK else None)
+    if user is None or token is None:
         return to_home()
-    return render("token.html", user=user, token=token)
+    return render("token.html", user=user, token=token, mock=auth_module.MOCK)
 
 
 @router.get("/login", response_model=None)

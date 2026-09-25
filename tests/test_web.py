@@ -76,6 +76,11 @@ def test_token_page_shows_token(client: TestClient) -> None:
     assert response.headers["cache-control"] == "no-store"
 
 
+def test_token_page_shows_placeholder_when_mocked(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(auth_module, "MOCK", True)
+    assert f'value="{web.MOCK_TOKEN}"' in client.get("/token").text
+
+
 def test_token_page_signed_out_goes_home(client: TestClient) -> None:
     response = client.get("/token")
     assert response.status_code == 303 and response.headers["location"] == "/"

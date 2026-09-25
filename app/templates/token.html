@@ -6,5 +6,9 @@
 <pre data-copy>Authorization: Bearer &lt;token&gt;</pre>
 <label for="token">Bearer token</label>
 <div class="token"><input id="token" type="password" readonly value="{{ token }}" data-copy></div>
+{% if mock %}
+<p class="muted">Sign-in is mocked, so this is a placeholder: REST requests work with any token, or none.</p>
+{% else %}
 <p class="warn">Treat this like a password: anyone with it can read and change your quizzes.</p>
+{% endif %}
 {% endblock %}

@@ -75,9 +75,7 @@
 <p>Browse and try every endpoint in the interactive docs (click <em>Authorize</em> to sign in there too),
     or call it with your access token.</p>
 <p><a class="button" href="/docs" target="_blank">Open API docs</a></p>
-{% if mock %}
-<p class="muted">Sign-in is mocked, so REST requests need no token.</p>
-{% elif user %}
+{% if user %}
 <p><a class="button" href="/token">Show my access token</a></p>
 {% else %}
 <p class="muted">Sign in above to see your access token.</p>
