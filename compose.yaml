@@ -1,7 +1,7 @@
 services:
   api:
     build: { context: ., target: dev }
-    ports: ["8000:8080"]
+    ports: ["127.0.0.1:8000:8080"]  # localhost only: sign-in is mocked locally
     env_file: [{ path: .env, required: false }]
     environment:
       DATABASE_URL: postgresql://quiz:secret@postgres:5432/quiz
@@ -12,7 +12,7 @@ services:
 
   postgres:
     image: postgres:17-alpine
-    ports: ["5433:5432"]
+    ports: ["127.0.0.1:5433:5432"]
     environment:
       POSTGRES_USER: quiz
       POSTGRES_PASSWORD: secret
