@@ -6,7 +6,17 @@ from sqlalchemy.orm import Session
 from app.auth import current_user
 from app.db import get_db
 from app.models import User
-from app.schemas import AnswerIn, CardUpdate, DeckCreate, DeckUpdate, QuestionIn, QuestionUpdate, SessionCreate, SettingsUpdate
+from app.schemas import (
+    AnswerIn,
+    CardUpdate,
+    DeckCreate,
+    DeckUpdate,
+    QuestionIn,
+    QuestionUpdate,
+    SessionCreate,
+    SessionUpdate,
+    SettingsUpdate,
+)
 from app.services import content, stats, study
 
 router = APIRouter()
@@ -103,6 +113,11 @@ def next_question(session_id: int, db: Db, user: Me) -> Json:
 @router.post("/sessions/{session_id}/answers")
 def submit_answer(session_id: int, answer: AnswerIn, db: Db, user: Me) -> Json:
     return study.submit_answer(db, user, session_id, answer)
+
+
+@router.patch("/sessions/{session_id}")
+def update_session(session_id: int, data: SessionUpdate, db: Db, user: Me) -> Json:
+    return study.update_session(db, user, session_id, data)
 
 
 @router.get("/stats")

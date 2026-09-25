@@ -83,6 +83,8 @@ def test_study_loop_over_rest(client: TestClient) -> None:
         json={"question_id": question["id"], "selected": correct, "confidence": "confident"},
     ).json()
     assert result["correct"] is True
+    summary = client.patch(f"/sessions/{session['session_id']}", json={"summary": "Knows S3."}).json()
+    assert summary["summary"] == "Knows S3."
     assert client.get(f"/sessions/{session['session_id']}/next").json()["finished"] is True
 
 
