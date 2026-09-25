@@ -184,38 +184,25 @@ def test_registration_rejects_foreign_redirects(monkeypatch: pytest.MonkeyPatch)
         assert register("https://claude.ai.evil.example/callback") == 400
 
 
-def test_browser_clients_registered(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_swagger_client_registered(monkeypatch: pytest.MonkeyPatch) -> None:
     for name, value in {
         "GITHUB_CLIENT_ID": "id",
         "GITHUB_CLIENT_SECRET": "secret",
         "JWT_SIGNING_KEY": "k" * 32,
+        "STORAGE_ENCRYPTION_KEY": "e" * 32,
     }.items():
         monkeypatch.setattr(config, name, value)
     monkeypatch.setattr(auth_module, "PostgreSQLStore", lambda url: MemoryStore())
-    monkeypatch.setattr(config, "STORAGE_ENCRYPTION_KEY", "e" * 32)
     provider = auth_module.build_auth()
+    if provider is None:
+        pytest.fail("Expected provider to be initialized")
     monkeypatch.setattr(auth_module, "auth", provider)
 
-    async def main() -> list[OAuthClientInformationFull | None]:
-        await auth_module.register_browser_clients()
+    async def main() -> OAuthClientInformationFull | None:
+        await auth_module.register_swagger_client()
+        return await provider.get_client("swagger-ui")
 
-        if provider is None:
-            pytest.fail("Expected provider to be initialized")
-
-        return [await provider.get_client(c) for c in ("web", "swagger-ui")]
-
-    web, swagger = asyncio.run(main())
-
-    if web is None or swagger is None:
-        pytest.fail("Expected browser clients to be registered")
-
-    if web.redirect_uris is None:
-        pytest.fail("Expected web client to have redirect URIs")
-
-    if swagger.redirect_uris is None:
-        pytest.fail("Expected swagger client to have redirect URIs")
-
-    assert [str(u) for u in web.redirect_uris] == [f"{config.APP_URL}/login"]
-    assert [str(u) for u in swagger.redirect_uris] == [
-        f"{config.APP_URL}/docs/oauth2-redirect"
-    ]
+    swagger = asyncio.run(main())
+    if swagger is None or swagger.redirect_uris is None:
+        pytest.fail("Expected the swagger client to be registered with redirect URIs")
+    assert [str(u) for u in swagger.redirect_uris] == [f"{config.APP_URL}/docs/oauth2-redirect"]

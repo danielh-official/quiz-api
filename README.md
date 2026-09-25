@@ -20,14 +20,13 @@ curl localhost:8000/up
 Postgres listens on `localhost:5433`, with two databases: `quiz` and `test`. Migrations run when the API
 container starts.
 
-Locally, sign-in is mocked: with no GitHub credentials in `.env` and `APP_URL` on localhost, every request (REST,
-MCP and the web pages) is the user `dev`, with no token or GitHub round trip. Without GitHub credentials, the server
+Locally, sign-in is mocked: with no GitHub credentials in `.env` and `APP_URL` on localhost, every request (REST
+and MCP) is the user `dev`, with no token or GitHub round trip. Without GitHub credentials, the server
 refuses to start on any other `APP_URL`, and always in the production image (`APP_ENV=production` in the Dockerfile),
 so production can't end up open by accident.
 
-- http://localhost:8000/ is the home page: how to connect an AI, plus your account (and, with real sign-in, your
-  access token for the REST API).
-- http://localhost:8000/docs has the OpenAPI docs.
+- http://localhost:8000/ is the home page: how to connect an AI and run your own copy.
+- http://localhost:8000/docs has the OpenAPI docs, where *Authorize* signs you in to try the REST API.
 
 ### GitHub sign-in (production)
 
@@ -42,13 +41,11 @@ so production can't end up open by accident.
 
 The API is its own OAuth 2.1 authorization server, built on FastMCP's `GitHubProvider`. It supports dynamic
 client registration, PKCE and a consent screen. OAuth clients and tokens live in the `kv_store` table,
-encrypted. The same bearer tokens work for `/mcp` and for the REST API. The web pages (client `web`) and
-`/docs` (client `swagger-ui`) are public PKCE clients that register themselves when the server starts.
+encrypted. The same bearer tokens work for `/mcp` and for the REST API. `/docs` (client
+`swagger-ui`) is a public PKCE client that registers itself when the server starts.
 
-The pages are rendered on the server. The home page's sign-in button posts to `/login`, which runs the PKCE flow
-server-side (the OAuth redirect lands back on `/login`) and keeps the access token in an HttpOnly cookie
-(`quiz_session`) that lasts as long as the token. There's no refresh, so you sign in again when it expires. The only
-JavaScript left is the Copy buttons.
+The home page is static: it has no sign-in, because MCP clients and `/docs` run their own OAuth flows. The only
+JavaScript is the Copy buttons.
 
 ## Deploy
 
@@ -105,11 +102,11 @@ phishing those domains are known for. This has happened to this project on Rende
 
 - **Use your own domain.** All three hosts support custom domains. Scanners and
   blocklists treat shared host subdomains with suspicion, and one bad neighbour can get the whole suffix flagged.
-- **The page doesn't read as a login page.** The home page explains the project, calls itself a personal instance
-  and offers only a low-key "Owner sign-in" link. There's no brand logo, no password field (the REST token sits
-  behind "Reveal token"), no "verify your account" wording, and nothing redirects to GitHub until you click.
+- **No login page.** The home page is static: it explains the project, calls itself a personal instance and has
+  no sign-in, form or password field. Sign-in only happens inside MCP clients and behind Swagger's *Authorize*
+  button on `/docs`, which nothing links to as a call to action.
 - **No open redirects.** Dynamic client registration only accepts callbacks on loopback, `claude.ai`, `claude.com`,
-  `chatgpt.com` and `APP_URL` (`CLIENT_REDIRECT_URIS` in `app/auth.py`). Without that list, anyone could register a
+  `chatgpt.com` and `/docs` (`CLIENT_REDIRECT_URIS` in `app/auth.py`). Without that list, anyone could register a
   client and hand out `/authorize` links on your domain that end on their own site. To support another MCP client,
   add its callback there.
 - **Stay out of search.** `robots.txt` disallows everything and every page is `noindex`.
@@ -160,7 +157,7 @@ and upload it under Skills.
 
 ## REST API
 
-Every route needs `Authorization: Bearer <token>`, except `/up`, the web pages (`/`, `/login`, `/logout`), `/docs` and the OAuth endpoints.
+Every route needs `Authorization: Bearer <token>`, except `/up`, `/`, `/robots.txt`, `/docs` and the OAuth endpoints.
 
 | Method | Path | |
 |---|---|---|

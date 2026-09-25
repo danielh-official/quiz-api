@@ -8,7 +8,7 @@ from pydantic import ValidationError
 
 from app.web import router as web_router
 from app.api import router as api_router
-from app.auth import SWAGGER_CLIENT_ID, register_browser_clients
+from app.auth import SWAGGER_CLIENT_ID, register_swagger_client
 from app.mcp import error_message, mcp
 from app.services import Forbidden, Invalid, NotFound
 
@@ -18,7 +18,7 @@ mcp_app = mcp.http_app(path="/mcp", stateless_http=True)
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncGenerator[None, None]:
-    await register_browser_clients()
+    await register_swagger_client()
     yield
 
 

@@ -1,25 +1,7 @@
 {% extends "layout.html" %}
 {% block content %}
-{% if mock %}
-<div class="card row">
-    <div>Dev mode: signed in as <strong>@{{ user.login }}</strong>. GitHub sign-in is mocked because no GitHub
-        credentials are set.</div>
-</div>
-{% elif user %}
-<div class="card row">
-    <div>Signed in as <strong>@{{ user.login }}</strong> <span class="muted">· timezone {{ user.timezone }}</span></div>
-    <form method="post" action="/logout"><button class="link">Sign out</button></form>
-</div>
-{% else %}
-<div class="card row">
-    <div>A personal instance: only its owner's approved GitHub accounts can use it. To use Quiz API yourself, run
-        your own copy (below).</div>
-    <form method="post" action="/login"><button class="link">Owner sign-in</button></form>
-</div>
-{% endif %}
-{% if error %}
-<p class="warn" role="alert">{{ error }}</p>
-{% endif %}
+<div class="card">A personal instance: only its owner's approved GitHub accounts can use it. To use Quiz API
+    yourself, run your own copy (below).</div>
 
 <h2>0. Setting Up Your Own Instance</h2>
 <p>This server only admits approved GitHub users. To run your own copy:</p>
@@ -73,10 +55,7 @@
 <pre data-copy>{ "promptSuggestionEnabled": false }</pre>
 
 <h2>3. Use the REST API directly</h2>
-<p>Browse and try every endpoint in the interactive docs (click <em>Authorize</em> to sign in there too),
-    or call it with your access token.</p>
+<p>Browse and try every endpoint in the interactive docs: <em>Authorize</em> there signs you in with GitHub.
+    Deleting decks, questions or your account is only possible here, not through MCP.</p>
 <p><a class="button" href="/docs" target="_blank">Open API docs</a></p>
-{% if user %}
-<p><a href="/token">Your REST API token</a></p>
-{% endif %}
 {% endblock %}
