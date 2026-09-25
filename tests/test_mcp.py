@@ -107,6 +107,17 @@ def test_errors_are_tool_errors(monkeypatch: pytest.MonkeyPatch) -> None:
     assert "not found" in result
 
 
+def test_mocked_sign_in_needs_no_token(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(auth_module, "MOCK", True)
+    monkeypatch.setattr(mcp_module, "get_access_token", lambda: None)
+
+    async def main() -> Any:
+        async with Client(mcp_module.mcp) as client:
+            return (await client.call_tool("list-decks", {})).data
+
+    assert asyncio.run(main()) == {"decks": []}
+
+
 def test_not_allowlisted_is_rejected(monkeypatch: pytest.MonkeyPatch) -> None:
     async def steps(client: Client[Any]) -> str | None:
         try:

@@ -5,6 +5,7 @@ from conftest import question_in
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+from app import auth as auth_module, config
 from app.auth import bearer_claims
 from app.main import app
 from app.models import Deck, User
@@ -29,6 +30,17 @@ def test_missing_token_is_401_with_resource_metadata(client: TestClient) -> None
     response = client.get("/decks")
     assert response.status_code == 401
     assert "resource_metadata=" in response.headers["www-authenticate"]
+
+
+def test_mocked_sign_in_needs_no_token(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(auth_module, "MOCK", True)
+    assert client.get("/me").json()["login"] == "dev"
+
+
+def test_no_github_creds_off_localhost_refuses_to_start(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(config, "APP_URL", "https://quiz.example.com")
+    with pytest.raises(RuntimeError, match="GITHUB_CLIENT_ID"):
+        auth_module.build_auth()
 
 
 def test_login_not_allowlisted_is_403(client: TestClient, db: Session) -> None:

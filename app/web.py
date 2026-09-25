@@ -84,7 +84,7 @@ def login_error(error: str, status_code: int) -> HTMLResponse:
 
 @router.get("/")
 def home(request: Request, claims: Claims, user: SessionUser) -> HTMLResponse:
-    response = home_page(user, request.cookies[SESSION_COOKIE] if user is not None else "")
+    response = home_page(user, request.cookies.get(SESSION_COOKIE, "") if user is not None else "")
     if claims is not None and user is None:  # valid token, but no longer allowlisted
         response.delete_cookie(SESSION_COOKIE)
     return response

@@ -4,6 +4,7 @@ import base64
 import hashlib
 import warnings
 from typing import Any
+from urllib.parse import urlsplit
 
 from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2AuthorizationCodeBearer
@@ -23,8 +24,10 @@ from app.services import Forbidden
 
 
 def build_auth() -> GitHubProvider | None:
-    """None when GitHub isn't configured: every request is then rejected as unauthenticated."""
+    """None when GitHub isn't configured, which is only allowed on localhost (mocked sign-in, see MOCK)."""
     if not (config.GITHUB_CLIENT_ID and config.GITHUB_CLIENT_SECRET):
+        if urlsplit(config.APP_URL).hostname not in ("localhost", "127.0.0.1"):
+            raise RuntimeError("GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET must be set when APP_URL isn't localhost.")
         return None
     for name in ("JWT_SIGNING_KEY", "STORAGE_ENCRYPTION_KEY"):
         if not getattr(config, name):
@@ -52,6 +55,10 @@ def build_auth() -> GitHubProvider | None:
 
 
 auth = build_auth()
+
+# Local development without GitHub: every request is this user, no token needed. Tests switch MOCK off.
+MOCK = auth is None
+MOCK_CLAIMS: dict[str, Any] = {"sub": "dev", "login": "dev", "name": "Dev", "email": None}
 
 # Browser clients that sign in through the same GitHub OAuth flow as MCP clients.
 SWAGGER_CLIENT_ID = "swagger-ui"  # /docs "Authorize" button
@@ -89,7 +96,7 @@ async def register_browser_clients() -> None:
 def resolve_user(db: Session, claims: dict[str, Any]) -> User:
     """Allowlist check, then upsert the users row keyed by GitHub's numeric id (renames can't hijack accounts)."""
     login = str(claims.get("login") or "")
-    if login.lower() not in config.ALLOWED_USERS:
+    if not MOCK and login.lower() not in config.ALLOWED_USERS:
         raise Forbidden(f"GitHub user {login!r} is not allowed to use this server.")
     profile = {"login": login, "name": claims.get("name"), "email": claims.get("email")}
     user_id = db.execute(
@@ -125,7 +132,9 @@ async def exchange_code(code: str, verifier: str) -> OAuthToken | None:
 
 
 async def token_claims(token: str | None) -> dict[str, Any] | None:
-    """Claims of a valid access token we issued, else None."""
+    """Claims of a valid access token we issued, else None. Always the dev user when sign-in is mocked."""
+    if MOCK:
+        return MOCK_CLAIMS
     access = await auth.load_access_token(token) if auth and token else None
     return access.claims if access else None
 

@@ -12,7 +12,7 @@ from alembic import command
 from alembic.config import Config
 from sqlalchemy.orm import Session, sessionmaker
 
-from app import config, db as db_module, mcp as mcp_module
+from app import auth as auth_module, config, db as db_module, mcp as mcp_module
 from app.models import Deck, Question, User
 from app.schemas import AnswerIn, Confidence, DeckCreate, OptionIn, QuestionIn, QuestionType
 from app.services import content, study
@@ -35,6 +35,7 @@ def db(monkeypatch: pytest.MonkeyPatch) -> Iterator[Session]:
     monkeypatch.setattr(mcp_module, "SessionLocal", factory)
     monkeypatch.setattr(study, "FUZZ", False)
     monkeypatch.setattr(config, "ALLOWED_USERS", {"alice", "bob"})
+    monkeypatch.setattr(auth_module, "MOCK", False)  # test real auth; mock tests switch it back on
     session = factory()
     yield session
     session.close()

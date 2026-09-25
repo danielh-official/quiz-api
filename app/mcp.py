@@ -10,6 +10,7 @@ from fastmcp.server.dependencies import get_access_token
 from pydantic import Field, ValidationError
 from sqlalchemy.orm import Session
 
+from app import auth as auth_module
 from app.auth import auth, resolve_user
 from app.db import SessionLocal
 from app.models import User
@@ -60,11 +61,12 @@ def error_message(exc: ValidationError) -> str:
 def caller() -> Iterator[tuple[Session, User]]:
     """DB session + the authenticated user; service errors become tool errors the model can act on."""
     token = get_access_token()
-    if token is None:
+    if token is None and not auth_module.MOCK:
         raise ToolError("Not authenticated.")
+    claims = token.claims if token is not None else auth_module.MOCK_CLAIMS
     with SessionLocal() as db:
         try:
-            yield db, resolve_user(db, token.claims)
+            yield db, resolve_user(db, claims)
         except (NotFound, Invalid, Forbidden) as exc:
             raise ToolError(str(exc)) from exc
         except ValidationError as exc:

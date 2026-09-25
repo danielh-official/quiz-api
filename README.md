@@ -20,11 +20,15 @@ curl localhost:8000/up
 Postgres listens on `localhost:5433`, with two databases: `quiz` and `test`. Migrations run when the API
 container starts.
 
-- http://localhost:8000/ is the home page: sign in with GitHub (which creates your account), how to connect an AI
-  and, once you're signed in, your access token for the REST API.
-- http://localhost:8000/docs has the OpenAPI docs. Click **Authorize** to sign in with GitHub and try requests.
+Locally, sign-in is mocked: with no GitHub credentials in `.env` and `APP_URL` on localhost, every request (REST,
+MCP and the web pages) is the user `dev`, with no token or GitHub round trip. Any other `APP_URL` without GitHub
+credentials refuses to start, so production can't end up open by accident.
 
-### GitHub sign-in
+- http://localhost:8000/ is the home page: how to connect an AI, plus your account (and, with real sign-in, your
+  access token for the REST API).
+- http://localhost:8000/docs has the OpenAPI docs.
+
+### GitHub sign-in (production)
 
 1. Create an OAuth app at https://github.com/settings/developers:
    - Homepage: `APP_URL`
