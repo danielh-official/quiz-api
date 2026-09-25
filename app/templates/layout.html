@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITLE}}</title>
+<style>
+  :root {
+    --bg: #f7f7f5; --card: #fff; --text: #1d1d1b; --muted: #6b6b66; --line: #e4e4df;
+    --accent: #2f6b4f; --accent-text: #fff; --code: #f0f0ec; --warn: #8a5a00;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #151514; --card: #1e1e1c; --text: #ececea; --muted: #a0a09a; --line: #33332f;
+      --accent: #5fae86; --accent-text: #0d1a13; --code: #2a2a27; --warn: #e0b050;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 system-ui, -apple-system, sans-serif; }
+  main { max-width: 720px; margin: 0 auto; padding: 48px 16px 64px; }
+  h1 { font-size: 28px; margin: 0 0 4px; }
+  h2 { font-size: 18px; margin: 32px 0 8px; }
+  p { margin: 8px 0; }
+  .muted { color: var(--muted); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 20px 24px; margin-top: 24px; }
+  .button { display: inline-flex; align-items: center; gap: 8px; background: var(--accent); color: var(--accent-text);
+    border: 0; border-radius: 8px; padding: 10px 16px; font: inherit; font-weight: 600; cursor: pointer; text-decoration: none; }
+  .link { background: none; border: 0; color: var(--accent); font: inherit; cursor: pointer; padding: 0; text-decoration: underline; }
+  form { display: inline; }
+  summary { color: var(--accent); cursor: pointer; text-decoration: underline; }
+  pre { position: relative; background: var(--code); border-radius: 8px; padding: 12px 64px 12px 12px; overflow-x: auto; margin: 8px 0;
+    font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; word-break: break-all; }
+  pre button { position: absolute; top: 8px; right: 8px; font: 12px system-ui; padding: 4px 8px; border-radius: 6px;
+    border: 1px solid var(--line); background: var(--card); color: var(--text); cursor: pointer; }
+  a { color: var(--accent); }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.92em; }
+  ol, ul { padding-left: 22px; }
+  li { margin: 4px 0; }
+  .warn { color: var(--warn); }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Quiz API</h1>
+  <p class="muted">Spaced-repetition quizzes you study and write with Claude, ChatGPT or any MCP client.</p>
+{{CONTENT}}
+</main>
+<script>
+// Copy buttons: the only client-side behaviour.
+document.querySelectorAll("pre[data-copy]").forEach((pre) => {
+  const text = pre.textContent;
+  const button = document.createElement("button");
+  button.type = "button";
+  button.textContent = "Copy";
+  button.onclick = async () => {
+    await navigator.clipboard.writeText(text);
+    button.textContent = "Copied";
+    setTimeout(() => (button.textContent = "Copy"), 1500);
+  };
+  pre.append(button);
+});
+</script>
+</body>
+</html>

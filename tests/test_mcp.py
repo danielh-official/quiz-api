@@ -170,7 +170,7 @@ def test_browser_clients_registered(monkeypatch: pytest.MonkeyPatch) -> None:
     if swagger.redirect_uris is None:
         pytest.fail("Expected swagger client to have redirect URIs")
 
-    assert [str(u) for u in web.redirect_uris] == [f"{config.APP_URL}/"]
+    assert [str(u) for u in web.redirect_uris] == [f"{config.APP_URL}/login"]
     assert [str(u) for u in swagger.redirect_uris] == [
         f"{config.APP_URL}/docs/oauth2-redirect"
     ]

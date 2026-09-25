@@ -1,0 +1,50 @@
+  <!--if:signed-in--><div class="card row">
+    <div>Signed in as <strong>@{{LOGIN}}</strong> <span class="muted">· timezone {{TIMEZONE}}</span></div>
+    <form method="post" action="/logout"><button class="link">Sign out</button></form>
+  </div><!--/if:signed-in-->
+  <!--if:signed-out--><div class="card row">
+    <div>Sign in with GitHub to create your account and get an access token.
+      Access is limited to approved GitHub users.</div>
+    <form method="post" action="/login"><button class="button">Sign in with GitHub</button></form>
+  </div><!--/if:signed-out-->
+  <!--if:error--><p class="warn" role="alert">{{ERROR}}</p><!--/if:error-->
+
+  <h2>1. Connect your AI</h2>
+  <p>The MCP server lives at:</p>
+  <pre data-copy>{{APP_URL}}/mcp</pre>
+  <ul>
+    <li><strong>Claude Code</strong>:
+      <!--if:plugin-->install the plugin, which adds the MCP server and a study skill:
+      <pre data-copy>claude plugin marketplace add {{PLUGIN_MARKETPLACE}}</pre>
+      <pre data-copy>claude plugin install quiz-api@quiz-api</pre>
+      Start a new session, run <code>/mcp</code>, pick <code>plugin:quiz-api:quiz-api</code> and sign in.
+      Without the plugin, <!--/if:plugin-->run the command below, then <code>/mcp</code> and sign in.
+      <pre data-copy>claude mcp add --transport http quiz-api {{APP_URL}}/mcp</pre></li>
+    <li><strong>Claude.ai / Claude Desktop</strong>: Customize → Connectors → <strong>+</strong> → Add custom connector →
+      paste the URL above. On Team and Enterprise, an owner first adds it under Organization settings → Connectors.</li>
+    <li><strong>ChatGPT</strong> (Plus, Pro, Business, Enterprise, Edu; web only): Settings → Security and login →
+      turn on Developer mode. Then ChatGPT Plugins → <strong>+</strong> → create a developer-mode app with the URL above and OAuth.</li>
+  </ul>
+  <p class="muted">Claude.ai and ChatGPT need a public HTTPS address; localhost only works with Claude Code.</p>
+
+  <h2>2. Start studying</h2>
+  <p>Just talk to your AI, for example:</p>
+  <ul>
+    <li>“Set my Quiz API timezone to Europe/Berlin.” <span class="muted">(daily limits reset at 4am your time)</span></li>
+    <li>“Create a deck called AWS Solutions Architect and write 10 questions about S3.”</li>
+    <li>“Quiz me on my AWS deck.”</li>
+    <li>“Where am I weakest? Write new questions for those topics.”</li>
+  </ul>
+  <p class="muted">Tip: Claude Code's prompt suggestions (the greyed-out next message) can give answers away. Study from a
+    folder whose <code>.claude/settings.json</code> turns them off:</p>
+  <pre data-copy>{ "promptSuggestionEnabled": false }</pre>
+
+  <h2>3. Use the REST API directly</h2>
+  <p>Browse and try every endpoint at <a href="/docs">/docs</a> (click <em>Authorize</em> to sign in there too),
+    or call it with your access token.</p>
+  <!--if:signed-in--><details>
+    <summary>Show my access token</summary>
+    <p class="warn">Treat this like a password: anyone with it can read and change your quizzes.</p>
+    <pre data-copy>curl -H "Authorization: Bearer {{TOKEN}}" {{APP_URL}}/decks</pre>
+  </details><!--/if:signed-in-->
+  <!--if:signed-out--><p class="muted">Sign in above to see your access token.</p><!--/if:signed-out-->

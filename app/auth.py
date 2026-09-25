@@ -1,5 +1,7 @@
 """GitHub sign-in via FastMCP's OAuth proxy, and mapping token claims to users rows."""
 
+import base64
+import hashlib
 import warnings
 from typing import Any
 
@@ -8,7 +10,8 @@ from fastapi.security import OAuth2AuthorizationCodeBearer
 from fastmcp.server.auth.providers.github import GitHubProvider
 from key_value.aio.stores.postgresql import PostgreSQLStore
 from key_value.aio.wrappers.encryption import FernetEncryptionWrapper
-from mcp.shared.auth import OAuthClientInformationFull
+from mcp.server.auth.provider import TokenError
+from mcp.shared.auth import OAuthClientInformationFull, OAuthToken
 from pydantic import AnyUrl
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
@@ -52,7 +55,8 @@ auth = build_auth()
 
 # Browser clients that sign in through the same GitHub OAuth flow as MCP clients.
 SWAGGER_CLIENT_ID = "swagger-ui"  # /docs "Authorize" button
-WEB_CLIENT_ID = "web"  # sign-up page at /
+WEB_CLIENT_ID = "web"  # server-side sign-in at /login
+WEB_REDIRECT_URI = f"{config.APP_URL}/login"
 oauth2_scheme = OAuth2AuthorizationCodeBearer(
     authorizationUrl="/authorize",
     tokenUrl="/token",
@@ -68,7 +72,7 @@ async def register_browser_clients() -> None:
         return
     for client_id, name, redirect_path in (
         (SWAGGER_CLIENT_ID, "Quiz API docs", "/docs/oauth2-redirect"),
-        (WEB_CLIENT_ID, "Quiz API", "/"),
+        (WEB_CLIENT_ID, "Quiz API", "/login"),
     ):
         await auth.register_client(
             OAuthClientInformationFull(
@@ -98,9 +102,37 @@ def resolve_user(db: Session, claims: dict[str, Any]) -> User:
     return db.get_one(User, user_id, populate_existing=True)
 
 
-async def bearer_claims(token: str | None = Depends(oauth2_scheme)) -> dict[str, Any]:
+def pkce_challenge(verifier: str) -> str:
+    return base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).decode().rstrip("=")
+
+
+async def exchange_code(code: str, verifier: str) -> OAuthToken | None:
+    """Server-side token exchange for the web client, with the same checks the /token endpoint applies."""
+    client = await auth.get_client(WEB_CLIENT_ID) if auth else None
+    if auth is None or client is None:
+        return None
+    auth_code = await auth.load_authorization_code(client, code)
+    if (
+        auth_code is None
+        or auth_code.code_challenge != pkce_challenge(verifier)
+        or str(auth_code.redirect_uri) != WEB_REDIRECT_URI
+    ):
+        return None
+    try:
+        return await auth.exchange_authorization_code(client, auth_code)
+    except TokenError:
+        return None
+
+
+async def token_claims(token: str | None) -> dict[str, Any] | None:
+    """Claims of a valid access token we issued, else None."""
     access = await auth.load_access_token(token) if auth and token else None
-    if access is None or access.claims is None:
+    return access.claims if access else None
+
+
+async def bearer_claims(token: str | None = Depends(oauth2_scheme)) -> dict[str, Any]:
+    claims = await token_claims(token)
+    if claims is None:
         raise HTTPException(
             401,
             "Missing or invalid bearer token.",
@@ -108,7 +140,7 @@ async def bearer_claims(token: str | None = Depends(oauth2_scheme)) -> dict[str,
                 "WWW-Authenticate": f'Bearer resource_metadata="{config.APP_URL}/.well-known/oauth-protected-resource/mcp"'
             },
         )
-    return access.claims
+    return claims
 
 
 def current_user(claims: dict[str, Any] = Depends(bearer_claims), db: Session = Depends(get_db)) -> User:

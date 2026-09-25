@@ -20,8 +20,8 @@ curl localhost:8000/up
 Postgres listens on `localhost:5433`, with two databases: `quiz` and `test`. Migrations run when the API
 container starts.
 
-- http://localhost:8000/ is the sign-up page. You sign in with GitHub, which creates your account, and then it
-  shows how to connect an AI and your access token for the REST API.
+- http://localhost:8000/ is the home page: sign in with GitHub (which creates your account), how to connect an AI
+  and, once you're signed in, your access token for the REST API.
 - http://localhost:8000/docs has the OpenAPI docs. Click **Authorize** to sign in with GitHub and try requests.
 
 ### GitHub sign-in
@@ -37,8 +37,13 @@ container starts.
 
 The API is its own OAuth 2.1 authorization server, built on FastMCP's `GitHubProvider`. It supports dynamic
 client registration, PKCE and a consent screen. OAuth clients and tokens live in the `kv_store` table,
-encrypted. The same bearer tokens work for `/mcp` and for the REST API. The sign-up page (client `web`) and
+encrypted. The same bearer tokens work for `/mcp` and for the REST API. The web pages (client `web`) and
 `/docs` (client `swagger-ui`) are public PKCE clients that register themselves when the server starts.
+
+The pages are rendered on the server. The home page's sign-in button posts to `/login`, which runs the PKCE flow
+server-side (the OAuth redirect lands back on `/login`) and keeps the access token in an HttpOnly cookie
+(`quiz_session`) that lasts as long as the token. There's no refresh, so you sign in again when it expires. The only
+JavaScript left is the Copy buttons.
 
 ## Connect an AI
 
@@ -49,7 +54,7 @@ encrypted. The same bearer tokens work for `/mcp` and for the REST API. The sign
 - **ChatGPT** (Plus, Pro, Business, Enterprise, Edu; web): Settings → Security and login → Developer mode, then
   ChatGPT Plugins → "+" → create a developer-mode app with `<APP_URL>/mcp` and OAuth.
 
-The sign-up page shows the plugin install commands when `PLUGIN_MARKETPLACE` is set (e.g. the repo path, or
+The home page shows the plugin install commands when `PLUGIN_MARKETPLACE` is set (e.g. the repo path, or
 `owner/repo` once published); otherwise it shows only `claude mcp add`.
 
 ### Claude Code plugin
@@ -72,7 +77,7 @@ and upload it under Skills.
 
 ## REST API
 
-Every route needs `Authorization: Bearer <token>`, except `/up`, the sign-up page (`/`), `/docs` and the OAuth endpoints.
+Every route needs `Authorization: Bearer <token>`, except `/up`, the web pages (`/`, `/login`, `/logout`), `/docs` and the OAuth endpoints.
 
 | Method | Path | |
 |---|---|---|
@@ -109,6 +114,7 @@ Layout:
 - `app/services/`: all the business logic
 - `app/api.py` and `app/mcp.py`: thin wrappers over the services
 - `app/auth.py`: OAuth and user mapping
+- `app/web.py` and `app/templates/`: the server-rendered pages
 
 ## Deliberately left out
 
