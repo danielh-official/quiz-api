@@ -50,6 +50,80 @@ server-side (the OAuth redirect lands back on `/login`) and keeps the access tok
 (`quiz_session`) that lasts as long as the token. There's no refresh, so you sign in again when it expires. The only
 JavaScript left is the Copy buttons.
 
+## Deploy
+
+Any host that runs a Dockerfile works: the last stage (`prod`) is the production image, listens on `$PORT` (default
+8080), runs migrations on start and serves a health check at `/up`. Keep Postgres off the app host (e.g. a free
+[Neon](https://neon.tech) project, in the same region): if the host suspends or deletes the app, your data survives
+and you redeploy elsewhere. For Neon, use the direct (non-pooled) URL without `&channel_binding=require`, which
+asyncpg rejects.
+
+Every host needs the same settings: `APP_URL` (the public URL, no trailing slash), `DATABASE_URL`,
+`GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `ALLOWED_USERS`, and optionally `PLUGIN_MARKETPLACE`. Generate
+`JWT_SIGNING_KEY` and `STORAGE_ENCRYPTION_KEY` with `python -c "import secrets; print(secrets.token_urlsafe(32))"`
+(Render generates them for you). Then point the GitHub OAuth app's homepage and callback at the new URL.
+
+Moving hosts: set the new `APP_URL`, update the GitHub OAuth app, and update the plugin URL (see
+[Claude Code plugin](#claude-code-plugin)). Reusing the old keys and database keeps registered clients working; new
+keys mean every client signs in again.
+
+### Render
+
+New → Blueprint, pick the repo: `render.yaml` sets up a free Docker web service in Virginia with the health check,
+generates both keys and prompts for the rest. The free plan sleeps when idle, so the first request after a while
+takes up to a minute.
+
+### Railway
+
+```bash
+railway init                     # new project, from the repo root
+railway up                       # builds the Dockerfile's prod stage
+railway variables --set "DATABASE_URL=..." --set "GITHUB_CLIENT_ID=..."   # and the rest
+railway domain                   # public URL; set APP_URL to it, then redeploy
+```
+
+In the service settings, set the healthcheck path to `/up` and the region next to your database. Railway sets
+`PORT` itself.
+
+### Fly
+
+```bash
+fly launch --no-deploy           # detects the Dockerfile, writes fly.toml; pick region iad for Neon us-east-1
+fly secrets set DATABASE_URL=... GITHUB_CLIENT_ID=...   # and the rest; APP_URL=https://<app>.fly.dev
+fly deploy
+```
+
+Check that `fly.toml` has `internal_port = 8080`, and add an `[[http_service.checks]]` with `path = "/up"`. With
+`auto_stop_machines` on, idle machines stop and the dashboard shows the app as *suspended*: that's scale-to-zero,
+not an account action.
+
+### Avoiding suspension
+
+Hosts scan for phishing and suspend first, and ask later. A small app on a shared domain (`*.onrender.com`,
+`*.up.railway.app`, `*.fly.dev`) whose page leads with "Sign in with GitHub" looks a lot like the credential
+phishing those domains are known for. This has happened to this project on Render. What keeps the risk down:
+
+- **Use your own domain.** All three hosts support custom domains. Scanners and
+  blocklists treat shared host subdomains with suspicion, and one bad neighbour can get the whole suffix flagged.
+- **The page doesn't read as a login page.** The home page explains the project, calls itself a personal instance
+  and offers only a low-key "Owner sign-in" link. There's no brand logo, no password field (the REST token sits
+  behind "Reveal token"), no "verify your account" wording, and nothing redirects to GitHub until you click.
+- **No open redirects.** Dynamic client registration only accepts callbacks on loopback, `claude.ai`, `claude.com`,
+  `chatgpt.com` and `APP_URL` (`CLIENT_REDIRECT_URIS` in `app/auth.py`). Without that list, anyone could register a
+  client and hand out `/authorize` links on your domain that end on their own site. To support another MCP client,
+  add its callback there.
+- **Stay out of search.** `robots.txt` disallows everything and every page is `noindex`.
+- **One account per person.** Railway's [fair use policy](https://railway.com/legal/fair-use) bans multiple
+  trial accounts, and all three hosts' acceptable use policies let them suspend without notice
+  ([Render](https://render.com/security), [Railway](https://railway.com/legal/acceptable-use),
+  [Fly](https://fly.io/legal/acceptable-use-policy/)).
+
+If you're suspended anyway: check the domain in [Google Safe
+Browsing](https://transparencyreport.google.com/safe-browsing/search) and request a review there if it's listed,
+then appeal to the host (Render through the dashboard's support, Railway at support@railway.app, Fly through
+support or its community forum). Point to the public repo and explain that sign-in is limited to `ALLOWED_USERS`.
+Meanwhile, deploy to another host: the database lives elsewhere, so nothing is lost.
+
 ## Connect an AI
 
 - **Claude Code**: install the plugin (below), or run
