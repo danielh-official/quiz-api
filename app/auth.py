@@ -1,5 +1,6 @@
 """GitHub sign-in via FastMCP's OAuth proxy, and mapping token claims to users rows."""
 
+import warnings
 from typing import Any
 
 from fastapi import Depends, HTTPException
@@ -25,6 +26,10 @@ def build_auth() -> GitHubProvider | None:
     for name in ("JWT_SIGNING_KEY", "STORAGE_ENCRYPTION_KEY"):
         if not getattr(config, name):
             raise RuntimeError(f"{name} must be set when GitHub OAuth is configured.")
+    with warnings.catch_warnings():
+        # py-key-value marks its PostgreSQL store unstable and offers no opt-out; uv.lock pins the version.
+        warnings.filterwarnings("ignore", "A configured store is unstable", UserWarning)
+        store = PostgreSQLStore(url=config.DATABASE_URL)
     return GitHubProvider(
         client_id=config.GITHUB_CLIENT_ID,
         client_secret=config.GITHUB_CLIENT_SECRET,
@@ -33,7 +38,7 @@ def build_auth() -> GitHubProvider | None:
         jwt_signing_key=config.JWT_SIGNING_KEY,
         # OAuth clients, codes and upstream GitHub tokens, encrypted, in the kv_store table (auto-created).
         client_storage=FernetEncryptionWrapper(
-            PostgreSQLStore(url=config.DATABASE_URL),
+            store,
             source_material=config.STORAGE_ENCRYPTION_KEY,
             salt="quiz-api",
         ),
