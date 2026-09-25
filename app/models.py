@@ -107,6 +107,7 @@ class StudySession(Base):
     deck_id: Mapped[int] = mapped_column(fk("decks.id"))
     size: Mapped[int] = mapped_column(SmallInteger)
     answered: Mapped[int] = mapped_column(SmallInteger, server_default="0")
+    summary: Mapped[str | None]  # running notes the AI rewrites after every answer, for the next session
     finished_at: Mapped[datetime | None]
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
