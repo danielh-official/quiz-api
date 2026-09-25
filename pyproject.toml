@@ -29,3 +29,17 @@ package = false
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+
+[tool.pylint.main]
+# Match the runtime path: repo root, so app/mcp.py doesn't shadow the mcp package,
+# and tests/, which pytest puts on sys.path for `from conftest import ...`.
+source-roots = ["."]
+init-hook = "import sys; sys.path.append('tests')"
+
+[tool.pylint.messages_control]
+# False positive on SQLAlchemy's func.count() / func.now().
+disable = ["not-callable"]
+
+[tool.pylint.typecheck]
+# Dynamic attributes pylint can't see: SQLAlchemy's func.* and alembic's op/context proxies.
+generated-members = ["sqlalchemy.func.*", "func.*", "alembic.op.*", "op.*", "alembic.context.*", "context.*"]
