@@ -24,6 +24,7 @@ from app.schemas import (
     QuestionIn,
     QuestionType,
     QuestionUpdate,
+    SessionUpdate,
     SettingsUpdate,
 )
 from app.services import Forbidden, Invalid, NotFound, content, stats, study
@@ -40,8 +41,9 @@ Quiz API is the user's spaced-repetition quiz app for multiple-choice questions.
 
 Studying: start-session, then loop next-question -> show "Question N of M", the stem as bullets (one sentence each),
 a blank line, then the options as "A. ...", "B. ..." on separate lines, wording and order exactly as returned,
-without hinting -> ask for the pick(s) and confidence -> submit-answer -> present the result and explanations.
-Stop when next-question says the session is finished. On first use, check the user's timezone (update-settings).
+without hinting -> ask for the pick(s) and confidence -> submit-answer -> present the result and explanations
+-> update-session with the rewritten running summary (the user's reasoning, your read, anything worth remembering).
+start-session returns recent summaries: use them. Stop when next-question says the session is finished. On first use, check the user's timezone (update-settings).
 
 Writing questions: search-questions first to avoid duplicates; test understanding, not trivia; plausible
 distractors of similar length; an explanation on every option plus an overall explanation.
@@ -178,7 +180,8 @@ def start_session(
     size: Annotated[int | None, Field(ge=1, le=500, description="Max questions; defaults to the deck's setting.")] = None,
 ) -> dict[str, Any]:
     """Start a study session on a deck (with subdecks): due questions first, then new ones within the daily
-    limits. Follow with next-question."""
+    limits. Also returns the latest session summaries (any deck): read them before the first question.
+    Follow with next-question."""
     with caller() as (db, user):
         return study.start_session(db, user, deck_id, size)
 
@@ -203,6 +206,23 @@ def submit_answer(
     with caller() as (db, user):
         answer = AnswerIn(question_id=question_id, selected=selected, confidence=confidence)
         return study.submit_answer(db, user, session_id, answer)
+
+
+@mcp.tool(name="update-session", annotations=IDEMPOTENT)
+def update_session(
+    session_id: int,
+    summary: Annotated[
+        str,
+        Field(
+            description="The whole summary so far, replacing the previous one: the user's reasoning, your read of how "
+            "the session is going, and anything to remember next session. Empty string clears it."
+        ),
+    ],
+) -> dict[str, Any]:
+    """Save the session's running summary. Call after every answer's result, rewriting the whole summary so it
+    survives the user leaving mid-session; later sessions get it back from start-session."""
+    with caller() as (db, user):
+        return study.update_session(db, user, session_id, SessionUpdate(summary=summary))
 
 
 @mcp.tool(name="update-card", annotations=IDEMPOTENT)

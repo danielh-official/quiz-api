@@ -18,7 +18,7 @@ from app import auth as auth_module, config, mcp as mcp_module
 TOOLS = {
     "list-decks", "get-deck", "search-questions", "get-performance", "create-deck", "update-deck",
     "create-questions", "update-question", "start-session", "next-question", "submit-answer",
-    "update-card", "update-settings",
+    "update-session", "update-card", "update-settings",
 }  # fmt: skip
 
 
@@ -89,6 +89,17 @@ def test_full_session_without_answer_leakage(monkeypatch: pytest.MonkeyPatch) ->
     assert leaked == [] and "explanation" not in nxt["question"]
     assert "explanation" in result["question"]
     assert done["finished"] and done["summary"]["answered"] == 1
+
+
+def test_session_summary_carries_to_next_session(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def steps(client: Client[Any]) -> list[dict[str, Any]]:
+        deck = (await client.call_tool("create-deck", {"name": "AWS"})).data["deck"]
+        first = (await client.call_tool("start-session", {"deck_id": deck["id"]})).data
+        await client.call_tool("update-session", {"session_id": first["session_id"], "summary": "Weak on RDS."})
+        return list((await client.call_tool("start-session", {"deck_id": deck["id"]})).data["recent_summaries"])
+
+    [recent] = run(monkeypatch, steps)
+    assert recent["summary"] == "Weak on RDS." and recent["deck"] == "AWS"
 
 
 def test_errors_are_tool_errors(monkeypatch: pytest.MonkeyPatch) -> None:
