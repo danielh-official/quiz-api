@@ -2,7 +2,7 @@
   "mcpServers": {
     "quiz-api": {
       "type": "http",
-      "url": "http://localhost:8000/mcp"
+      "url": "https://quiz-api-l8c5.onrender.com/mcp"
     }
   }
 }
