@@ -1,0 +1,31 @@
+[project]
+name = "quiz-api"
+version = "0.1.0"
+description = "Spaced-repetition quiz REST API + MCP server"
+authors = [
+    { name = "Daniel (Haven) Hotyanov", email = "49914607+danielh-official@users.noreply.github.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "alembic>=1.20.0",
+    "fastapi>=0.141.1",
+    "fastmcp>=4.0.9",
+    "fsrs>=6.3.2",
+    "psycopg[binary]>=3.3.6",
+    "py-key-value-aio[postgresql]>=0.4.6",
+    "sqlalchemy>=2",
+    "uvicorn[standard]>=0.53.0",
+]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=9.1.1",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
