@@ -1,28 +1,32 @@
-<!--if:signed-in-->
+{% extends "layout.html" %}
+{% block content %}
+{% if user %}
 <div class="card row">
-    <div>Signed in as <strong>@{{LOGIN}}</strong> <span class="muted">· timezone {{TIMEZONE}}</span></div>
+    <div>Signed in as <strong>@{{ user.login }}</strong> <span class="muted">· timezone {{ user.timezone }}</span></div>
     <form method="post" action="/logout"><button class="link">Sign out</button></form>
-</div><!--/if:signed-in-->
-<!--if:signed-out-->
+</div>
+{% else %}
 <div class="card row">
     <div>Sign in with GitHub to create your account and get an access token.
         Access is limited to approved GitHub users.</div>
     <form method="post" action="/login"><button class="button">Sign in with GitHub</button></form>
-</div><!--/if:signed-out-->
-<!--if:error-->
-<p class="warn" role="alert">{{ERROR}}</p><!--/if:error-->
+</div>
+{% endif %}
+{% if error %}
+<p class="warn" role="alert">{{ error }}</p>
+{% endif %}
 
 <h2>1. Connect your AI</h2>
 <p>The MCP server lives at:</p>
-<pre data-copy>{{APP_URL}}/mcp</pre>
+<pre data-copy>{{ app_url }}/mcp</pre>
 <ul>
     <li><strong>Claude Code</strong>:
-        <!--if:plugin-->install the plugin, which adds the MCP server and a study skill:
-        <pre data-copy>claude plugin marketplace add {{PLUGIN_MARKETPLACE}}</pre>
+        {% if plugin_marketplace %}install the plugin, which adds the MCP server and a study skill:
+        <pre data-copy>claude plugin marketplace add {{ plugin_marketplace }}</pre>
         <pre data-copy>claude plugin install quiz-api@quiz-api</pre>
         Start a new session, run <code>/mcp</code>, pick <code>plugin:quiz-api:quiz-api</code> and sign in.
-        Without the plugin, <!--/if:plugin-->run the command below, then <code>/mcp</code> and sign in.
-        <pre data-copy>claude mcp add --transport http quiz-api {{APP_URL}}/mcp</pre>
+        Without the plugin, {% endif %}run the command below, then <code>/mcp</code> and sign in.
+        <pre data-copy>claude mcp add --transport http quiz-api {{ app_url }}/mcp</pre>
     </li>
     <li><strong>Claude.ai / Claude Desktop</strong>: Customize → Connectors → <strong>+</strong> → Add custom connector
         →
@@ -48,10 +52,14 @@
 <pre data-copy>{ "promptSuggestionEnabled": false }</pre>
 
 <h2>3. Use the REST API directly</h2>
-<p>Browse and try every endpoint at <a href="/docs">/docs</a> (click <em>Authorize</em> to sign in there too),
+<p>Browse and try every endpoint in the interactive docs (click <em>Authorize</em> to sign in there too),
     or call it with your access token.</p>
-<!--if:signed-in--><label for="token">Bearer token</label>
-<div class="token"><input id="token" type="password" readonly value="{{TOKEN}}" data-copy></div>
-<p class="warn">Treat this like a password: anyone with it can read and change your quizzes.</p><!--/if:signed-in-->
-<!--if:signed-out-->
-<p class="muted">Sign in above to see your access token.</p><!--/if:signed-out-->
+<p><a class="button" href="/docs">Open API docs</a></p>
+{% if user %}
+<label for="token">Bearer token</label>
+<div class="token"><input id="token" type="password" readonly value="{{ token }}" data-copy></div>
+<p class="warn">Treat this like a password: anyone with it can read and change your quizzes.</p>
+{% else %}
+<p class="muted">Sign in above to see your access token.</p>
+{% endif %}
+{% endblock %}

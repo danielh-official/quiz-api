@@ -49,7 +49,7 @@ class FakeProvider:
 def test_home_signed_out(client: TestClient) -> None:
     page = client.get("/").text
     assert 'action="/login"' in page and "Sign out" not in page and "Bearer" not in page and 'role="alert"' not in page
-    assert f"{config.APP_URL}/mcp" in page and "{{" not in page and "<!--if:" not in page
+    assert f"{config.APP_URL}/mcp" in page and 'href="/docs"' in page and "{{" not in page and "{%" not in page
     assert "claude plugin install" not in page  # no marketplace configured
     assert "sessionStorage" not in page and "fetch(" not in page  # no client-side rendering
 

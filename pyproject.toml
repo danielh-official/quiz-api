@@ -11,6 +11,7 @@ dependencies = [
     "fastapi>=0.141.1",
     "fastmcp>=4.0.9",
     "fsrs>=6.3.2",
+    "jinja2>=3.1.6",
     "psycopg[binary]>=3.3.6",
     "py-key-value-aio[postgresql]>=0.4.6",
     "sqlalchemy>=2",

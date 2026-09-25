@@ -4,16 +4,14 @@ The browser only ever holds HttpOnly cookies: the session (our access token) and
 and PKCE verifier.
 """
 
-import html
-import re
 import secrets
-from functools import cache
 from pathlib import Path
 from typing import Annotated, Any
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
+from jinja2 import Environment, FileSystemLoader, StrictUndefined
 from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
 
@@ -26,24 +24,20 @@ from app.services import Forbidden
 SESSION_COOKIE = "quiz_session"
 LOGIN_COOKIE = "quiz_login"  # "<state>.<PKCE verifier>" while a sign-in is in flight
 SECURE_COOKIES = config.APP_URL.startswith("https://")
-TEMPLATES = Path(__file__).parent / "templates"
+TEMPLATES = Environment(
+    loader=FileSystemLoader(Path(__file__).parent / "templates"),
+    autoescape=True,
+    undefined=StrictUndefined,
+    trim_blocks=True,
+    lstrip_blocks=True,
+)
 
 router = APIRouter(include_in_schema=False)
 Db = Annotated[Session, Depends(get_db)]
 
 
-@cache
-def template(name: str) -> str:
-    return (TEMPLATES / name).read_text()
-
-
-def render(name: str, title: str, show: dict[str, bool], values: dict[str, str], status_code: int = 200) -> HTMLResponse:
-    """Fill layout + page. `<!--if:x-->...<!--/if:x-->` stays only when show[x]; `{{KEY}}` gets an escaped value."""
-    page = template("layout.html").replace("{{CONTENT}}", template(name))
-    for block, keep in show.items():
-        page = re.sub(rf"<!--if:{block}-->(.*?)<!--/if:{block}-->", r"\1" if keep else "", page, flags=re.S)
-    values = {"APP_URL": config.APP_URL, "TITLE": title, **values}
-    page = re.sub(r"\{\{(\w+)\}\}", lambda m: html.escape(values[m.group(1)]), page)  # one pass: values can't inject keys
+def render(name: str, status_code: int = 200, **context: Any) -> HTMLResponse:
+    page = TEMPLATES.get_template(name).render(app_url=config.APP_URL, **context)
     return HTMLResponse(page, status_code, headers={"Cache-Control": "no-store"})
 
 
@@ -76,16 +70,9 @@ def to_home() -> RedirectResponse:
 
 
 def home_page(user: User | None, token: str = "", error: str | None = None, status_code: int = 200) -> HTMLResponse:
-    show = {
-        "signed-in": user is not None,
-        "signed-out": user is None,
-        "plugin": bool(config.PLUGIN_MARKETPLACE),
-        "error": error is not None,
-    }
-    values = {"PLUGIN_MARKETPLACE": config.PLUGIN_MARKETPLACE, "LOGIN": "", "TIMEZONE": "", "TOKEN": token, "ERROR": error or ""}
-    if user is not None:
-        values |= {"LOGIN": user.login, "TIMEZONE": user.timezone}
-    return render("home.html", "Quiz API", show, values, status_code)
+    return render(
+        "home.html", status_code, user=user, token=token, error=error, plugin_marketplace=config.PLUGIN_MARKETPLACE
+    )
 
 
 def login_error(error: str, status_code: int) -> HTMLResponse:

@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{TITLE}}</title>
+    <title>Quiz API</title>
     <style>
         :root {
             --bg: #f7f7f5;
@@ -185,7 +185,7 @@
     <main>
         <h1>Quiz API</h1>
         <p class="muted">Spaced-repetition quizzes you study and write with Claude, ChatGPT or any MCP client.</p>
-        {{CONTENT}}
+        {% block content %}{% endblock %}
     </main>
     <script>
         // Copy buttons: the only client-side behaviour.
