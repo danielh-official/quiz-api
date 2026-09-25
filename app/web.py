@@ -105,6 +105,10 @@ async def login(  # pylint: disable=too-many-arguments  # OAuth callback paramet
         return to_home()
     if error:
         return login_error(error_description or error, 400)
+
+    if code is None:
+        return login_error("Missing authorization code.", 400)
+    
     return await finish_login(request, db, code, state)
 
 
