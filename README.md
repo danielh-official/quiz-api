@@ -49,7 +49,7 @@ JavaScript is the Copy buttons.
 
 ## Deploy
 
-Any host that runs a Dockerfile works: the last stage (`prod`) is the production image, listens on `$PORT` (default
+Any host that runs a Dockerfile works, including AWS Lambda: the last stage (`prod`) is the production image, listens on `$PORT` (default
 8080), runs migrations on start and serves a health check at `/up`. Keep Postgres off the app host (e.g. a free
 [Neon](https://neon.tech) project, in the same region): if the host suspends or deletes the app, your data survives
 and you redeploy elsewhere. For Neon, use the direct (non-pooled) URL without `&channel_binding=require`, which
@@ -93,6 +93,30 @@ fly deploy
 Check that `fly.toml` has `internal_port = 8080`, and add an `[[http_service.checks]]` with `path = "/up"`. With
 `auto_stop_machines` on, idle machines stop and the dashboard shows the app as *suspended*: that's scale-to-zero,
 not an account action.
+
+### AWS Lambda
+
+`template.yaml` (AWS SAM) runs the same image on Lambda, with [Lambda Web
+Adapter](https://github.com/awslabs/aws-lambda-web-adapter) turning invocations into HTTP requests, behind an HTTP
+API on your own domain. Everything lives in us-east-1, next to a Neon us-east-1 database.
+
+Cost for a personal instance is close to $0: Lambda's always-free allowance (1M requests and 400,000 GB-seconds a
+month) covers it, the HTTP API is $1 per million requests, and ECR storage is about $0.10 per GB-month. Each deploy
+pushes a new image and old ones stay, so delete old images in ECR now and then. AWS has no hard spending cap, so set
+up a small monthly budget with an email alert in the Billing console.
+
+1. Install the AWS CLI, SAM CLI and Docker, and sign in with `aws login`.
+2. Create `.env.aws` (gitignored) with `DOMAIN_NAME` (e.g. `quiz-api.example.com`), `DATABASE_URL`,
+   `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `JWT_SIGNING_KEY`, `STORAGE_ENCRYPTION_KEY`, `ALLOWED_USERS` and
+   optionally `PLUGIN_MARKETPLACE`.
+3. Run `deploy/aws.sh`. It builds the image, shows the changeset and asks before deploying.
+4. On the first deploy, the stack waits for the TLS certificate. The certificate's event in the output (or ACM in the
+   console) shows a validation CNAME: add it at your DNS provider. On Cloudflare, set it to DNS only.
+5. When the stack finishes, add a CNAME from `DOMAIN_NAME` to the `DnsTarget` output, also DNS only.
+6. Point the GitHub OAuth app at `https://<DOMAIN_NAME>` and `https://<DOMAIN_NAME>/auth/callback`.
+
+The API only answers on your domain (the default `execute-api` URL is off). The first request after a quiet spell
+cold-starts the function, which takes a few seconds. Redeploy with `deploy/aws.sh`; it prints what will change.
 
 ### Avoiding suspension
 
