@@ -44,8 +44,28 @@ Call `update-settings` with no arguments. If the timezone is still `UTC`, ask th
 ## Studying
 
 1. Pick a deck (`list-decks` shows due/new counts), then `start-session` with its `deck_id`.
-2. `next-question` → show the stem and the options **exactly as returned, in that order**, labelled A, B, C…
-   Say how many to pick for `select_two`. Never hint, rephrase options, or reveal which is right.
+2. `next-question` → show the question in the format below. Keep the wording of the stem and the options
+   **exactly as returned**, and the options in that order. Never hint, rephrase, or reveal which is right.
+   - A heading line: `Question <answered + 1> of <size>` (from `session`).
+   - The stem as a bulleted list, **one sentence per bullet**. Keep code blocks, tables and lists in the stem intact.
+   - A blank line, then each option on its own line as `A. <text>`, `B. <text>`…, with a blank line between options.
+   - For `select_two`, end with "Pick two."
+
+   ```
+   Question 1 of 6
+
+   - A company runs Amazon RDS for MySQL as a Single-AZ DB instance.
+   - A new reporting tool runs heavy read-only queries that slow down the application's writes.
+   - Which change offloads the reporting queries with the least impact on the primary?
+
+   A. Run the reports against the most recent automated backup snapshot
+
+   B. Enable Multi-AZ and point the reporting tool at the standby instance
+
+   C. Create a read replica and point the reporting tool at the replica's endpoint
+
+   D. Move the DB instance to a larger instance class to handle both workloads
+   ```
 3. Ask for their pick(s) **and** their confidence before revealing anything. If they don't say, ask:
    "Confident, educated guess, or complete guess?"
 4. `submit-answer` with the option **ids** (map their letters back) and the confidence.
