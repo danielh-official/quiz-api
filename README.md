@@ -96,27 +96,33 @@ not an account action.
 
 ### AWS Lambda
 
-`template.yaml` (AWS SAM) runs the same image on Lambda, with [Lambda Web
+`infra/main.tf` (Terraform) runs the same image on Lambda, with [Lambda Web
 Adapter](https://github.com/awslabs/aws-lambda-web-adapter) turning invocations into HTTP requests, behind an HTTP
-API on your own domain. Everything lives in us-east-1, next to a Neon us-east-1 database.
+API on your own domain. It also manages the domain's two Cloudflare DNS records (certificate validation and the
+CNAME), so the domain's parent must be a Cloudflare zone. Everything lives in us-east-1, next to a Neon us-east-1
+database.
 
 Cost for a personal instance is close to $0: Lambda's always-free allowance (1M requests and 400,000 GB-seconds a
-month) covers it, the HTTP API is $1 per million requests, and ECR storage is about $0.10 per GB-month. Each deploy
-pushes a new image and old ones stay, so delete old images in ECR now and then. AWS has no hard spending cap, so set
-up a small monthly budget with an email alert in the Billing console.
+month) covers it, the HTTP API is $1 per million requests, and ECR keeps only the last 3 images (about $0.10 per
+GB-month). AWS has no hard spending cap; set `BUDGET_EMAIL` to get an email when a month passes $1 or is forecast
+to pass $5.
 
-1. Install the AWS CLI, SAM CLI and Docker, and sign in with `aws login`.
-2. Create `.env.aws` (gitignored) with `DOMAIN_NAME` (e.g. `quiz-api.example.com`), `DATABASE_URL`,
-   `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `JWT_SIGNING_KEY`, `STORAGE_ENCRYPTION_KEY`, `ALLOWED_USERS` and
-   optionally `PLUGIN_MARKETPLACE`.
-3. Run `deploy/aws.sh`. It builds the image, shows the changeset and asks before deploying.
-4. On the first deploy, the stack waits for the TLS certificate. The certificate's event in the output (or ACM in the
-   console) shows a validation CNAME: add it at your DNS provider. On Cloudflare, set it to DNS only.
-5. When the stack finishes, add a CNAME from `DOMAIN_NAME` to the `DnsTarget` output, also DNS only.
-6. Point the GitHub OAuth app at `https://<DOMAIN_NAME>` and `https://<DOMAIN_NAME>/auth/callback`.
+1. Install the AWS CLI, Terraform and Docker, and sign in with `aws login`.
+2. Create a Cloudflare API token with **Zone → DNS → Edit** on your zone only.
+3. Create `.env.aws` (gitignored) with `DOMAIN_NAME` (e.g. `quiz-api.example.com`), `DATABASE_URL`,
+   `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `JWT_SIGNING_KEY`, `STORAGE_ENCRYPTION_KEY`, `ALLOWED_USERS`,
+   `CLOUDFLARE_API_TOKEN`, and optionally `PLUGIN_MARKETPLACE` and `BUDGET_EMAIL`.
+4. Run `deploy/aws.sh`. The first run asks to create the ECR repository, then builds and pushes the image, then
+   shows the full plan and asks again. Creating the certificate waits a few minutes for validation.
+5. Point the GitHub OAuth app at `https://<DOMAIN_NAME>` and `https://<DOMAIN_NAME>/auth/callback`.
 
-The API only answers on your domain (the default `execute-api` URL is off). The first request after a quiet spell
-cold-starts the function, which takes a few seconds. Redeploy with `deploy/aws.sh`; it prints what will change.
+Redeploy with `deploy/aws.sh`: each run pushes the current code and shows what changes before applying. The API only
+answers on your domain (the default `execute-api` URL is off). The first request after a quiet spell cold-starts the
+function, which takes a few seconds.
+
+Terraform state stays local in `infra/terraform.tfstate`: gitignored, readable only by you, and holding the secrets
+in plain text. Don't commit it or share it; lose it and Terraform no longer knows what it created (import or delete
+the resources by hand).
 
 ### Avoiding suspension
 
