@@ -97,7 +97,7 @@ update-settings. There are no delete tools; deleting goes through REST only.
 ```bash
 docker compose exec api pytest                    # inside the container
 uv sync && uv run pytest                          # on the host (uses localhost:5433/test)
-uv run pytest tests/test_study.py -k limit        # one file / matching tests
+uv run pytest tests/test_limits.py -k parent      # one file / matching tests
 uv run alembic revision --autogenerate -m "..."   # after changing app/models.py
 ```
 
@@ -119,5 +119,5 @@ These can be added when needed:
 - **Personal access tokens**: add them for scripts.
 - **Google sign-in**: needs a custom FastMCP `OAuthProvider`.
 - **Deck sharing**: not ported from master-quiz.
-- **Running more than one instance**: works, because tokens and OAuth state live in Postgres. Move migrations
-  out of the container start command first.
+- **Running more than one instance**: tokens and OAuth state already live in Postgres, so only the migrations
+  need to move out of the container start command (they run on every start).
