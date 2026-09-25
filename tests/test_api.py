@@ -94,11 +94,3 @@ def test_home_page_wired_to_web_client(client):
     page = client.get("/").text
     assert 'const CLIENT_ID = "web"' in page
     assert f"{config.APP_URL}/mcp" in page and "{{" not in page
-
-
-def test_skill_zip_contains_skill(client):
-    import io
-    import zipfile
-
-    names = zipfile.ZipFile(io.BytesIO(client.get("/skill.zip").content)).namelist()
-    assert "quiz-api/SKILL.md" in names

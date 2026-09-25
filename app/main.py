@@ -1,10 +1,8 @@
-import io
-import zipfile
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, JSONResponse, Response
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastmcp.utilities.lifespan import combine_lifespans
 from pydantic import ValidationError
 
@@ -45,19 +43,6 @@ UI = (ROOT / "app/ui.html").read_text().replace("{{APP_URL}}", config.APP_URL).r
 def home() -> HTMLResponse:
     """Sign-up page: GitHub sign-in, then connection instructions."""
     return HTMLResponse(UI)
-
-
-@app.get("/skill.zip", include_in_schema=False)
-def skill_zip() -> Response:
-    buffer = io.BytesIO()
-    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
-        for path in (ROOT / "skills/quiz-api").rglob("*"):
-            zf.write(path, path.relative_to(ROOT / "skills"))
-    return Response(
-        buffer.getvalue(),
-        media_type="application/zip",
-        headers={"Content-Disposition": 'attachment; filename="quiz-api.zip"'},
-    )
 
 
 @app.exception_handler(NotFound)

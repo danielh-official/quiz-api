@@ -21,7 +21,7 @@ Postgres listens on `localhost:5433`, with two databases: `quiz` and `test`. Mig
 container starts.
 
 - http://localhost:8000/ is the sign-up page. You sign in with GitHub, which creates your account, and then it
-  shows how to connect an AI, a download for the skill, and your access token for the REST API.
+  shows how to connect an AI and your access token for the REST API.
 - http://localhost:8000/docs has the OpenAPI docs. Click **Authorize** to sign in with GitHub and try requests.
 
 ### GitHub sign-in
@@ -45,15 +45,6 @@ encrypted. The same bearer tokens work for `/mcp` and for the REST API. The sign
 - **Claude Code**: run `claude mcp add --transport http quiz-api http://localhost:8000/mcp`, then `/mcp` to sign in.
 - **Claude.ai**: add a custom connector with `<APP_URL>/mcp`. Claude.ai needs a public HTTPS `APP_URL`.
 - **ChatGPT**: turn on developer mode, then create a connector with `<APP_URL>/mcp` and OAuth.
-
-### The skill
-
-`skills/quiz-api/SKILL.md` teaches the AI the study loop and how to write good questions. The MCP server's
-built-in instructions are a shorter version of the same guide.
-
-- **Claude / ChatGPT**: download the zip from `/skill.zip` (the sign-up page links to it), or build it with
-  `cd skills && zip -r quiz-api.zip quiz-api`, then upload it under Skills.
-- **Claude Code / Codex**: copy `skills/quiz-api` into `~/.claude/skills/` or `.agents/skills/`.
 
 ## REST API
 

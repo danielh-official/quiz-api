@@ -1,4 +1,4 @@
-"""MCP server: thin tools over the service layer. The full guide for AIs lives in skills/quiz-api/SKILL.md."""
+"""MCP server: thin tools over the service layer. INSTRUCTIONS is the guide MCP clients read."""
 
 from collections.abc import Iterator
 from contextlib import contextmanager

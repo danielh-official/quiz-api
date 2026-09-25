@@ -14,7 +14,6 @@ RUN uv sync --frozen --no-dev
 COPY app app
 COPY migrations migrations
 COPY alembic.ini .
-COPY skills skills
 RUN useradd --create-home quiz
 USER quiz
 EXPOSE 8080
