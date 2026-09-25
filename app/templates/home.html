@@ -21,6 +21,21 @@
 <p class="warn" role="alert">{{ error }}</p>
 {% endif %}
 
+<h2>0. Setting Up Your Own Instance</h2>
+<p>This server only admits approved GitHub users. To run your own copy:</p>
+<ol>
+    <li>Fork <a href="https://github.com/danielh-official/quiz-api" target="_blank">danielh-official/quiz-api</a>.</li>
+    <li>Create a Postgres database (for example a free <a href="https://neon.tech" target="_blank">Neon</a> project).</li>
+    <li>Deploy the repo's Dockerfile. On <a href="https://render.com" target="_blank">Render</a>, New → Blueprint picks
+        up <code>render.yaml</code>.</li>
+    <li>Create a GitHub OAuth app with your server's URL as the homepage and <code>&lt;URL&gt;/auth/callback</code> as
+        the callback.</li>
+    <li>Set <code>APP_URL</code>, <code>DATABASE_URL</code>, <code>GITHUB_CLIENT_ID</code>,
+        <code>GITHUB_CLIENT_SECRET</code> and <code>ALLOWED_USERS</code> (your GitHub login). Render generates the
+        signing and encryption keys for you.</li>
+</ol>
+<p class="muted">The README covers local development and every setting.</p>
+
 <h2>1. Connect your AI</h2>
 <p>The MCP server lives at:</p>
 <pre data-copy>{{ app_url }}/mcp</pre>
