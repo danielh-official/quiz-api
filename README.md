@@ -59,12 +59,12 @@ loop, writing good questions and reviewing progress. `.claude-plugin/marketplace
 marketplace.
 
 ```bash
-claude plugin marketplace add /Users/danielh/GitHub/quiz-api   # or owner/repo once it's on GitHub
+claude plugin marketplace add .   # from the repo root; or owner/repo once it's on GitHub
 claude plugin install quiz-api@quiz-api
 ```
 
-The plugin points at `http://localhost:8000/mcp`. Keep it in sync with `APP_URL`: change the URL in `plugins/quiz-api/.mcp.json` once the server
-is deployed, and bump `version` in `plugin.json` so installs pick it up. Validate with
+The plugin points at `http://localhost:8000/mcp`. Keep it in sync with `APP_URL`: change the URL in
+`plugins/quiz-api/.mcp.json` once the server is deployed, and bump `version` in `plugin.json` so installs pick it up. Validate with
 `claude plugin validate plugins/quiz-api`.
 
 For Claude.ai or ChatGPT, zip the skill folder (`cd plugins/quiz-api/skills && zip -r quiz-api.zip quiz-api`)
@@ -72,7 +72,7 @@ and upload it under Skills.
 
 ## REST API
 
-Every route needs `Authorization: Bearer <token>`, except `/up`.
+Every route needs `Authorization: Bearer <token>`, except `/up`, the sign-up page (`/`), `/docs` and the OAuth endpoints.
 
 | Method | Path | |
 |---|---|---|
@@ -97,8 +97,12 @@ update-settings. There are no delete tools; deleting goes through REST only.
 ```bash
 docker compose exec api pytest                    # inside the container
 uv sync && uv run pytest                          # on the host (uses localhost:5433/test)
+uv run pytest tests/test_study.py -k limit        # one file / matching tests
 uv run alembic revision --autogenerate -m "..."   # after changing app/models.py
 ```
+
+Tests reset the `test` database (Alembic downgrade to base, then upgrade) at the start of every run, and
+roll back each test's transaction. Compose must be up for Postgres.
 
 Layout:
 
