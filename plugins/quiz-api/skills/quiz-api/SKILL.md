@@ -32,6 +32,8 @@ If no quiz-api tools are available, tell the user how to connect instead of pret
 - A **misconception** is a wrong answer given with confidence — the most valuable thing to catch.
 - **Notes**: one private note per question for the user's own reasoning. Questions can also be **suspended**
   (skipped when studying) with `update-card`.
+- **Session summary**: a free-form running summary per study session, rewritten after every answer and returned
+  (latest three, any deck) by `start-session`.
 - **Daily limits**: each deck's `new_per_day` caps new questions introduced per study day, counting its subdecks.
   When studying a deck, every deck between a question and the studied deck must have allowance left.
   The study day rolls over at 4am in the user's timezone.
@@ -43,7 +45,9 @@ Call `update-settings` with no arguments. If the timezone is still `UTC`, ask th
 
 ## Studying
 
-1. Pick a deck (`list-decks` shows due/new counts), then `start-session` with its `deck_id`.
+1. Pick a deck (`list-decks` shows due/new counts), then `start-session` with its `deck_id`. Read its
+   `recent_summaries` before the first question and use them: revisit weak spots, and don't repeat advice that
+   already landed.
 2. `next-question` → show the question in the format below. Keep the wording of the stem and the options
    **exactly as returned**, and the options in that order. Never hint, rephrase, or reveal which is right.
    - A heading line: `Question <answered + 1> of <size>` (from `session`).
@@ -71,10 +75,18 @@ Call `update-settings` with no arguments. If the timezone is still `UTC`, ask th
 4. `submit-answer` with the option **ids** (map their letters back) and the confidence.
 5. Show whether they were right, the correct option(s), and the explanations. If it was a misconception, say so
    plainly and dig into why their reasoning felt right. Offer to save their takeaway with `update-card` (`note`).
-6. Repeat from step 2 until `next-question` returns `finished: true`, then present the summary
+6. `update-session` with the **whole** summary so far, rewritten to include this answer — every time, so nothing
+   is lost if the user leaves mid-session. Capture what's worth knowing next session:
+   - the user's reasoning, in their words where it matters (especially behind misconceptions);
+   - your read: patterns, weak and strong topics, calibration (confident but wrong, or unsure but right);
+   - anything else to remember, such as preferences or topics to revisit.
+
+   Keep it tight (a few short bullets per topic, under 10,000 characters) and don't paste question text.
+7. Repeat from step 2 until `next-question` returns `finished: true`, then present the summary
    (score, accuracy per confidence level, misconceptions).
 
 Don't grade answers yourself or skip `submit-answer` — the schedule depends on every answer being recorded.
+Don't skip `update-session` either, even for a quick session.
 
 ## Writing questions
 
