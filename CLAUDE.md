@@ -66,7 +66,6 @@ Pushes to `main` deploy to AWS Lambda through `.github/workflows/deploy.yml` aft
 
 ## Conventions
 
-- `ponytail:` comments mark deliberate simplifications and name the upgrade path. README's "Deliberately left out"
-  lists features skipped on purpose (rate limiting, scopes, PATs, multi-instance); don't add them unasked.
+- `ponytail:` comments mark deliberate simplifications and name the upgrade path.
 - Changing the plugin's MCP URL: edit `plugins/quiz-api/.mcp.json`, bump `version` in `plugin.json`, then run
   `claude plugin validate plugins/quiz-api`.
