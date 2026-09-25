@@ -4,7 +4,13 @@
 # ALLOWED_USERS and optionally PLUGIN_MARKETPLACE.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-set -a && . ./.env.aws && set +a
+[[ -f .env.aws ]] || { echo "Missing .env.aws: create it with the settings listed at the top of $0." >&2; exit 1; }
+set -a
+. ./.env.aws
+set +a
+for name in DOMAIN_NAME DATABASE_URL GITHUB_CLIENT_ID GITHUB_CLIENT_SECRET JWT_SIGNING_KEY STORAGE_ENCRYPTION_KEY ALLOWED_USERS; do
+  [[ -n "${!name:-}" ]] || { echo "Set $name in .env.aws." >&2; exit 1; }
+done
 
 sam build
 sam deploy --parameter-overrides \
