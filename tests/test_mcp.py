@@ -101,3 +101,22 @@ def test_oauth_metadata_served_when_github_configured(monkeypatch):
         assert client.post("/mcp", json={}).status_code == 401
     assert resource["resource"] == f"{config.APP_URL}/mcp"
     assert server["registration_endpoint"].endswith("/register")
+
+
+def test_browser_clients_registered(monkeypatch):
+    for name, value in {"GITHUB_CLIENT_ID": "id", "GITHUB_CLIENT_SECRET": "secret", "JWT_SIGNING_KEY": "k" * 32}.items():
+        monkeypatch.setattr(config, name, value)
+    from key_value.aio.stores.memory import MemoryStore
+
+    monkeypatch.setattr(auth_module, "PostgreSQLStore", lambda url: MemoryStore())
+    monkeypatch.setattr(config, "STORAGE_ENCRYPTION_KEY", "e" * 32)
+    provider = auth_module.build_auth()
+    monkeypatch.setattr(auth_module, "auth", provider)
+
+    async def main():
+        await auth_module.register_browser_clients()
+        return [await provider.get_client(c) for c in ("web", "swagger-ui")]
+
+    web, swagger = asyncio.run(main())
+    assert [str(u) for u in web.redirect_uris] == [f"{config.APP_URL}/"]
+    assert [str(u) for u in swagger.redirect_uris] == [f"{config.APP_URL}/docs/oauth2-redirect"]

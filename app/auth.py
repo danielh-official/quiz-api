@@ -2,10 +2,12 @@
 
 from typing import Any
 
-from fastapi import Depends, HTTPException, Request
+from fastapi import Depends, HTTPException
+from fastapi.security import OAuth2AuthorizationCodeBearer
 from fastmcp.server.auth.providers.github import GitHubProvider
 from key_value.aio.stores.postgresql import PostgreSQLStore
 from key_value.aio.wrappers.encryption import FernetEncryptionWrapper
+from mcp.shared.auth import OAuthClientInformationFull
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
@@ -42,6 +44,37 @@ def build_auth() -> GitHubProvider | None:
 
 auth = build_auth()
 
+# Browser clients that sign in through the same GitHub OAuth flow as MCP clients.
+SWAGGER_CLIENT_ID = "swagger-ui"  # /docs "Authorize" button
+WEB_CLIENT_ID = "web"  # sign-up page at /
+oauth2_scheme = OAuth2AuthorizationCodeBearer(
+    authorizationUrl="/authorize",
+    tokenUrl="/token",
+    refreshUrl="/token",
+    scopes={"read:user": "Sign in with GitHub"},
+    auto_error=False,
+)
+
+
+async def register_browser_clients() -> None:
+    """Pre-register the docs and sign-up page as public PKCE clients; they don't do dynamic registration."""
+    if not auth:
+        return
+    for client_id, name, redirect_path in (
+        (SWAGGER_CLIENT_ID, "Quiz API docs", "/docs/oauth2-redirect"),
+        (WEB_CLIENT_ID, "Quiz API", "/"),
+    ):
+        await auth.register_client(
+            OAuthClientInformationFull(
+                client_id=client_id,
+                client_name=name,
+                redirect_uris=[f"{config.APP_URL}{redirect_path}"],
+                token_endpoint_auth_method="none",
+                grant_types=["authorization_code", "refresh_token"],
+                scope="read:user",
+            )
+        )
+
 
 def resolve_user(db: Session, claims: dict[str, Any]) -> User:
     """Allowlist check, then upsert the users row keyed by GitHub's numeric id (renames can't hijack accounts)."""
@@ -59,9 +92,8 @@ def resolve_user(db: Session, claims: dict[str, Any]) -> User:
     return db.get(User, user_id, populate_existing=True)
 
 
-async def bearer_claims(request: Request) -> dict[str, Any]:
-    scheme, _, token = request.headers.get("authorization", "").partition(" ")
-    access = await auth.load_access_token(token) if auth and scheme.lower() == "bearer" and token else None
+async def bearer_claims(token: str | None = Depends(oauth2_scheme)) -> dict[str, Any]:
+    access = await auth.load_access_token(token) if auth and token else None
     if access is None:
         raise HTTPException(
             401,

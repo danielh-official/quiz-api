@@ -1,15 +1,30 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from fastmcp.utilities.lifespan import combine_lifespans
 from pydantic import ValidationError
 
 from app.api import router
+from app.auth import SWAGGER_CLIENT_ID, register_browser_clients
 from app.mcp import error_message, mcp
 from app.services import Forbidden, Invalid, NotFound
 
 # Serves /mcp plus the OAuth endpoints (/authorize, /token, /register, /auth/callback, /.well-known/*).
 mcp_app = mcp.http_app(path="/mcp", stateless_http=True)
 
-app = FastAPI(title="Quiz API", lifespan=mcp_app.lifespan)
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    await register_browser_clients()
+    yield
+
+
+app = FastAPI(
+    title="Quiz API",
+    lifespan=combine_lifespans(mcp_app.lifespan, lifespan),
+    swagger_ui_init_oauth={"clientId": SWAGGER_CLIENT_ID, "usePkceWithAuthorizationCodeGrant": True, "scopes": "read:user"},
+)
 app.include_router(router)
 
 
