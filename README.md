@@ -116,7 +116,12 @@ to pass $5.
    shows the full plan and asks again. Creating the certificate waits a few minutes for validation.
 5. Point the GitHub OAuth app at `https://<DOMAIN_NAME>` and `https://<DOMAIN_NAME>/auth/callback`.
 
-Redeploy with `deploy/aws.sh`: each run pushes the current code and shows what changes before applying. The API only
+After that, pushes to `main` deploy themselves: `.github/workflows/deploy.yml` runs the tests and mypy, builds the
+image on an arm64 runner, pushes it to ECR and points the function at it, then checks `/up`. GitHub signs in to AWS
+with a short-lived OIDC token that only the repo's `main` branch can trade for the `quiz-api-github-deploy` role, which
+may only push to the ECR repository and update the function; no AWS keys are stored in GitHub. Forks skip the deploy
+job. Infrastructure changes (anything in `infra/`) stay manual: run `deploy/aws.sh`, which also ships your local
+checkout, and shows the plan before applying. The API only
 answers on your domain (the default `execute-api` URL is off). The first request after a quiet spell cold-starts the
 function, which takes a few seconds.
 

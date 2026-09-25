@@ -1,0 +1,58 @@
+name: Test and deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: quiz
+          POSTGRES_PASSWORD: secret
+          POSTGRES_DB: test
+        ports: ["5433:5432"] # where tests/conftest.py looks by default
+        options: --health-cmd "pg_isready -U quiz" --health-interval 2s --health-retries 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+      - run: uv sync --frozen
+      - run: uv run pytest
+      - run: uv run --with mypy mypy app tests
+
+  # Pushes to main ship the image to Lambda. Infrastructure changes stay manual (deploy/aws.sh, Terraform in infra/).
+  deploy:
+    needs: test
+    if: github.event_name == 'push' && github.repository == 'danielh-official/quiz-api' # not on forks
+    runs-on: ubuntu-24.04-arm # Lambda runs arm64: build natively
+    concurrency: deploy # one at a time, in push order
+    permissions:
+      id-token: write # the OIDC token AWS trusts instead of stored keys
+      contents: read
+    env:
+      FUNCTION: quiz-api
+      URL: https://quiz-api.danielhaven.com
+    steps:
+      - uses: actions/checkout@v7
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::013506579311:role/quiz-api-github-deploy # infra/main.tf github_deploy
+          aws-region: us-east-1
+      - id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      - name: Build and push
+        run: |
+          image=${{ steps.ecr.outputs.registry }}/quiz-api
+          docker build --provenance=false --target prod -t "$image:${{ github.sha }}" .
+          docker push "$image:${{ github.sha }}"
+          echo "IMAGE=$(docker inspect --format '{{index .RepoDigests 0}}' "$image:${{ github.sha }}")" >> "$GITHUB_ENV"
+      - name: Deploy
+        run: |
+          aws lambda update-function-code --function-name "$FUNCTION" --image-uri "$IMAGE" --query LastUpdateStatus
+          aws lambda wait function-updated-v2 --function-name "$FUNCTION"
+      - name: Smoke test
+        run: curl -fsS --retry 5 --retry-all-errors --retry-delay 3 "$URL/up"

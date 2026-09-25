@@ -14,10 +14,12 @@ uv run pytest tests/test_limits.py -k parent      # one file / matching tests
 uv run --with mypy mypy app tests                 # strict mode, config in pyproject.toml
 uv run --with pylint pylint app tests migrations  # max line length 130
 uv run alembic revision --autogenerate -m "..."   # after changing app/models.py
-deploy/aws.sh                                     # build, push to ECR, terraform apply infra/; settings in .env.aws
+deploy/aws.sh                                     # terraform apply infra/ + ship local code; settings in .env.aws
 ```
 
 mypy and pylint aren't dev dependencies; run them with `--with` as above. Migrations run on container start.
+Pushes to `main` deploy to AWS Lambda through `.github/workflows/deploy.yml` after tests pass; `infra/` changes need
+`deploy/aws.sh` run locally (the Terraform state is local).
 
 ## Architecture
 
