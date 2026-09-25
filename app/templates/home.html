@@ -3,12 +3,13 @@
 <div class="card">A personal instance: only its owner's approved GitHub accounts can use it. To use Quiz API
     yourself, run your own copy (below).</div>
 
-<h2>0. Setting Up Your Own Instance</h2>
+<h2>0. Run your own copy</h2>
 <p>This server only admits approved GitHub users. To run your own copy:</p>
 <ol>
     <li>Fork <a href="https://github.com/danielh-official/quiz-api" target="_blank">danielh-official/quiz-api</a>.</li>
     <li>Create a Postgres database (for example a free <a href="https://neon.tech" target="_blank">Neon</a> project).</li>
-    <li>Deploy the repo's Dockerfile to <a href="https://render.com" target="_blank">Render</a>,
+    <li>Deploy the repo's Dockerfile to <a href="https://aws.amazon.com/lambda/" target="_blank">AWS Lambda</a>
+        (Terraform in <code>infra/</code>, as this instance does), <a href="https://render.com" target="_blank">Render</a>,
         <a href="https://railway.com" target="_blank">Railway</a> or <a href="https://fly.io" target="_blank">Fly</a>,
         ideally on your own domain. The README has steps for each, and how to avoid being mistaken for phishing.</li>
     <li>Create a GitHub OAuth app with your server's URL as the homepage and <code>&lt;URL&gt;/auth/callback</code> as
@@ -32,8 +33,7 @@
         <pre data-copy>claude mcp add --transport http quiz-api {{ app_url }}/mcp</pre>
     </li>
     <li><strong>Claude.ai / Claude Desktop</strong>: Customize → Connectors → <strong>+</strong> → Add custom connector
-        →
-        paste the URL above. On Team and Enterprise, an owner first adds it under Organization settings → Connectors.
+        → paste the URL above. On Team and Enterprise, an owner first adds it under Organization settings → Connectors.
     </li>
     <li><strong>ChatGPT</strong> (Plus, Pro, Business, Enterprise, Edu; web only): Settings → Security and login →
         turn on Developer mode. Then ChatGPT Plugins → <strong>+</strong> → create a developer-mode app with the URL

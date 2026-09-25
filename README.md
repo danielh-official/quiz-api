@@ -49,8 +49,9 @@ JavaScript is the Copy buttons.
 
 ## Deploy
 
-Any host that runs a Dockerfile works, including AWS Lambda: the last stage (`prod`) is the production image, listens on `$PORT` (default
-8080), runs migrations on start and serves a health check at `/up`. Keep Postgres off the app host (e.g. a free
+Any host that runs a Dockerfile works, including AWS Lambda: the last stage (`prod`) is the production image,
+listens on `$PORT` (default 8080), runs migrations on start and serves a health check at `/up`. The live instance
+runs on [AWS Lambda](#aws-lambda). Keep Postgres off the app host (e.g. a free
 [Neon](https://neon.tech) project, in the same region): if the host suspends or deletes the app, your data survives
 and you redeploy elsewhere. For Neon, use the direct (non-pooled) URL without `&channel_binding=require`, which
 asyncpg rejects.
@@ -123,9 +124,8 @@ image on an arm64 runner, pushes it to ECR and points the function at it, then c
 with a short-lived OIDC token that only the repo's `main` branch can trade for the `quiz-api-github-deploy` role, which
 may only push to the ECR repository and update the function; no AWS keys are stored in GitHub. Forks skip the deploy
 job. Infrastructure changes (anything in `infra/`) stay manual: run `deploy/aws.sh`, which also ships your local
-checkout, and shows the plan before applying. The API only
-answers on your domain (the default `execute-api` URL is off). The first request after a quiet spell cold-starts the
-function, which takes a few seconds.
+checkout, and shows the plan before applying. The API only answers on your domain (the default `execute-api` URL is
+off). The first request after a quiet spell cold-starts the function, which takes a few seconds.
 
 Terraform state stays local in `infra/terraform.tfstate`: gitignored, readable only by you, and holding the secrets
 in plain text. Don't commit it or share it; lose it and Terraform no longer knows what it created (import or delete
@@ -134,10 +134,10 @@ the resources by hand).
 ### Avoiding suspension
 
 Hosts scan for phishing and suspend first, and ask later. A small app on a shared domain (`*.onrender.com`,
-`*.up.railway.app`, `*.fly.dev`) whose page leads with "Sign in with GitHub" looks a lot like the credential
+`*.up.railway.app`, `*.fly.dev`, `*.execute-api.amazonaws.com`) whose page leads with "Sign in with GitHub" looks a lot like the credential
 phishing those domains are known for. This has happened to this project on Render. What keeps the risk down:
 
-- **Use your own domain.** All three hosts support custom domains. Scanners and
+- **Use your own domain.** Every host above supports custom domains, and the AWS setup requires one. Scanners and
   blocklists treat shared host subdomains with suspicion, and one bad neighbour can get the whole suffix flagged.
 - **No login page.** The home page is static: it explains the project, calls itself a personal instance and has
   no sign-in, form or password field. Sign-in only happens inside MCP clients and behind Swagger's *Authorize*
@@ -148,27 +148,31 @@ phishing those domains are known for. This has happened to this project on Rende
   add its callback there.
 - **Stay out of search.** `robots.txt` disallows everything and every page is `noindex`.
 - **One account per person.** Railway's [fair use policy](https://railway.com/legal/fair-use) bans multiple
-  trial accounts, and all three hosts' acceptable use policies let them suspend without notice
+  trial accounts, and every host's acceptable use policy lets it suspend without notice
   ([Render](https://render.com/security), [Railway](https://railway.com/legal/acceptable-use),
-  [Fly](https://fly.io/legal/acceptable-use-policy/)).
+  [Fly](https://fly.io/legal/acceptable-use-policy/), [AWS](https://aws.amazon.com/aup/)).
 
 If you're suspended anyway: check the domain in [Google Safe
 Browsing](https://transparencyreport.google.com/safe-browsing/search) and request a review there if it's listed,
 then appeal to the host (Render through the dashboard's support, Railway at support@railway.app, Fly through
-support or its community forum). Point to the public repo and explain that sign-in is limited to `ALLOWED_USERS`.
+support or its community forum, AWS through a support case). Point to the public repo and explain that sign-in is limited to `ALLOWED_USERS`.
 Meanwhile, deploy to another host: the database lives elsewhere, so nothing is lost.
 
 ## Connect an AI
 
 - **Claude Code**: install the plugin (below), or run
-  `claude mcp add --transport http quiz-api http://localhost:8000/mcp`. Then run `/mcp` to sign in.
-- **Claude.ai / Claude Desktop**: Customize → Connectors → "+" → Add custom connector → `<APP_URL>/mcp`. The
-  connection comes from Anthropic's servers, so `APP_URL` must be publicly reachable (not localhost).
-- **ChatGPT** (Plus, Pro, Business, Enterprise, Edu; web): Settings → Security and login → Developer mode, then
+  `claude mcp add --transport http quiz-api <APP_URL>/mcp`. Then run `/mcp` to sign in.
+- **Claude.ai / Claude Desktop**: Customize → Connectors → "+" → Add custom connector → `<APP_URL>/mcp`. On Team
+  and Enterprise, an owner first adds it under Organization settings → Connectors. The connection comes from
+  Anthropic's servers, so `APP_URL` must be publicly reachable (not localhost).
+- **ChatGPT** (Plus, Pro, Business, Enterprise, Edu; web only): Settings → Security and login → Developer mode, then
   ChatGPT Plugins → "+" → create a developer-mode app with `<APP_URL>/mcp` and OAuth.
 
-The home page shows the plugin install commands when `PLUGIN_MARKETPLACE` is set (e.g. the repo path, or
-`owner/repo` once published); otherwise it shows only `claude mcp add`.
+The home page shows the same steps, plus the plugin install commands when `PLUGIN_MARKETPLACE` is set (e.g.
+`danielh-official/quiz-api`); otherwise it shows only `claude mcp add`.
+
+Claude Code's prompt suggestions (the greyed-out next message) can give answers away. Study from a folder whose
+`.claude/settings.json` has `{ "promptSuggestionEnabled": false }`.
 
 ### Claude Code plugin
 
@@ -177,7 +181,7 @@ loop, writing good questions and reviewing progress. `.claude-plugin/marketplace
 marketplace.
 
 ```bash
-claude plugin marketplace add .   # from the repo root; or owner/repo once it's on GitHub
+claude plugin marketplace add danielh-official/quiz-api   # or . from a checkout
 claude plugin install quiz-api@quiz-api
 ```
 
@@ -225,11 +229,13 @@ uv run alembic revision --autogenerate -m "..."   # after changing app/models.py
 ```
 
 Tests reset the `test` database (Alembic downgrade to base, then upgrade) at the start of every run, and
-roll back each test's transaction. Compose must be up for Postgres.
+roll back each test's transaction. Compose must be up for Postgres. CI runs pytest and mypy on every push and pull
+request (`.github/workflows/deploy.yml`, which then deploys `main`) and pylint in `.github/workflows/pylint.yml`.
 
 Layout:
 
 - `app/services/`: all the business logic
 - `app/api.py` and `app/mcp.py`: thin wrappers over the services
 - `app/auth.py`: OAuth and user mapping
-- `app/web.py` and `app/templates/`: the server-rendered pages
+- `app/web.py` and `app/templates/`: the static home page and `robots.txt`
+- `infra/` and `deploy/aws.sh`: the AWS deployment (Terraform), `.github/workflows/`: CI and deploys

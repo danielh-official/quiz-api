@@ -17,7 +17,8 @@ uv run alembic revision --autogenerate -m "..."   # after changing app/models.py
 deploy/aws.sh                                     # terraform apply infra/ + ship local code; settings in .env.aws
 ```
 
-mypy and pylint aren't dev dependencies; run them with `--with` as above. Migrations run on container start.
+mypy and pylint aren't dev dependencies; run them with `--with` as above. Migrations run on container start (on
+Lambda, every cold start).
 Pushes to `main` deploy to AWS Lambda through `.github/workflows/deploy.yml` after tests pass; `infra/` changes need
 `deploy/aws.sh` run locally (the Terraform state is local).
 
@@ -43,7 +44,8 @@ Pushes to `main` deploy to AWS Lambda through `.github/workflows/deploy.yml` aft
   registration only accepts `CLIENT_REDIRECT_URIS` (loopback, claude.ai/.com, chatgpt.com, `/docs`). Render
   suspended the deploy for "suspicious activity"; open redirects and login-first pages read as phishing, so keep
   both out (README "Avoiding suspension"). Tests turn `MOCK` off in conftest; mock tests turn it back on.
-- **Web (`app/web.py`, `app/templates/`)**: one static Jinja home page plus `robots.txt`, no sign-in. Browser
+- **Web (`app/web.py`, `app/templates/`)**: one static Jinja home page plus `robots.txt`, no sign-in. The home
+  page, README and this file describe the same setup; change them together. Browser
   sign-in is only Swagger's *Authorize* on `/docs` (the pre-registered `swagger-ui` client).
 - **Study (`app/services/study.py`)**: FSRS with no learning steps, so every interval is whole days. The rating
   comes from correctness + confidence (`rating_for`). The study day starts at 4am in the user's timezone. Daily
@@ -66,7 +68,9 @@ Pushes to `main` deploy to AWS Lambda through `.github/workflows/deploy.yml` aft
 
 ## Conventions
 
-- `ponytail:` comments mark deliberate simplifications and name the upgrade path. README's "Deliberately left out"
-  lists features skipped on purpose (rate limiting, scopes, PATs, multi-instance); don't add them unasked.
+- `ponytail:` comments mark deliberate simplifications and name the upgrade path.
+- Skipped on purpose; don't add unasked: per-user rate limiting in the app (the API Gateway throttle in `infra/` is
+  only a cost ceiling), OAuth scopes, personal access tokens, Google sign-in (needs a custom FastMCP
+  `OAuthProvider`), deck sharing, and running more than one instance (migrations run on every start).
 - Changing the plugin's MCP URL: edit `plugins/quiz-api/.mcp.json`, bump `version` in `plugin.json`, then run
   `claude plugin validate plugins/quiz-api`.
