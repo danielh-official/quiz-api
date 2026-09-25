@@ -6,7 +6,7 @@ from conftest import answer, make_deck, make_questions
 from sqlalchemy.orm import Session
 
 from app.models import Card, Deck, Question, Review, User
-from app.schemas import AnswerIn, CardUpdate, QuestionUpdate
+from app.schemas import AnswerIn, CardUpdate, QuestionUpdate, SessionUpdate
 from app.services import Invalid, NotFound, content, study
 
 
@@ -180,3 +180,21 @@ def test_next_question_puts_answer_in_every_position(db: Session, user: User) ->
         for _ in range(200)
     }
     assert seen == {0, 1, 2, 3}
+
+
+def test_session_summary_replaced_and_returned_by_later_sessions(db: Session, user: User, other: User) -> None:
+    deck = make_deck(db, user, "AWS")
+    first = start(db, user, deck)
+    study.update_session(db, user, first, SessionUpdate(summary="Mixed up S3 tiers."))
+    saved = study.update_session(db, user, first, SessionUpdate(summary="S3 tiers fixed; RDS replicas shaky."))
+    assert saved["summary"] == "S3 tiers fixed; RDS replicas shaky."  # replaced, not appended
+
+    later = study.start_session(db, user, make_deck(db, user, "Other").id)
+    assert [s["summary"] for s in later["recent_summaries"]] == ["S3 tiers fixed; RDS replicas shaky."]
+    assert later["recent_summaries"][0]["deck"] == "AWS"
+    assert study.start_session(db, other, make_deck(db, other).id)["recent_summaries"] == []  # never another user's
+
+    study.update_session(db, user, first, SessionUpdate(summary=""))
+    assert study.start_session(db, user, deck.id)["recent_summaries"] == []
+    with pytest.raises(NotFound):
+        study.update_session(db, other, first, SessionUpdate(summary="x"))

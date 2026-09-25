@@ -9,9 +9,11 @@ from sqlalchemy import ColumnElement, Select, exists, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.models import Card, Deck, Question, Review, StudySession, User
-from app.schemas import QUESTION_SHAPES, AnswerIn, Confidence
+from app.schemas import QUESTION_SHAPES, AnswerIn, Confidence, SessionUpdate
 from app.services import Invalid, NotFound
-from app.services.content import card_for, describe, get_deck, get_question, subtree_ids, user_decks
+from app.services.content import card_for, describe, get_deck, get_question, path_names, subtree_ids, user_decks
+
+RECENT_SUMMARIES = 3  # returned by start_session so the next session can pick up where the last ones left off
 
 FUZZ = True  # interval fuzzing; tests switch it off for deterministic due dates
 STUDY_DAY_STARTS_AT = 4  # local hour
@@ -132,8 +134,35 @@ def start_session(db: Session, user: User, deck_id: int, size: int | None = None
     session = StudySession(user_id=user.id, deck_id=deck.id, size=max(1, min(size or deck.session_size, 500)), answered=0)
     db.add(session)
     db.commit()
-    available = counts(db, user, user_decks(db, user))[deck.id]
-    return {"session_id": session.id, "size": session.size, "available": {"due": available["due"], "new": available["new"]}}
+    decks = user_decks(db, user)
+    available = counts(db, user, decks)[deck.id]
+    return {
+        "session_id": session.id,
+        "size": session.size,
+        "available": {"due": available["due"], "new": available["new"]},
+        "recent_summaries": recent_summaries(db, user, decks),
+    }
+
+
+def recent_summaries(db: Session, user: User, decks: dict[int, Deck]) -> list[dict[str, Any]]:
+    """The latest session summaries across all decks: general takeaways matter whichever deck comes next."""
+    sessions = db.scalars(
+        select(StudySession)
+        .where(StudySession.user_id == user.id, StudySession.summary.is_not(None))
+        .order_by(StudySession.id.desc())
+        .limit(RECENT_SUMMARIES)
+    )
+    return [
+        {"deck": " / ".join(path_names(decks, s.deck_id)), "started_at": s.created_at.isoformat(), "summary": s.summary}
+        for s in sessions
+    ]
+
+
+def update_session(db: Session, user: User, session_id: int, data: SessionUpdate) -> dict[str, Any]:
+    session = get_session(db, user, session_id)
+    session.summary = data.summary or None
+    db.commit()
+    return {"session_id": session.id, "summary": session.summary}
 
 
 def get_session(db: Session, user: User, session_id: int) -> StudySession:

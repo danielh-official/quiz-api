@@ -73,6 +73,14 @@ class SessionCreate(BaseModel):
     size: int | None = Field(default=None, ge=1, le=500)
 
 
+class SessionUpdate(BaseModel):
+    summary: str = Field(
+        max_length=10000,
+        description="The whole running summary (replaces the previous one): the user's reasoning, how the session is "
+        "going and anything to remember next session. Empty string clears it.",
+    )
+
+
 class AnswerIn(BaseModel):
     question_id: int
     selected: list[str] = Field(min_length=1, max_length=5, description="Option ids the user picked.")
