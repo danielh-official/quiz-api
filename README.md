@@ -147,7 +147,7 @@ claude plugin marketplace add .   # from the repo root; or owner/repo once it's 
 claude plugin install quiz-api@quiz-api
 ```
 
-The plugin points at the deployed server, `https://quiz-api-l8c5.onrender.com/mcp`. Keep it in sync with `APP_URL`:
+The plugin points at the deployed server, `https://quiz-api.danielhaven.com/mcp`. Keep it in sync with `APP_URL`:
 change the URL in `plugins/quiz-api/.mcp.json` and bump `version` in `plugin.json` so installs pick it up. Validate with
 `claude plugin validate plugins/quiz-api`.
 

@@ -2,7 +2,7 @@
   "mcpServers": {
     "quiz-api": {
       "type": "http",
-      "url": "${QUIZ_API_URL:-https://quiz-api-l8c5.onrender.com/mcp}"
+      "url": "${QUIZ_API_URL:-https://quiz-api.danielhaven.com/mcp}"
     }
   }
 }

@@ -7,7 +7,7 @@ services:
     region: virginia  # keep next to the Neon db (AWS us-east-1)
     healthCheckPath: /up
     envVars:
-      - key: APP_URL  # https://<service>.onrender.com, no trailing slash
+      - key: APP_URL  # public URL, no trailing slash: your custom domain, or https://<service>.onrender.com
         sync: false
       - key: DATABASE_URL  # Neon direct (non-pooled) URL, without &channel_binding=require (asyncpg rejects it)
         sync: false
