@@ -2,6 +2,7 @@ import pytest
 from conftest import question_in
 from fastapi.testclient import TestClient
 
+from app import config
 from app.auth import bearer_claims
 from app.main import app
 from app.models import Deck, User
@@ -87,3 +88,17 @@ def test_delete_me_cascades(client, db):
     client.post("/decks", json={"name": "AWS"})
     assert client.delete("/me").status_code == 204
     assert db.query(User).count() == 0 and db.query(Deck).count() == 0
+
+
+def test_home_page_wired_to_web_client(client):
+    page = client.get("/").text
+    assert 'const CLIENT_ID = "web"' in page
+    assert f"{config.APP_URL}/mcp" in page and "{{" not in page
+
+
+def test_skill_zip_contains_skill(client):
+    import io
+    import zipfile
+
+    names = zipfile.ZipFile(io.BytesIO(client.get("/skill.zip").content)).namelist()
+    assert "quiz-api/SKILL.md" in names

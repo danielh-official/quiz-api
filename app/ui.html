@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quiz API</title>
+<style>
+  :root {
+    --bg: #f7f7f5; --card: #fff; --text: #1d1d1b; --muted: #6b6b66; --line: #e4e4df;
+    --accent: #2f6b4f; --accent-text: #fff; --code: #f0f0ec; --warn: #8a5a00;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #151514; --card: #1e1e1c; --text: #ececea; --muted: #a0a09a; --line: #33332f;
+      --accent: #5fae86; --accent-text: #0d1a13; --code: #2a2a27; --warn: #e0b050;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 system-ui, -apple-system, sans-serif; }
+  main { max-width: 720px; margin: 0 auto; padding: 48px 16px 64px; }
+  h1 { font-size: 28px; margin: 0 0 4px; }
+  h2 { font-size: 18px; margin: 32px 0 8px; }
+  p { margin: 8px 0; }
+  .muted { color: var(--muted); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 20px 24px; margin-top: 24px; }
+  .button { display: inline-flex; align-items: center; gap: 8px; background: var(--accent); color: var(--accent-text);
+    border: 0; border-radius: 8px; padding: 10px 16px; font: inherit; font-weight: 600; cursor: pointer; text-decoration: none; }
+  .link { background: none; border: 0; color: var(--accent); font: inherit; cursor: pointer; padding: 0; text-decoration: underline; }
+  pre { position: relative; background: var(--code); border-radius: 8px; padding: 12px 64px 12px 12px; overflow-x: auto; margin: 8px 0;
+    font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; word-break: break-all; }
+  pre button { position: absolute; top: 8px; right: 8px; font: 12px system-ui; padding: 4px 8px; border-radius: 6px;
+    border: 1px solid var(--line); background: var(--card); color: var(--text); cursor: pointer; }
+  a { color: var(--accent); }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.92em; }
+  ol, ul { padding-left: 22px; }
+  li { margin: 4px 0; }
+  .warn { color: var(--warn); }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; flex-wrap: wrap; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Quiz API</h1>
+  <p class="muted">Spaced-repetition quizzes you study and write with Claude, ChatGPT or any MCP client.</p>
+
+  <section id="signed-out" class="card" hidden>
+    <p>Sign in with GitHub to create your account. Access is limited to approved GitHub users.</p>
+    <p><button id="sign-in" class="button">Sign in with GitHub</button></p>
+    <p id="error" class="warn" role="alert" hidden></p>
+  </section>
+
+  <section id="signed-in" hidden>
+    <div class="card row">
+      <div>Signed in as <strong id="login"></strong> <span class="muted">· timezone <span id="timezone"></span></span></div>
+      <button id="sign-out" class="link">Sign out</button>
+    </div>
+
+    <h2>1. Connect your AI</h2>
+    <p>The MCP server lives at:</p>
+    <pre data-copy>{{APP_URL}}/mcp</pre>
+    <ul>
+      <li><strong>Claude Code</strong>: run the command below, then <code>/mcp</code> and sign in.
+        <pre data-copy>claude mcp add --transport http quiz-api {{APP_URL}}/mcp</pre></li>
+      <li><strong>Claude.ai / Claude Desktop</strong>: Settings → Connectors → Add custom connector → paste the URL above.</li>
+      <li><strong>ChatGPT</strong>: Settings → Apps &amp; Connectors → Advanced → turn on Developer mode, then create a connector with the URL above and OAuth.</li>
+    </ul>
+    <p class="muted">Claude.ai and ChatGPT need a public HTTPS address; localhost only works with Claude Code.</p>
+
+    <h2>2. Add the skill</h2>
+    <p>The skill teaches your AI the study loop and how to write good questions.</p>
+    <p><a class="button" href="/skill.zip" download>Download quiz-api.zip</a></p>
+    <ul>
+      <li><strong>Claude / ChatGPT</strong>: upload the zip under Skills.</li>
+      <li><strong>Claude Code</strong>: unzip into <code>~/.claude/skills/</code>. <strong>Codex</strong>: unzip into <code>.agents/skills/</code>.</li>
+    </ul>
+
+    <h2>3. Start studying</h2>
+    <p>Just talk to your AI, for example:</p>
+    <ul>
+      <li>“Set my Quiz API timezone to Europe/Berlin.” <span class="muted">(daily limits reset at 4am your time)</span></li>
+      <li>“Create a deck called AWS Solutions Architect and write 10 questions about S3.”</li>
+      <li>“Quiz me on my AWS deck.”</li>
+      <li>“Where am I weakest? Write new questions for those topics.”</li>
+    </ul>
+
+    <h2>4. Use the REST API directly</h2>
+    <p>Browse and try every endpoint at <a href="/docs">/docs</a> (click <em>Authorize</em> to sign in there too),
+      or call it with your access token:</p>
+    <p><button id="show-token" class="link">Show my access token</button></p>
+    <div id="token-box" hidden>
+      <p class="warn">Treat this like a password: anyone with it can read and change your quizzes.</p>
+      <pre data-copy><span id="curl"></span></pre>
+    </div>
+  </section>
+</main>
+
+<script>
+const APP_URL = "{{APP_URL}}";
+const CLIENT_ID = "{{CLIENT_ID}}";
+const REDIRECT_URI = APP_URL + "/";
+const store = {
+  get: (k) => { try { return sessionStorage.getItem(k); } catch { return null; } },
+  set: (k, v) => { try { sessionStorage.setItem(k, v); } catch {} },
+  del: (k) => { try { sessionStorage.removeItem(k); } catch {} },
+};
+const $ = (id) => document.getElementById(id);
+
+const b64url = (bytes) => btoa(String.fromCharCode(...new Uint8Array(bytes)))
+  .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+const randomString = () => b64url(crypto.getRandomValues(new Uint8Array(32)));
+
+async function signIn() {
+  const verifier = randomString(), state = randomString();
+  store.set("pkce_verifier", verifier);
+  store.set("oauth_state", state);
+  const challenge = b64url(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier)));
+  location.href = "/authorize?" + new URLSearchParams({
+    response_type: "code", client_id: CLIENT_ID, redirect_uri: REDIRECT_URI, scope: "read:user",
+    state, code_challenge: challenge, code_challenge_method: "S256",
+  });
+}
+
+async function finishSignIn(params) {
+  history.replaceState(null, "", "/");
+  if (params.get("error")) throw new Error(params.get("error_description") || params.get("error"));
+  if (params.get("state") !== store.get("oauth_state")) throw new Error("Sign-in expired or was tampered with. Try again.");
+  const response = await fetch("/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "authorization_code", code: params.get("code"), redirect_uri: REDIRECT_URI,
+      client_id: CLIENT_ID, code_verifier: store.get("pkce_verifier") || "",
+    }),
+  });
+  store.del("pkce_verifier"); store.del("oauth_state");
+  if (!response.ok) throw new Error("GitHub sign-in failed. Try again.");
+  store.set("token", (await response.json()).access_token);
+}
+
+function showSignedOut(message) {
+  $("signed-in").hidden = true;
+  $("signed-out").hidden = false;
+  $("error").hidden = !message;
+  $("error").textContent = message || "";
+}
+
+async function showAccount() {
+  const token = store.get("token");
+  if (!token) return showSignedOut();
+  const response = await fetch("/me", { headers: { Authorization: "Bearer " + token } });
+  if (response.status === 403) { store.del("token"); return showSignedOut((await response.json()).detail + " Ask the server owner to add you."); }
+  if (!response.ok) { store.del("token"); return showSignedOut(); }
+  const me = await response.json();  // first successful call creates the account
+  $("login").textContent = "@" + me.login;
+  $("timezone").textContent = me.timezone;
+  $("curl").textContent = `curl -H "Authorization: Bearer ${token}" ${APP_URL}/decks`;
+  $("signed-out").hidden = true;
+  $("signed-in").hidden = false;
+}
+
+document.querySelectorAll("pre[data-copy]").forEach((pre) => {
+  const button = document.createElement("button");
+  button.textContent = "Copy";
+  button.onclick = async () => {
+    await navigator.clipboard.writeText(pre.firstChild.textContent);
+    button.textContent = "Copied";
+    setTimeout(() => (button.textContent = "Copy"), 1500);
+  };
+  pre.append(button);
+});
+$("sign-in").onclick = () => signIn();
+$("sign-out").onclick = () => { store.del("token"); showSignedOut(); };
+$("show-token").onclick = () => { $("token-box").hidden = false; $("show-token").hidden = true; };
+
+(async () => {
+  const params = new URLSearchParams(location.search);
+  try {
+    if (params.has("code") || params.has("error")) await finishSignIn(params);
+    await showAccount();
+  } catch (err) {
+    showSignedOut(err.message);
+  }
+})();
+</script>
+</body>
+</html>

@@ -18,7 +18,11 @@ curl localhost:8000/up
 ```
 
 Postgres listens on `localhost:5433`, with two databases: `quiz` and `test`. Migrations run when the API
-container starts. The OpenAPI docs are at http://localhost:8000/docs.
+container starts.
+
+- http://localhost:8000/ is the sign-up page. You sign in with GitHub, which creates your account, and then it
+  shows how to connect an AI, a download for the skill, and your access token for the REST API.
+- http://localhost:8000/docs has the OpenAPI docs. Click **Authorize** to sign in with GitHub and try requests.
 
 ### GitHub sign-in
 
@@ -33,7 +37,8 @@ container starts. The OpenAPI docs are at http://localhost:8000/docs.
 
 The API is its own OAuth 2.1 authorization server, built on FastMCP's `GitHubProvider`. It supports dynamic
 client registration, PKCE and a consent screen. OAuth clients and tokens live in the `kv_store` table,
-encrypted. The same bearer tokens work for `/mcp` and for the REST API.
+encrypted. The same bearer tokens work for `/mcp` and for the REST API. The sign-up page (client `web`) and
+`/docs` (client `swagger-ui`) are public PKCE clients that register themselves when the server starts.
 
 ## Connect an AI
 
@@ -46,8 +51,8 @@ encrypted. The same bearer tokens work for `/mcp` and for the REST API.
 `skills/quiz-api/SKILL.md` teaches the AI the study loop and how to write good questions. The MCP server's
 built-in instructions are a shorter version of the same guide.
 
-- **Claude / ChatGPT**: zip the folder with `cd skills && zip -r quiz-api.zip quiz-api`, then upload it under
-  Skills.
+- **Claude / ChatGPT**: download the zip from `/skill.zip` (the sign-up page links to it), or build it with
+  `cd skills && zip -r quiz-api.zip quiz-api`, then upload it under Skills.
 - **Claude Code / Codex**: copy `skills/quiz-api` into `~/.claude/skills/` or `.agents/skills/`.
 
 ## REST API
