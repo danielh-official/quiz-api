@@ -161,6 +161,29 @@ def test_oauth_metadata_served_when_github_configured(monkeypatch: pytest.Monkey
     assert server["registration_endpoint"].endswith("/register")
 
 
+def test_registration_rejects_foreign_redirects(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Dynamic registration only admits known client callbacks, so /authorize can't redirect to arbitrary sites."""
+    for name, value in {
+        "GITHUB_CLIENT_ID": "id",
+        "GITHUB_CLIENT_SECRET": "secret",
+        "JWT_SIGNING_KEY": "k" * 32,
+        "STORAGE_ENCRYPTION_KEY": "e" * 32,
+    }.items():
+        monkeypatch.setattr(config, name, value)
+    monkeypatch.setattr(auth_module, "PostgreSQLStore", lambda url: MemoryStore())
+    app = FastMCP("t", auth=auth_module.build_auth()).http_app(path="/mcp")
+
+    def register(uri: str) -> int:
+        body = {"client_name": "c", "redirect_uris": [uri], "token_endpoint_auth_method": "none"}
+        return client.post("/register", json=body).status_code
+
+    with TestClient(app) as client:
+        assert register("http://localhost:53123/callback") == 201
+        assert register("https://claude.ai/api/mcp/auth_callback") == 201
+        assert register("https://evil.example/callback") == 400
+        assert register("https://claude.ai.evil.example/callback") == 400
+
+
 def test_browser_clients_registered(monkeypatch: pytest.MonkeyPatch) -> None:
     for name, value in {
         "GITHUB_CLIENT_ID": "id",

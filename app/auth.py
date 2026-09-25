@@ -23,6 +23,20 @@ from app.models import User
 from app.services import Forbidden
 
 
+# Where OAuth clients may send users back to. Without this list, dynamic registration accepts any URL, so anyone could
+# register a client and hand out /authorize links on this domain that end on their site: an open redirect that
+# phishing scanners flag and hosts suspend for. Loopback covers Claude Code on any port.
+# ponytail: fixed list, add a client's callback host here (or an env var) to support another MCP client.
+CLIENT_REDIRECT_URIS = [
+    "http://localhost",
+    "http://127.0.0.1",
+    "https://claude.ai/*",
+    "https://claude.com/*",
+    "https://chatgpt.com/*",
+    f"{config.APP_URL}/*",  # the web pages and /docs
+]
+
+
 def build_auth() -> GitHubProvider | None:
     """None when GitHub isn't configured, which is only allowed locally (mocked sign-in, see MOCK)."""
     if not (config.GITHUB_CLIENT_ID and config.GITHUB_CLIENT_SECRET):
@@ -43,6 +57,7 @@ def build_auth() -> GitHubProvider | None:
         client_secret=config.GITHUB_CLIENT_SECRET,
         base_url=config.APP_URL,
         required_scopes=["read:user"],
+        allowed_client_redirect_uris=CLIENT_REDIRECT_URIS,
         jwt_signing_key=config.JWT_SIGNING_KEY,
         # OAuth clients, codes and upstream GitHub tokens, encrypted, in the kv_store table (auto-created).
         client_storage=FernetEncryptionWrapper(

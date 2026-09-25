@@ -36,7 +36,10 @@ mypy and pylint aren't dev dependencies; run them with `--with` as above. Migrat
   checks `ALLOWED_USERS`, then upserts the user keyed by GitHub's numeric `sub`, not the login. Without
   `GITHUB_CLIENT_ID`/`SECRET` on a localhost `APP_URL`, `auth` is `None` and `MOCK` is on: `token_claims` and
   `mcp.caller()` return `MOCK_CLAIMS` (user `dev`, allowlist skipped). Without them anywhere else, or with
-  `APP_ENV=production` (set in the Dockerfile's prod stage), `build_auth` raises at startup. Tests turn `MOCK` off in conftest; mock tests turn it back on.
+  `APP_ENV=production` (set in the Dockerfile's prod stage), `build_auth` raises at startup. Dynamic client
+  registration only accepts `CLIENT_REDIRECT_URIS` (loopback, claude.ai/.com, chatgpt.com, `APP_URL`). Render
+  suspended the deploy for "suspicious activity"; open redirects and login-first pages read as phishing, so keep
+  both out (README "Avoiding suspension"). Tests turn `MOCK` off in conftest; mock tests turn it back on.
 - **Web (`app/web.py`, `app/templates/`)**: server-rendered Jinja pages. `/login` runs the PKCE flow server-side as
   the pre-registered `web` client and stores the token in the HttpOnly `quiz_session` cookie.
 - **Study (`app/services/study.py`)**: FSRS with no learning steps, so every interval is whole days. The rating
