@@ -5,7 +5,7 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 import fsrs
-from sqlalchemy import exists, func, or_, select
+from sqlalchemy import ColumnElement, Select, exists, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.models import Card, Deck, Question, Review, StudySession, User
@@ -49,7 +49,7 @@ def study_day_start(user: User, now: datetime) -> datetime:
     return start - timedelta(days=1) if local < start else start
 
 
-def unstudied(user: User):
+def unstudied(user: User) -> ColumnElement[bool]:
     """Questions the user has never reviewed and not suspended."""
     return ~exists().where(
         Card.question_id == Question.id,
@@ -58,7 +58,7 @@ def unstudied(user: User):
     )
 
 
-def due_cards(user: User, now: datetime):
+def due_cards(user: User, now: datetime) -> Select[Card]:
     return select(Card).join(Question).where(
         Card.user_id == user.id,
         Card.suspended_at.is_(None),
@@ -90,12 +90,14 @@ def new_remaining(db: Session, user: User, decks: dict[int, Deck], now: datetime
 
 def admits(decks: dict[int, Deck], remaining: dict[int, int], deck_id: int, root_id: int) -> bool:
     """Anki v3 rule: every deck from the question's deck up to the session root needs allowance left."""
-    while True:
-        if remaining[deck_id] <= 0:
+    current: int | None = deck_id
+    while current is not None:
+        if remaining[current] <= 0:
             return False
-        if deck_id == root_id:
+        if current == root_id:
             return True
-        deck_id = decks[deck_id].parent_id
+        current = decks[current].parent_id
+    return False  # not under root_id
 
 
 def next_due(db: Session, user: User, deck_ids: list[int], now: datetime) -> Question | None:
@@ -225,6 +227,6 @@ def submit_answer(db: Session, user: User, session_id: int, answer: AnswerIn) ->
         "rating": rating.name.lower(),
         "question": describe(question),
         "note": card.note,
-        "next_review_at": card.due_at.isoformat(),
+        "next_review_at": reviewed.due.isoformat(),
         "session": {"id": session.id, "answered": session.answered, "size": session.size},
     }

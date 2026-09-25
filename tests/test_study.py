@@ -3,34 +3,37 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from conftest import answer, make_deck, make_questions
 
-from app.models import Card, Review
+from sqlalchemy.orm import Session
+
+from app.models import Card, Deck, Question, Review, User
 from app.schemas import AnswerIn, CardUpdate, QuestionUpdate
 from app.services import Invalid, NotFound, content, study
 
 
-def start(db, user, deck, size=None):
-    return study.start_session(db, user, deck.id, size)["session_id"]
+def start(db: Session, user: User, deck: Deck, size: int | None = None) -> int:
+    return int(study.start_session(db, user, deck.id, size)["session_id"])
 
 
-def test_rating_from_confidence():
+def test_rating_from_confidence() -> None:
     assert study.rating_for(False, "confident").name == "Again"
     assert study.rating_for(True, "confident").name == "Good"
     assert study.rating_for(True, "educated_guess").name == "Hard"
     assert study.rating_for(True, "complete_guess").name == "Again"
 
 
-def test_answer_creates_card_and_review(db, user):
+def test_answer_creates_card_and_review(db: Session, user: User) -> None:
     deck = make_deck(db, user)
     [q] = make_questions(db, user, deck)
     result = answer(db, user, start(db, user, deck), q)
 
     card = db.query(Card).one()
     assert result["correct"] and result["rating"] == "good"
-    assert card.reps == 1 and card.lapses == 0 and card.due_at > datetime.now(UTC) + timedelta(hours=12)
+    assert card.reps == 1 and card.lapses == 0
+    assert card.due_at is not None and card.due_at > datetime.now(UTC) + timedelta(hours=12)
     assert db.query(Review).one().was_new
 
 
-def test_confident_wrong_on_reviewed_card_is_a_lapse(db, user):
+def test_confident_wrong_on_reviewed_card_is_a_lapse(db: Session, user: User) -> None:
     deck = make_deck(db, user)
     [q] = make_questions(db, user, deck)
     answer(db, user, start(db, user, deck), q, right=False)
@@ -41,7 +44,7 @@ def test_confident_wrong_on_reviewed_card_is_a_lapse(db, user):
     assert db.query(Card).one().lapses == 1
 
 
-def make_due(db, user, question, stability, days_overdue=1):
+def make_due(db: Session, user: User, question: Question, stability: float, days_overdue: int = 1) -> None:
     now = datetime.now(UTC)
     db.add(
         Card(
@@ -58,7 +61,7 @@ def make_due(db, user, question, stability, days_overdue=1):
     db.commit()
 
 
-def test_due_before_new_most_forgotten_first(db, user):
+def test_due_before_new_most_forgotten_first(db: Session, user: User) -> None:
     deck = make_deck(db, user)
     new, strong, weak = make_questions(db, user, deck, 3)
     make_due(db, user, strong, stability=30)
@@ -74,7 +77,7 @@ def test_due_before_new_most_forgotten_first(db, user):
     assert order == [weak.id, strong.id, new.id]
 
 
-def test_subdecks_included_suspended_skipped(db, user):
+def test_subdecks_included_suspended_skipped(db: Session, user: User) -> None:
     root = make_deck(db, user, "Root")
     child = make_deck(db, user, "Child", parent_id=root.id)
     [skip] = make_questions(db, user, root, prefix="R")
@@ -87,7 +90,7 @@ def test_subdecks_included_suspended_skipped(db, user):
     assert study.next_question(db, user, session)["finished"]
 
 
-def test_new_allowance_resets_at_4am_local(db, user):
+def test_new_allowance_resets_at_4am_local(db: Session, user: User) -> None:
     user.timezone = "America/New_York"
     deck = make_deck(db, user, new_per_day=1)
     old, q = make_questions(db, user, deck, 2)
@@ -111,7 +114,7 @@ def test_new_allowance_resets_at_4am_local(db, user):
     assert study.next_question(db, user, start(db, user, deck))["finished"]
 
 
-def test_session_size_caps_and_summary_groups_by_confidence(db, user):
+def test_session_size_caps_and_summary_groups_by_confidence(db: Session, user: User) -> None:
     deck = make_deck(db, user)
     qs = make_questions(db, user, deck, 3)
     session = start(db, user, deck, size=2)
@@ -126,7 +129,7 @@ def test_session_size_caps_and_summary_groups_by_confidence(db, user):
         answer(db, user, session, qs[2])
 
 
-def test_next_question_hides_answers(db, user):
+def test_next_question_hides_answers(db: Session, user: User) -> None:
     deck = make_deck(db, user)
     make_questions(db, user, deck, type="select_two")
     q = study.next_question(db, user, start(db, user, deck))["question"]
@@ -134,7 +137,7 @@ def test_next_question_hides_answers(db, user):
     assert all(set(o) == {"id", "text"} for o in q["options"])
 
 
-def test_select_two_needs_two_picks(db, user):
+def test_select_two_needs_two_picks(db: Session, user: User) -> None:
     deck = make_deck(db, user)
     [q] = make_questions(db, user, deck, type="select_two")
     with pytest.raises(Invalid, match="exactly 2"):
@@ -143,7 +146,7 @@ def test_select_two_needs_two_picks(db, user):
         )
 
 
-def test_foreign_sessions_and_questions_rejected(db, user, other):
+def test_foreign_sessions_and_questions_rejected(db: Session, user: User, other: User) -> None:
     deck = make_deck(db, user)
     elsewhere = make_deck(db, user, "Elsewhere")
     [outside] = make_questions(db, user, elsewhere)
@@ -154,7 +157,7 @@ def test_foreign_sessions_and_questions_rejected(db, user, other):
         study.next_question(db, other, session)
 
 
-def test_reset_progress_keeps_note_and_suspension(db, user):
+def test_reset_progress_keeps_note_and_suspension(db: Session, user: User) -> None:
     deck = make_deck(db, user)
     [q] = make_questions(db, user, deck)
     answer(db, user, start(db, user, deck), q)
@@ -167,7 +170,7 @@ def test_reset_progress_keeps_note_and_suspension(db, user):
     assert card.note == "mine" and card.suspended_at is not None
 
 
-def test_next_question_puts_answer_in_every_position(db, user):
+def test_next_question_puts_answer_in_every_position(db: Session, user: User) -> None:
     deck = make_deck(db, user)
     [q] = make_questions(db, user, deck)
     correct = next(o["id"] for o in q.options if o["correct"])

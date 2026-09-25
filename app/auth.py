@@ -8,6 +8,7 @@ from fastmcp.server.auth.providers.github import GitHubProvider
 from key_value.aio.stores.postgresql import PostgreSQLStore
 from key_value.aio.wrappers.encryption import FernetEncryptionWrapper
 from mcp.shared.auth import OAuthClientInformationFull
+from pydantic import AnyUrl
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
@@ -68,7 +69,7 @@ async def register_browser_clients() -> None:
             OAuthClientInformationFull(
                 client_id=client_id,
                 client_name=name,
-                redirect_uris=[f"{config.APP_URL}{redirect_path}"],
+                redirect_uris=[AnyUrl(f"{config.APP_URL}{redirect_path}")],
                 token_endpoint_auth_method="none",
                 grant_types=["authorization_code", "refresh_token"],
                 scope="read:user",
@@ -82,19 +83,19 @@ def resolve_user(db: Session, claims: dict[str, Any]) -> User:
     if login.lower() not in config.ALLOWED_USERS:
         raise Forbidden(f"GitHub user {login!r} is not allowed to use this server.")
     profile = {"login": login, "name": claims.get("name"), "email": claims.get("email")}
-    user_id = db.scalar(
+    user_id = db.execute(
         insert(User)
         .values(provider="github", subject=str(claims["sub"]), **profile)
         .on_conflict_do_update(index_elements=["provider", "subject"], set_=profile)
         .returning(User.id)
-    )
+    ).scalar_one()
     db.commit()
-    return db.get(User, user_id, populate_existing=True)
+    return db.get_one(User, user_id, populate_existing=True)
 
 
 async def bearer_claims(token: str | None = Depends(oauth2_scheme)) -> dict[str, Any]:
     access = await auth.load_access_token(token) if auth and token else None
-    if access is None:
+    if access is None or access.claims is None:
         raise HTTPException(
             401,
             "Missing or invalid bearer token.",

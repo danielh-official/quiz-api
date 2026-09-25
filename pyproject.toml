@@ -60,3 +60,10 @@ allowed-redefined-builtins = ["type"]  # question "type" is an API field name
 [tool.pylint.typecheck]
 # Dynamic attributes pylint can't see: SQLAlchemy's func.* and alembic's op/context proxies.
 generated-members = ["sqlalchemy.func.*", "func.*", "alembic.op.*", "op.*", "alembic.context.*", "context.*"]
+
+[tool.mypy]
+strict = true
+plugins = ["pydantic.mypy"]
+# Same import roots as runtime: repo root, and tests/ for `from conftest import ...`.
+mypy_path = [".", "tests"]
+explicit_package_bases = true

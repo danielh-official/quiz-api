@@ -1,5 +1,6 @@
 import html
 import re
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -19,7 +20,7 @@ mcp_app = mcp.http_app(path="/mcp", stateless_http=True)
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI):
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     await register_browser_clients()
     yield
 

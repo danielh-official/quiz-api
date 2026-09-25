@@ -18,6 +18,8 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
+from app.schemas import QuestionType
+
 
 class Base(DeclarativeBase):
     type_annotation_map = {datetime: DateTime(timezone=True), int: BigInteger, str: Text}
@@ -69,7 +71,7 @@ class Question(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     deck_id: Mapped[int] = mapped_column(fk("decks.id"), index=True)
-    type: Mapped[str] = mapped_column(String(16))
+    type: Mapped[QuestionType] = mapped_column(String(16))
     stem: Mapped[str]
     # [{id, text, correct, explanation?}] — option ids are stable across edits.
     options: Mapped[list[dict[str, Any]]] = mapped_column(JSONB)

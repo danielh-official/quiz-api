@@ -1,9 +1,13 @@
+from typing import Any
+
 import pytest
 from conftest import answer, make_deck, make_questions, question_in
 from pydantic import ValidationError
 
-from app.models import Review
-from app.schemas import AnswerIn, OptionIn, QuestionIn, QuestionUpdate
+from sqlalchemy.orm import Session
+
+from app.models import Review, User
+from app.schemas import AnswerIn, OptionIn, QuestionIn, QuestionType, QuestionUpdate
 from app.services import NotFound, content, study
 
 
@@ -16,18 +20,18 @@ from app.services import NotFound, content, study
         ("select_two", 4, [0, 1], "exactly 5 options"),
     ],
 )
-def test_question_shape_is_enforced(type, count, correct, error):
+def test_question_shape_is_enforced(type: QuestionType, count: int, correct: list[int], error: str) -> None:
     with pytest.raises(ValidationError, match=error):
         QuestionIn(type=type, stem="S", options=[OptionIn(text=f"o{i}", correct=i in correct) for i in range(count)])
 
 
-def test_option_texts_must_be_distinct():
+def test_option_texts_must_be_distinct() -> None:
     options = [OptionIn(text="Same", correct=True)] + [OptionIn(text=t) for t in ("same ", "b", "c")]
     with pytest.raises(ValidationError, match="distinct"):
         QuestionIn(type="single", stem="S", options=options)
 
 
-def test_option_ids_survive_reordering_and_edits(db, user):
+def test_option_ids_survive_reordering_and_edits(db: Session, user: User) -> None:
     deck = make_deck(db, user)
     [q] = make_questions(db, user, deck)
     stored = [o["id"] for o in q.options]
@@ -44,7 +48,7 @@ def test_option_ids_survive_reordering_and_edits(db, user):
     assert len(set(ids)) == 4
 
 
-def test_reviews_keep_meaning_after_reorder(db, user):
+def test_reviews_keep_meaning_after_reorder(db: Session, user: User) -> None:
     deck = make_deck(db, user)
     [q] = make_questions(db, user, deck)
     session = study.start_session(db, user, deck.id)
@@ -56,7 +60,7 @@ def test_reviews_keep_meaning_after_reorder(db, user):
     assert picked["correct"]
 
 
-def test_grading_is_exact_match(db, user):
+def test_grading_is_exact_match(db: Session, user: User) -> None:
     deck = make_deck(db, user)
     q = content.create_questions(db, user, deck.id, [question_in("S2", "select_two")])[0]
     session = study.start_session(db, user, deck.id)
@@ -71,7 +75,7 @@ def test_grading_is_exact_match(db, user):
     assert result["misconception"] is True
 
 
-def test_partial_update_keeps_other_fields(db, user):
+def test_partial_update_keeps_other_fields(db: Session, user: User) -> None:
     deck = make_deck(db, user)
     [q] = make_questions(db, user, deck)
     updated = content.update_question(db, user, q.id, QuestionUpdate(stem="New stem"))
@@ -80,14 +84,14 @@ def test_partial_update_keeps_other_fields(db, user):
     assert len(updated.options) == 4
 
 
-def test_update_is_revalidated(db, user):
+def test_update_is_revalidated(db: Session, user: User) -> None:
     deck = make_deck(db, user)
     [q] = make_questions(db, user, deck)
     with pytest.raises(ValidationError, match="exactly 5 options"):
         content.update_question(db, user, q.id, QuestionUpdate(type="select_two"))
 
 
-def test_questions_move_only_to_own_decks(db, user, other):
+def test_questions_move_only_to_own_decks(db: Session, user: User, other: User) -> None:
     deck = make_deck(db, user)
     theirs = make_deck(db, other, "Theirs")
     [q] = make_questions(db, user, deck)
@@ -97,18 +101,18 @@ def test_questions_move_only_to_own_decks(db, user, other):
         content.get_question(db, other, q.id)
 
 
-def test_search_matches_option_text_not_json_keys(db, user):
+def test_search_matches_option_text_not_json_keys(db: Session, user: User) -> None:
     deck = make_deck(db, user)
     make_questions(db, user, deck, 2)
     assert len(content.search_questions(db, user, "Q1 option")["questions"]) == 1
     assert content.search_questions(db, user, "correct")["questions"] == []
 
 
-def correct_positions(options) -> set[int]:
+def correct_positions(options: list[dict[str, Any]]) -> set[int]:
     return {i for i, o in enumerate(options) if o["correct"]}
 
 
-def test_stored_option_order_is_shuffled(db, user):
+def test_stored_option_order_is_shuffled(db: Session, user: User) -> None:
     deck = make_deck(db, user)
     questions = make_questions(db, user, deck, 40)  # authored with the answer always first
     assert len({min(correct_positions(q.options)) for q in questions}) > 1

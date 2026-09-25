@@ -3,7 +3,7 @@
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session
 
 from app.models import Card, Deck, Question, Review, User
@@ -11,7 +11,7 @@ from app.services.content import children_of, describe, get_deck, subtree_ids, u
 from app.services.study import new_remaining, unstudied
 
 
-def per_deck(db: Session, stmt) -> dict[int, int]:
+def per_deck(db: Session, stmt: Select[int, int]) -> dict[int, int]:
     return dict(db.execute(stmt.group_by(Question.deck_id)).all())
 
 

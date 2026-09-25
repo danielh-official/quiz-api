@@ -1,5 +1,7 @@
 import asyncio
+from collections.abc import Awaitable, Callable
 from types import SimpleNamespace
+from typing import Any
 
 import pytest
 
@@ -8,6 +10,8 @@ from fastapi.testclient import TestClient
 from fastmcp import Client, FastMCP
 from fastmcp.exceptions import ToolError
 from key_value.aio.stores.memory import MemoryStore
+from mcp.shared.auth import OAuthClientInformationFull
+from mcp.types import Tool
 
 from app import auth as auth_module, config, mcp as mcp_module
 
@@ -18,31 +22,34 @@ TOOLS = {
 }  # fmt: skip
 
 
-def run(monkeypatch, steps, login="alice"):
+def run[T](monkeypatch: pytest.MonkeyPatch, steps: Callable[[Client[Any]], Awaitable[T]], login: str = "alice") -> T:
     """Run async steps against the MCP server in memory, as a signed-in GitHub user."""
     claims = {"sub": "100", "login": login, "name": login, "email": None}
     monkeypatch.setattr(
         mcp_module, "get_access_token", lambda: SimpleNamespace(claims=claims)
     )
 
-    async def main():
+    async def main() -> T:
         async with Client(mcp_module.mcp) as client:
             return await steps(client)
 
     return asyncio.run(main())
 
 
-def test_tools_and_annotations(monkeypatch):
-    async def steps(client):
+def test_tools_and_annotations(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def steps(client: Client[Any]) -> list[Tool]:
         return await client.list_tools()
 
     tools = {t.name: t for t in run(monkeypatch, steps)}
     assert set(tools) == TOOLS
-    assert tools["list-decks"].annotations.read_only_hint is True
+    annotations = tools["list-decks"].annotations
+    assert annotations is not None and annotations.read_only_hint is True
 
 
-def test_full_session_without_answer_leakage(monkeypatch):
-    async def steps(client):
+def test_full_session_without_answer_leakage(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def steps(
+        client: Client[Any],
+    ) -> tuple[list[dict[str, Any]], dict[str, Any], dict[str, Any], dict[str, Any]]:
         deck = (await client.call_tool("create-deck", {"name": "AWS"})).data["deck"]
         await client.call_tool(
             "create-questions",
@@ -84,12 +91,13 @@ def test_full_session_without_answer_leakage(monkeypatch):
     assert done["finished"] and done["summary"]["answered"] == 1
 
 
-def test_errors_are_tool_errors(monkeypatch):
-    async def steps(client):
+def test_errors_are_tool_errors(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def steps(client: Client[Any]) -> str | None:
         try:
             await client.call_tool("get-deck", {"deck_id": 999999})
         except ToolError as exc:
             return str(exc)
+        return None
 
     result = run(monkeypatch, steps)
 
@@ -99,12 +107,13 @@ def test_errors_are_tool_errors(monkeypatch):
     assert "not found" in result
 
 
-def test_not_allowlisted_is_rejected(monkeypatch):
-    async def steps(client):
+def test_not_allowlisted_is_rejected(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def steps(client: Client[Any]) -> str | None:
         try:
             await client.call_tool("list-decks", {})
         except ToolError as exc:
             return str(exc)
+        return None
 
     result = run(monkeypatch, steps, login="mallory")
     if result is None:
@@ -112,7 +121,7 @@ def test_not_allowlisted_is_rejected(monkeypatch):
     assert "not allowed" in result
 
 
-def test_oauth_metadata_served_when_github_configured(monkeypatch):
+def test_oauth_metadata_served_when_github_configured(monkeypatch: pytest.MonkeyPatch) -> None:
     for name, value in {
         "GITHUB_CLIENT_ID": "id",
         "GITHUB_CLIENT_SECRET": "secret",
@@ -130,7 +139,7 @@ def test_oauth_metadata_served_when_github_configured(monkeypatch):
     assert server["registration_endpoint"].endswith("/register")
 
 
-def test_browser_clients_registered(monkeypatch):
+def test_browser_clients_registered(monkeypatch: pytest.MonkeyPatch) -> None:
     for name, value in {
         "GITHUB_CLIENT_ID": "id",
         "GITHUB_CLIENT_SECRET": "secret",
@@ -142,7 +151,7 @@ def test_browser_clients_registered(monkeypatch):
     provider = auth_module.build_auth()
     monkeypatch.setattr(auth_module, "auth", provider)
 
-    async def main():
+    async def main() -> list[OAuthClientInformationFull | None]:
         await auth_module.register_browser_clients()
 
         if provider is None:

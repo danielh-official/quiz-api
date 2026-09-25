@@ -51,10 +51,11 @@ def subtree_ids(decks: dict[int, Deck], root_id: int) -> list[int]:
 
 
 def path_names(decks: dict[int, Deck], deck_id: int) -> list[str]:
-    names = []
-    while deck_id is not None:
-        names.append(decks[deck_id].name)
-        deck_id = decks[deck_id].parent_id
+    names: list[str] = []
+    current: int | None = deck_id
+    while current is not None:
+        names.append(decks[current].name)
+        current = decks[current].parent_id
     return names[::-1]
 
 
@@ -108,7 +109,7 @@ def deck_detail(db: Session, user: User, deck_id: int, page: int = 1) -> dict[st
     deck = get_deck(db, user, deck_id)
     decks = user_decks(db, user)
     page = max(page, 1)
-    total = db.scalar(select(func.count()).where(Question.deck_id == deck.id))
+    total = db.execute(select(func.count()).where(Question.deck_id == deck.id)).scalar_one()
     questions = db.scalars(
         select(Question)
         .where(Question.deck_id == deck.id)
@@ -170,7 +171,7 @@ def describe(question: Question, with_answers: bool = True, shuffle: bool = Fals
     options = [o if with_answers else {"id": o["id"], "text": o["text"]} for o in question.options]
     if shuffle:
         options = random.sample(options, len(options))
-    out = {
+    out: dict[str, Any] = {
         "id": question.id,
         "deck_id": question.deck_id,
         "type": question.type,

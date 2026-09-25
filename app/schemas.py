@@ -12,34 +12,34 @@ QUESTION_SHAPES: dict[str, tuple[int, int]] = {"single": (4, 1), "select_two": (
 
 class DeckCreate(BaseModel):
     name: str = Field(min_length=1, max_length=255)
-    description: str | None = Field(None, max_length=5000)
+    description: str | None = Field(default=None, max_length=5000)
     parent_id: int | None = None
-    session_size: int = Field(20, ge=1, le=500)
-    new_per_day: int = Field(20, ge=0, le=1000)
+    session_size: int = Field(default=20, ge=1, le=500)
+    new_per_day: int = Field(default=20, ge=0, le=1000)
 
 
 class DeckUpdate(BaseModel):
     """Partial update: only fields present in the payload change. parent_id null = top level."""
 
-    name: str | None = Field(None, min_length=1, max_length=255)
-    description: str | None = Field(None, max_length=5000)
+    name: str | None = Field(default=None, min_length=1, max_length=255)
+    description: str | None = Field(default=None, max_length=5000)
     parent_id: int | None = None
-    session_size: int | None = Field(None, ge=1, le=500)
-    new_per_day: int | None = Field(None, ge=0, le=1000)
+    session_size: int | None = Field(default=None, ge=1, le=500)
+    new_per_day: int | None = Field(default=None, ge=0, le=1000)
 
 
 class OptionIn(BaseModel):
-    id: str | None = Field(None, description="Existing option id to keep (updates only). Omit for new options.")
+    id: str | None = Field(default=None, description="Existing option id to keep (updates only). Omit for new options.")
     text: str = Field(min_length=1, max_length=1000)
     correct: bool = False
-    explanation: str | None = Field(None, max_length=2000, description="Why this option is right or wrong.")
+    explanation: str | None = Field(default=None, max_length=2000, description="Why this option is right or wrong.")
 
 
 class QuestionIn(BaseModel):
     type: QuestionType = Field(description='"single" = 4 options, 1 correct. "select_two" = 5 options, 2 correct.')
     stem: str = Field(min_length=1, max_length=5000, description="The question, Markdown.")
     options: list[OptionIn]
-    explanation: str | None = Field(None, max_length=5000, description="Overall explanation, Markdown.")
+    explanation: str | None = Field(default=None, max_length=5000, description="Overall explanation, Markdown.")
 
     @model_validator(mode="after")
     def check_shape(self) -> Self:
@@ -65,12 +65,12 @@ class QuestionUpdate(BaseModel):
 
 
 class CardUpdate(BaseModel):
-    note: str | None = Field(None, max_length=10000, description="Private note; empty string deletes it.")
+    note: str | None = Field(default=None, max_length=10000, description="Private note; empty string deletes it.")
     suspended: bool | None = None
 
 
 class SessionCreate(BaseModel):
-    size: int | None = Field(None, ge=1, le=500)
+    size: int | None = Field(default=None, ge=1, le=500)
 
 
 class AnswerIn(BaseModel):
@@ -81,7 +81,7 @@ class AnswerIn(BaseModel):
 
 class SettingsUpdate(BaseModel):
     timezone: str | None = None
-    desired_retention: float | None = Field(None, ge=0.7, le=0.99)
+    desired_retention: float | None = Field(default=None, ge=0.7, le=0.99)
 
     @field_validator("timezone")
     @classmethod

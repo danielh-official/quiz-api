@@ -135,7 +135,7 @@ def update_deck(
     """Rename, re-describe, move or change the study settings of a deck. Omitted fields stay unchanged."""
     with caller() as (db, user):
         given = {"name": name, "description": description, "session_size": session_size, "new_per_day": new_per_day}
-        changes = {k: v for k, v in given.items() if v is not None}
+        changes: dict[str, Any] = {k: v for k, v in given.items() if v is not None}
         if parent_id is not None:
             changes["parent_id"] = parent_id or None
         return {"deck": content.deck_dict(content.update_deck(db, user, deck_id, DeckUpdate(**changes)))}

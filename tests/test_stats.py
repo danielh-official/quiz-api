@@ -1,10 +1,13 @@
 from conftest import answer, make_deck, make_questions
 
+from sqlalchemy.orm import Session
+
+from app.models import User
 from app.schemas import CardUpdate
 from app.services import content, stats, study
 
 
-def test_counts_roll_up_and_skip_suspended(db, user):
+def test_counts_roll_up_and_skip_suspended(db: Session, user: User) -> None:
     root = make_deck(db, user, "Root", new_per_day=100)
     child = make_deck(db, user, "Child", parent_id=root.id)
     make_questions(db, user, root, 2, prefix="R")
@@ -16,13 +19,13 @@ def test_counts_roll_up_and_skip_suspended(db, user):
     assert per[child.id] == {"due": 0, "new": 1, "total": 2}
 
 
-def test_new_count_capped_by_daily_limit(db, user):
+def test_new_count_capped_by_daily_limit(db: Session, user: User) -> None:
     deck = make_deck(db, user, new_per_day=2)
     make_questions(db, user, deck, 5)
     assert stats.counts(db, user, content.user_decks(db, user))[deck.id]["new"] == 2
 
 
-def test_performance_reports_misconceptions_leeches_notes(db, user):
+def test_performance_reports_misconceptions_leeches_notes(db: Session, user: User) -> None:
     deck = make_deck(db, user)
     [q] = make_questions(db, user, deck)
     for _ in range(2):
@@ -36,7 +39,7 @@ def test_performance_reports_misconceptions_leeches_notes(db, user):
     assert report["notes"] == [{"question_id": q.id, "stem": q.stem, "note": "remember X"}]
 
 
-def test_users_are_isolated(db, user, other):
+def test_users_are_isolated(db: Session, user: User, other: User) -> None:
     deck = make_deck(db, user)
     [q] = make_questions(db, user, deck)
     answer(db, user, study.start_session(db, user, deck.id)["session_id"], q)
