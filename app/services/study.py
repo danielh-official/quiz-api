@@ -21,9 +21,7 @@ STUDY_DAY_STARTS_AT = 4  # local hour
 
 def scheduler(user: User) -> fsrs.Scheduler:
     # No learning/relearning steps: every interval is whole days.
-    return fsrs.Scheduler(
-        desired_retention=user.desired_retention, learning_steps=(), relearning_steps=(), enable_fuzzing=FUZZ
-    )
+    return fsrs.Scheduler(desired_retention=user.desired_retention, learning_steps=(), relearning_steps=(), enable_fuzzing=FUZZ)
 
 
 def memory(card: Card) -> fsrs.Card:
@@ -61,11 +59,15 @@ def unstudied(user: User) -> ColumnElement[bool]:
 
 
 def due_cards(user: User, now: datetime) -> Select[Card]:
-    return select(Card).join(Question).where(
-        Card.user_id == user.id,
-        Card.suspended_at.is_(None),
-        Card.last_reviewed_at.is_not(None),
-        Card.due_at <= now,
+    return (
+        select(Card)
+        .join(Question)
+        .where(
+            Card.user_id == user.id,
+            Card.suspended_at.is_(None),
+            Card.last_reviewed_at.is_not(None),
+            Card.due_at <= now,
+        )
     )
 
 
@@ -195,9 +197,7 @@ def next_question(db: Session, user: User, session_id: int) -> dict[str, Any]:
     if session.finished_at is None and session.answered < session.size:
         now = datetime.now(UTC)
         decks = user_decks(db, user)
-        question = next_due(db, user, subtree_ids(decks, session.deck_id), now) or next_new(
-            db, user, decks, session.deck_id, now
-        )
+        question = next_due(db, user, subtree_ids(decks, session.deck_id), now) or next_new(db, user, decks, session.deck_id, now)
         if question:
             return {
                 "finished": False,

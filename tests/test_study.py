@@ -97,8 +97,14 @@ def test_new_allowance_resets_at_4am_local(db: Session, user: User) -> None:
     day_start = study.study_day_start(user, datetime.now(UTC))
     db.add(
         Review(
-            user_id=user.id, question_id=old.id, selected=[], correct=True, confidence="confident", rating=3,
-            was_new=True, reviewed_at=day_start - timedelta(minutes=1),
+            user_id=user.id,
+            question_id=old.id,
+            selected=[],
+            correct=True,
+            confidence="confident",
+            rating=3,
+            was_new=True,
+            reviewed_at=day_start - timedelta(minutes=1),
         )
     )
     db.commit()
@@ -106,8 +112,14 @@ def test_new_allowance_resets_at_4am_local(db: Session, user: User) -> None:
 
     db.add(
         Review(
-            user_id=user.id, question_id=old.id, selected=[], correct=True, confidence="confident", rating=3,
-            was_new=True, reviewed_at=day_start + timedelta(seconds=1),
+            user_id=user.id,
+            question_id=old.id,
+            selected=[],
+            correct=True,
+            confidence="confident",
+            rating=3,
+            was_new=True,
+            reviewed_at=day_start + timedelta(seconds=1),
         )
     )
     db.commit()
@@ -175,10 +187,7 @@ def test_next_question_puts_answer_in_every_position(db: Session, user: User) ->
     [q] = make_questions(db, user, deck)
     correct = next(o["id"] for o in q.options if o["correct"])
     session = start(db, user, deck)
-    seen = {
-        [o["id"] for o in study.next_question(db, user, session)["question"]["options"]].index(correct)
-        for _ in range(200)
-    }
+    seen = {[o["id"] for o in study.next_question(db, user, session)["question"]["options"]].index(correct) for _ in range(200)}
     assert seen == {0, 1, 2, 3}
 
 

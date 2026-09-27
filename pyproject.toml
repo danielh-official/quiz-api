@@ -68,3 +68,7 @@ plugins = ["pydantic.mypy"]
 # Same import roots as runtime: repo root, and tests/ for `from conftest import ...`.
 mypy_path = [".", "tests"]
 explicit_package_bases = true
+
+[tool.ruff]
+line-length = 130
+target-version = "py313"

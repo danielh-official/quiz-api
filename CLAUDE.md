@@ -13,11 +13,12 @@ uv sync && uv run pytest                          # tests need compose's Postgre
 uv run pytest tests/test_limits.py -k parent      # one file / matching tests
 uv run --with mypy mypy app tests                 # strict mode, config in pyproject.toml
 uv run --with pylint pylint app tests migrations  # max line length 130
+uv run --with ruff ruff format app tests migrations  # line length 130; CI checks with --check
 uv run alembic revision --autogenerate -m "..."   # after changing app/models.py
 deploy/aws.sh                                     # terraform apply infra/ + ship local code; settings in .env.aws
 ```
 
-mypy and pylint aren't dev dependencies; run them with `--with` as above. Migrations run on container start (on
+mypy, pylint and ruff aren't dev dependencies; run them with `--with` as above. Migrations run on container start (on
 Lambda, every cold start).
 Pushes to `main` deploy to AWS Lambda through `.github/workflows/deploy.yml` after tests pass; `infra/` changes need
 `deploy/aws.sh` run locally (the Terraform state is local).

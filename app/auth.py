@@ -131,9 +131,7 @@ async def bearer_claims(token: str | None = Depends(oauth2_scheme)) -> dict[str,
         raise HTTPException(
             401,
             "Missing or invalid bearer token.",
-            headers={
-                "WWW-Authenticate": f'Bearer resource_metadata="{config.APP_URL}/.well-known/oauth-protected-resource/mcp"'
-            },
+            headers={"WWW-Authenticate": f'Bearer resource_metadata="{config.APP_URL}/.well-known/oauth-protected-resource/mcp"'},
         )
     return claims
 

@@ -65,9 +65,7 @@ class Deck(Base):
     updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
 
     # Default lazy load: joined would pull exam links on every deck fetch (study/list hot path).
-    deck_exams: Mapped[list["DeckExam"]] = relationship(
-        "DeckExam", back_populates="deck", cascade="all, delete-orphan"
-    )
+    deck_exams: Mapped[list["DeckExam"]] = relationship("DeckExam", back_populates="deck", cascade="all, delete-orphan")
 
 
 class Question(Base):

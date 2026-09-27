@@ -236,7 +236,8 @@ uv run alembic revision --autogenerate -m "..."   # after changing app/models.py
 
 Tests reset the `test` database (Alembic downgrade to base, then upgrade) at the start of every run, and
 roll back each test's transaction. Compose must be up for Postgres. CI runs pytest and mypy on every push and pull
-request (`.github/workflows/deploy.yml`, which then deploys `main`) and pylint in `.github/workflows/pylint.yml`.
+request (`.github/workflows/deploy.yml`, which then deploys `main`), pylint in `.github/workflows/pylint.yml`, and
+ruff format in `.github/workflows/ruff.yml`.
 
 Layout:
 

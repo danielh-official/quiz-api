@@ -26,9 +26,7 @@ TOOLS = {
 def run[T](monkeypatch: pytest.MonkeyPatch, steps: Callable[[Client[Any]], Awaitable[T]], login: str = "alice") -> T:
     """Run async steps against the MCP server in memory, as a signed-in GitHub user."""
     claims = {"sub": "100", "login": login, "name": login, "email": None}
-    monkeypatch.setattr(
-        mcp_module, "get_access_token", lambda: SimpleNamespace(claims=claims)
-    )
+    monkeypatch.setattr(mcp_module, "get_access_token", lambda: SimpleNamespace(claims=claims))
 
     async def main() -> T:
         async with Client(mcp_module.mcp) as client:
@@ -52,27 +50,15 @@ def test_tools_and_annotations(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_exam_tools_partial_update(monkeypatch: pytest.MonkeyPatch) -> None:
     async def steps(client: Client[Any]) -> dict[str, Any]:
         deck = (await client.call_tool("create-deck", {"name": "IAM"})).data["deck"]
-        exam = (
-            await client.call_tool(
-                "create-exam", {"name": "SAA", "deck_ids": [deck["id"]]}
-            )
-        ).data["exam"]
-        renamed = (
-            await client.call_tool(
-                "update-exam", {"exam_id": exam["id"], "name": "SAA-C03"}
-            )
-        ).data["exam"]
+        exam = (await client.call_tool("create-exam", {"name": "SAA", "deck_ids": [deck["id"]]})).data["exam"]
+        renamed = (await client.call_tool("update-exam", {"exam_id": exam["id"], "name": "SAA-C03"})).data["exam"]
         cleared = (
             await client.call_tool(
                 "update-exam",
                 {"exam_id": exam["id"], "clear_starts_at": True, "deck_ids": []},
             )
         ).data["exam"]
-        done = (
-            await client.call_tool(
-                "update-exam", {"exam_id": exam["id"], "completed": True}
-            )
-        ).data["exam"]
+        done = (await client.call_tool("update-exam", {"exam_id": exam["id"], "completed": True})).data["exam"]
         upcoming = (await client.call_tool("list-exams", {"upcoming": True})).data["exams"]
         listed = (await client.call_tool("list-exams", {})).data["exams"]
         await client.call_tool("delete-exam", {"exam_id": exam["id"]})
@@ -107,14 +93,8 @@ def test_full_session_without_answer_leakage(monkeypatch: pytest.MonkeyPatch) ->
                 "questions": [question_in("S3").model_dump(exclude_none=True)],
             },
         )
-        session = (
-            await client.call_tool("start-session", {"deck_id": deck["id"]})
-        ).data
-        nxt = (
-            await client.call_tool(
-                "next-question", {"session_id": session["session_id"]}
-            )
-        ).data
+        session = (await client.call_tool("start-session", {"deck_id": deck["id"]})).data
+        nxt = (await client.call_tool("next-question", {"session_id": session["session_id"]})).data
         leaked = [o for o in nxt["question"]["options"] if set(o) != {"id", "text"}]
         result = (
             await client.call_tool(
@@ -127,11 +107,7 @@ def test_full_session_without_answer_leakage(monkeypatch: pytest.MonkeyPatch) ->
                 },
             )
         ).data
-        done = (
-            await client.call_tool(
-                "next-question", {"session_id": session["session_id"]}
-            )
-        ).data
+        done = (await client.call_tool("next-question", {"session_id": session["session_id"]})).data
         return leaked, nxt, result, done
 
     leaked, nxt, result, done = run(monkeypatch, steps)

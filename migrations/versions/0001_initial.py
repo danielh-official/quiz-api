@@ -22,21 +22,15 @@ def upgrade() -> None:
         sa.Column("login", sa.String(length=255), nullable=False),
         sa.Column("name", sa.Text(), nullable=True),
         sa.Column("email", sa.Text(), nullable=True),
-        sa.Column(
-            "timezone", sa.String(length=64), server_default="UTC", nullable=False
-        ),
-        sa.Column(
-            "desired_retention", sa.Float(), server_default="0.9", nullable=False
-        ),
+        sa.Column("timezone", sa.String(length=64), server_default="UTC", nullable=False),
+        sa.Column("desired_retention", sa.Float(), server_default="0.9", nullable=False),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
             server_default=sa.text("now()"),
             nullable=False,
         ),
-        sa.CheckConstraint(
-            "desired_retention BETWEEN 0.7 AND 0.99", name="desired_retention_range"
-        ),
+        sa.CheckConstraint("desired_retention BETWEEN 0.7 AND 0.99", name="desired_retention_range"),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("provider", "subject"),
     )
@@ -47,12 +41,8 @@ def upgrade() -> None:
         sa.Column("parent_id", sa.BigInteger(), nullable=True),
         sa.Column("name", sa.String(length=255), nullable=False),
         sa.Column("description", sa.Text(), nullable=True),
-        sa.Column(
-            "session_size", sa.SmallInteger(), server_default="20", nullable=False
-        ),
-        sa.Column(
-            "new_per_day", sa.SmallInteger(), server_default="20", nullable=False
-        ),
+        sa.Column("session_size", sa.SmallInteger(), server_default="20", nullable=False),
+        sa.Column("new_per_day", sa.SmallInteger(), server_default="20", nullable=False),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
@@ -97,9 +87,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["deck_id"], ["decks.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(
-        op.f("ix_questions_deck_id"), "questions", ["deck_id"], unique=False
-    )
+    op.create_index(op.f("ix_questions_deck_id"), "questions", ["deck_id"], unique=False)
     op.create_table(
         "study_sessions",
         sa.Column("id", sa.BigInteger(), nullable=False),
@@ -118,9 +106,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(
-        op.f("ix_study_sessions_user_id"), "study_sessions", ["user_id"], unique=False
-    )
+    op.create_index(op.f("ix_study_sessions_user_id"), "study_sessions", ["user_id"], unique=False)
     op.create_table(
         "cards",
         sa.Column("id", sa.BigInteger(), nullable=False),
@@ -139,9 +125,7 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("user_id", "question_id"),
     )
-    op.create_index(
-        op.f("ix_cards_question_id"), "cards", ["question_id"], unique=False
-    )
+    op.create_index(op.f("ix_cards_question_id"), "cards", ["question_id"], unique=False)
     op.create_index("ix_cards_user_due", "cards", ["user_id", "due_at"], unique=False)
     op.create_table(
         "reviews",
@@ -156,24 +140,18 @@ def upgrade() -> None:
         sa.Column("was_new", sa.Boolean(), nullable=False),
         sa.Column("reviewed_at", sa.DateTime(timezone=True), nullable=False),
         sa.ForeignKeyConstraint(["question_id"], ["questions.id"], ondelete="CASCADE"),
-        sa.ForeignKeyConstraint(
-            ["study_session_id"], ["study_sessions.id"], ondelete="SET NULL"
-        ),
+        sa.ForeignKeyConstraint(["study_session_id"], ["study_sessions.id"], ondelete="SET NULL"),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(
-        op.f("ix_reviews_question_id"), "reviews", ["question_id"], unique=False
-    )
+    op.create_index(op.f("ix_reviews_question_id"), "reviews", ["question_id"], unique=False)
     op.create_index(
         op.f("ix_reviews_study_session_id"),
         "reviews",
         ["study_session_id"],
         unique=False,
     )
-    op.create_index(
-        "ix_reviews_user_reviewed", "reviews", ["user_id", "reviewed_at"], unique=False
-    )
+    op.create_index("ix_reviews_user_reviewed", "reviews", ["user_id", "reviewed_at"], unique=False)
 
 
 def downgrade() -> None:

@@ -264,9 +264,7 @@ def update_settings(
 
 @mcp.tool(name="list-exams", annotations=READ)
 def list_exams(
-    upcoming: Annotated[
-        bool, Field(description="If true, only incomplete exams with no start or a future starts_at.")
-    ] = False,
+    upcoming: Annotated[bool, Field(description="If true, only incomplete exams with no start or a future starts_at.")] = False,
 ) -> dict[str, Any]:
     """List the user's exams (soonest starts_at first; undated last), each with linked decks (id + name)."""
     with caller() as (db, user):
@@ -283,9 +281,7 @@ def get_exam(exam_id: int) -> dict[str, Any]:
 @mcp.tool(name="create-exam", annotations=WRITE)
 def create_exam(
     name: str,
-    starts_at: Annotated[
-        datetime | None, Field(description="When the exam begins (timezone-aware datetime).")
-    ] = None,
+    starts_at: Annotated[datetime | None, Field(description="When the exam begins (timezone-aware datetime).")] = None,
     deck_ids: Annotated[
         list[int] | None,
         Field(description="Decks to link; a parent includes its subdecks. Do not also link a child. Omit or [] for none."),
@@ -301,13 +297,9 @@ def create_exam(
 def update_exam(
     exam_id: int,
     name: str | None = None,
-    starts_at: Annotated[
-        datetime | None, Field(description="New start time. Omit to leave unchanged.")
-    ] = None,
+    starts_at: Annotated[datetime | None, Field(description="New start time. Omit to leave unchanged.")] = None,
     clear_starts_at: Annotated[bool, Field(description="If true, clear starts_at.")] = False,
-    completed: Annotated[
-        bool | None, Field(description="True marks done; false reopens. Omit to leave unchanged.")
-    ] = None,
+    completed: Annotated[bool | None, Field(description="True marks done; false reopens. Omit to leave unchanged.")] = None,
     deck_ids: Annotated[
         list[int] | None,
         Field(description="Replace linked decks ([] clears). Omit to leave links unchanged."),
