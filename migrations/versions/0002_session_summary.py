@@ -8,13 +8,13 @@ Revises: 0001
 from alembic import op
 import sqlalchemy as sa
 
-revision = '0002'
-down_revision = '0001'
+revision = "0002"
+down_revision = "0001"
 
 
 def upgrade() -> None:
-    op.add_column('study_sessions', sa.Column('summary', sa.Text(), nullable=True))
+    op.add_column("study_sessions", sa.Column("summary", sa.Text(), nullable=True))
 
 
 def downgrade() -> None:
-    op.drop_column('study_sessions', 'summary')
+    op.drop_column("study_sessions", "summary")
