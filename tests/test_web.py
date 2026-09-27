@@ -13,7 +13,7 @@ def client() -> TestClient:
 def test_home_is_static(client: TestClient) -> None:
     page = client.get("/").text
     assert f"{config.APP_URL}/mcp" in page and 'href="/docs"' in page and "{{" not in page and "{%" not in page
-    assert "claude plugin install" in page  # marketplace configured
+    assert "claude plugin install" not in page  # no marketplace configured
     assert "<form" not in page and "Sign in" not in page and 'type="password"' not in page  # nothing to log in to
     assert "noindex" in page and "fetch(" not in page
 

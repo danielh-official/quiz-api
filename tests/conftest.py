@@ -3,8 +3,8 @@ from collections.abc import Container, Iterator
 from typing import Any
 
 os.environ["DATABASE_URL"] = os.environ.get("TEST_DATABASE_URL", "postgresql://quiz:secret@localhost:5433/test")
-for name in ("GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET"):
-    os.environ.pop(name, None)  # auth stays off; tests stub the token layer
+for name in ("GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET", "PLUGIN_MARKETPLACE"):
+    os.environ.pop(name, None)  # auth stays off; tests stub the token layer; home page hides plugin install
 
 # pylint: disable=wrong-import-position  # env vars above must be set before app modules import config
 import pytest
