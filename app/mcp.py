@@ -2,7 +2,7 @@
 
 from collections.abc import Iterator
 from contextlib import contextmanager
-from datetime import date
+from datetime import date, datetime
 from typing import Annotated, Any
 
 from fastmcp import FastMCP
@@ -21,6 +21,8 @@ from app.schemas import (
     Confidence,
     DeckCreate,
     DeckUpdate,
+    ExamCreate,
+    ExamUpdate,
     OptionIn,
     QuestionIn,
     QuestionType,
@@ -28,7 +30,7 @@ from app.schemas import (
     SessionUpdate,
     SettingsUpdate,
 )
-from app.services import Forbidden, Invalid, NotFound, content, stats, study
+from app.services import Forbidden, Invalid, NotFound, content, exams, stats, study
 
 INSTRUCTIONS = """\
 Quiz API is the user's spaced-repetition quiz app for multiple-choice questions.
@@ -48,6 +50,11 @@ start-session returns recent summaries: use them. Stop when next-question says t
 
 Writing questions: search-questions first to avoid duplicates; test understanding, not trivia; plausible
 distractors of similar length; an explanation on every option plus an overall explanation.
+
+Exams: named exams with optional starts_at, optional completed_at, and linked decks (a parent includes its
+subdecks; do not link both a parent and a child). list-exams (upcoming=true filters incomplete future/undated),
+get-exam, create-exam, update-exam (completed=true/false; clear_starts_at clears the time), delete-exam.
+For readiness, get-performance with exam_id (uses the exam's decks and starts_at; exam_date still overrides).
 """
 
 mcp = FastMCP("Quiz API", instructions=INSTRUCTIONS, auth=auth)
@@ -107,12 +114,16 @@ def search_questions(
 def get_performance(
     deck_id: Annotated[int | None, Field(description="Deck to report on (with subdecks). Omit for all decks.")] = None,
     exam_date: Annotated[date | None, Field(description="Predict readiness for this day instead of now.")] = None,
+    exam_id: Annotated[
+        int | None,
+        Field(description="Scope to this exam's linked decks (with subdecks). Uses starts_at as exam_date if omitted."),
+    ] = None,
 ) -> dict[str, Any]:
     """The user's performance: due/new counts, calibration (accuracy per confidence level), recent misconceptions
     (wrong while confident), most-forgotten questions (leeches), the user's notes and readiness (coverage and
-    FSRS-predicted recall, overall and per subdeck). Use it to find weak spots or judge exam readiness."""
+    FSRS-predicted recall, overall and per subdeck). Pass exam_id for an upcoming exam's scope."""
     with caller() as (db, user):
-        return stats.performance(db, user, deck_id, exam_date)
+        return stats.performance(db, user, deck_id, exam_date, exam_id)
 
 
 @mcp.tool(name="create-deck", annotations=WRITE)
@@ -249,3 +260,74 @@ def update_settings(
     4am in this timezone. Call with no arguments to read the current settings."""
     with caller() as (db, user):
         return content.update_settings(db, user, SettingsUpdate(timezone=timezone, desired_retention=desired_retention))
+
+
+@mcp.tool(name="list-exams", annotations=READ)
+def list_exams(
+    upcoming: Annotated[
+        bool, Field(description="If true, only incomplete exams with no start or a future starts_at.")
+    ] = False,
+) -> dict[str, Any]:
+    """List the user's exams (soonest starts_at first; undated last), each with linked decks (id + name)."""
+    with caller() as (db, user):
+        return {"exams": [exams.exam_dict(e) for e in exams.list_exams(db, user, upcoming=upcoming)]}
+
+
+@mcp.tool(name="get-exam", annotations=READ)
+def get_exam(exam_id: int) -> dict[str, Any]:
+    """Get one exam: name, starts_at, completed_at, and linked decks (id + name)."""
+    with caller() as (db, user):
+        return {"exam": exams.exam_dict(exams.get_exam(db, user, exam_id))}
+
+
+@mcp.tool(name="create-exam", annotations=WRITE)
+def create_exam(
+    name: str,
+    starts_at: Annotated[
+        datetime | None, Field(description="When the exam begins (timezone-aware datetime).")
+    ] = None,
+    deck_ids: Annotated[
+        list[int] | None,
+        Field(description="Decks to link; a parent includes its subdecks. Do not also link a child. Omit or [] for none."),
+    ] = None,
+) -> dict[str, Any]:
+    """Create an exam. Prefer get-performance(exam_id=...) for readiness afterward."""
+    with caller() as (db, user):
+        data = ExamCreate(name=name, starts_at=starts_at, deck_ids=deck_ids)
+        return {"exam": exams.exam_dict(exams.create_exam(db, user, data))}
+
+
+@mcp.tool(name="update-exam", annotations=IDEMPOTENT)
+def update_exam(
+    exam_id: int,
+    name: str | None = None,
+    starts_at: Annotated[
+        datetime | None, Field(description="New start time. Omit to leave unchanged.")
+    ] = None,
+    clear_starts_at: Annotated[bool, Field(description="If true, clear starts_at.")] = False,
+    completed: Annotated[
+        bool | None, Field(description="True marks done; false reopens. Omit to leave unchanged.")
+    ] = None,
+    deck_ids: Annotated[
+        list[int] | None,
+        Field(description="Replace linked decks ([] clears). Omit to leave links unchanged."),
+    ] = None,
+) -> dict[str, Any]:
+    """Rename, reschedule, complete, or replace an exam's deck links. Omitted fields stay unchanged."""
+    with caller() as (db, user):
+        changes: dict[str, Any] = {k: v for k, v in {"name": name, "starts_at": starts_at}.items() if v is not None}
+        if clear_starts_at:
+            changes["starts_at"] = None
+        if completed is not None:
+            changes["completed"] = completed
+        if deck_ids is not None:
+            changes["deck_ids"] = deck_ids
+        return {"exam": exams.exam_dict(exams.update_exam(db, user, exam_id, ExamUpdate(**changes)))}
+
+
+@mcp.tool(name="delete-exam", annotations={"readOnlyHint": False, "destructiveHint": True})
+def delete_exam(exam_id: int) -> dict[str, Any]:
+    """Hard-delete an exam and its deck links. Does not delete the decks or questions."""
+    with caller() as (db, user):
+        exams.delete_exam(db, user, exam_id)
+        return {"ok": True}

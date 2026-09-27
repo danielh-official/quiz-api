@@ -110,3 +110,23 @@ def test_delete_me_cascades(client: TestClient, db: Session) -> None:
     client.post("/decks", json={"name": "AWS"})
     assert client.delete("/me").status_code == 204
     assert db.query(User).count() == 0 and db.query(Deck).count() == 0
+
+
+def test_exam_rest_crud_and_stats(client: TestClient) -> None:
+    login_as()
+    deck = client.post("/decks", json={"name": "IAM"}).json()
+    created = client.post(
+        "/exams",
+        json={"name": "SAA", "deck_ids": [deck["id"]], "starts_at": "2030-01-15T15:00:00Z"},
+    )
+    assert created.status_code == 201
+    exam = created.json()
+    assert exam["decks"][0]["name"] == "IAM"
+    assert client.get("/exams?upcoming=true").json()[0]["id"] == exam["id"]
+    patched = client.patch(f"/exams/{exam['id']}", json={"name": "SAA-C03", "completed": True}).json()
+    assert patched["name"] == "SAA-C03" and patched["completed_at"]
+    assert client.get("/exams?upcoming=true").json() == []
+    report = client.get(f"/stats?exam_id={exam['id']}").json()
+    assert "readiness" in report
+    assert client.delete(f"/exams/{exam['id']}").status_code == 204
+    assert client.get(f"/exams/{exam['id']}").status_code == 404

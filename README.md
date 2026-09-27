@@ -213,11 +213,17 @@ Every route needs `Authorization: Bearer <token>`, except `/up`, `/`, `/robots.t
 | GET | `/sessions/{id}/next` | Next question without answers, or the summary when done |
 | POST | `/sessions/{id}/answers` | `question_id`, `selected` (option ids), `confidence` |
 | PATCH | `/sessions/{id}` | `summary`: the running free-form summary, replaced on each call |
-| GET | `/stats?deck_id=&exam_date=` | Calibration, misconceptions, leeches, notes, readiness |
+| GET, POST | `/exams` | List (`?upcoming=` = incomplete + future/undated start); create |
+| GET, PATCH, DELETE | `/exams/{id}` | PATCH: `name`, `starts_at`, `completed`, `deck_ids` |
+| GET | `/stats?deck_id=&exam_date=&exam_id=` | Calibration, misconceptions, leeches, notes, readiness |
 
 MCP tools: list-decks, get-deck, search-questions, get-performance, create-deck, update-deck,
 create-questions, update-question, start-session, next-question, submit-answer, update-session,
-update-card and update-settings. There are no delete tools; deleting goes through REST only.
+update-card, update-settings, list-exams, get-exam, create-exam, update-exam, delete-exam.
+Deck/question deletes are REST-only; `delete-exam` is allowed on MCP.
+
+**Exams** track an upcoming test: name, optional `starts_at`, linked decks (parent includes subdecks). Readiness
+stays computed via `/stats` or `get-performance` (`exam_id` preferred). Mark done with `completed: true`.
 
 ## Develop
 

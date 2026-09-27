@@ -16,7 +16,7 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from app.schemas import QuestionType
 
@@ -63,6 +63,11 @@ class Deck(Base):
     new_per_day: Mapped[int] = mapped_column(SmallInteger, server_default="20")
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
+
+    # Default lazy load: joined would pull exam links on every deck fetch (study/list hot path).
+    deck_exams: Mapped[list["DeckExam"]] = relationship(
+        "DeckExam", back_populates="deck", cascade="all, delete-orphan"
+    )
 
 
 class Question(Base):
@@ -128,3 +133,30 @@ class Review(Base):
     rating: Mapped[int] = mapped_column(SmallInteger)
     was_new: Mapped[bool]
     reviewed_at: Mapped[datetime]
+
+
+class Exam(Base):
+    __tablename__ = "exams"
+    __table_args__ = (Index("idx_exams_user_id", "user_id"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(fk("users.id"))
+    name: Mapped[str] = mapped_column(String(255))
+    starts_at: Mapped[datetime | None]
+    completed_at: Mapped[datetime | None]
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
+
+    deck_exams: Mapped[list["DeckExam"]] = relationship(
+        "DeckExam", back_populates="exam", cascade="all, delete-orphan", lazy="selectin"
+    )
+
+
+class DeckExam(Base):
+    __tablename__ = "deck_exams"
+
+    exam_id: Mapped[int] = mapped_column(fk("exams.id"), primary_key=True)
+    deck_id: Mapped[int] = mapped_column(fk("decks.id"), primary_key=True)
+
+    exam: Mapped["Exam"] = relationship("Exam", back_populates="deck_exams")
+    deck: Mapped["Deck"] = relationship("Deck", back_populates="deck_exams", lazy="joined")

@@ -37,6 +37,11 @@ If no quiz-api tools are available, tell the user how to connect instead of pret
 - **Daily limits**: each deck's `new_per_day` caps new questions introduced per study day, counting its subdecks.
   When studying a deck, every deck between a question and the studied deck must have allowance left.
   The study day rolls over at 4am in the user's timezone.
+- **Exams**: named exams with optional `starts_at` / `completed_at` and linked decks (a parent includes its
+  subdecks; do not link both a parent and a child). Manage with `list-exams` (`upcoming` filters incomplete
+  future/undated), `get-exam`, `create-exam`, `update-exam` (`completed`, `clear_starts_at`), `delete-exam`.
+  Readiness: `get-performance` with `exam_id` (uses linked decks and `starts_at`; optional `exam_date` override).
+
 
 ## First use
 
@@ -106,12 +111,14 @@ Don't skip `update-session` either, even for a quick session.
 recent misconceptions, leeches (questions forgotten repeatedly) and the user's notes. Use it to suggest what to
 study next, to rewrite unclear leeches, or to write new questions targeting weak spots.
 
-For "am I ready for the exam?", pass `exam_date` and read `readiness`: `seen` of `questions` is coverage,
-`predicted_recall` is the FSRS chance of remembering a seen question on that day, and `expected_score` counts
-unseen questions as wrong. `by_deck` splits it per subdeck. Combine it with calibration and misconceptions (a high
-recall with many confident misses means the scheduler hasn't caught up yet), name the weakest subdecks, and say
-how many days of study are left and how many unseen questions that means per day.
+For "am I ready for the exam?", `list-exams` / `get-exam`, then `get-performance` with `exam_id` (preferred)
+or `exam_date` + a linked `deck_id`. Read `readiness`: `seen` of `questions` is coverage, `predicted_recall`
+is the FSRS chance of remembering a seen question on that day, and `expected_score` counts unseen questions as
+wrong. `by_deck` splits it per linked deck (or subdeck). Combine it with calibration and misconceptions (a high
+recall with many confident misses means the scheduler hasn't caught up yet), name the weakest areas, and say how
+many days of study are left and how many unseen questions that means per day.
 
 ## Limits
 
-There are no delete tools — deleting decks or questions is done by the user through the REST API.
+There are no delete tools for decks or questions — those deletes are REST-only. `delete-exam` is the
+exception: it removes the exam and its deck links only.

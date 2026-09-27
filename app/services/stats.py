@@ -9,6 +9,7 @@ from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session
 
 from app.models import Card, Deck, Question, Review, User
+from app.services import Invalid, exams as exams_service
 from app.services.content import children_of, describe, get_deck, subtree_ids, user_decks
 from app.services.study import memory, new_remaining, scheduler, unstudied
 
@@ -55,9 +56,15 @@ def counts(db: Session, user: User, decks: dict[int, Deck]) -> dict[int, dict[st
 
 
 def readiness(
-    db: Session, user: User, decks: dict[int, Deck], deck_ids: list[int], root_id: int | None, at: datetime
+    db: Session,
+    user: User,
+    decks: dict[int, Deck],
+    deck_ids: list[int],
+    root_id: int | None,
+    at: datetime,
+    by_roots: list[int] | None = None,
 ) -> dict[str, Any]:
-    """Coverage and FSRS-predicted recall at `at`, overall and per direct subdeck of `root_id`."""
+    """Coverage and FSRS-predicted recall at `at`, overall and per `by_roots` (or children of `root_id`)."""
     sched = scheduler(user)
     recall: dict[int, list[float | None]] = defaultdict(list)  # deck -> one entry per question, None if never seen
     for deck_id, card in db.execute(
@@ -79,21 +86,40 @@ def readiness(
             "expected_score": round(sum(known) / len(values), 3) if values else None,
         }
 
+    if by_roots is not None:
+        roots = [decks[rid] for rid in by_roots if rid in decks]
+    else:
+        roots = children_of(decks).get(root_id, [])
     return {
         "at": at.isoformat(),
         **score(deck_ids),
-        "by_deck": [{"deck_id": d.id, "name": d.name, **score(subtree_ids(decks, d.id))}
-                    for d in children_of(decks).get(root_id, [])],
+        "by_deck": [{"deck_id": d.id, "name": d.name, **score(subtree_ids(decks, d.id))} for d in roots],
     }
 
 
 def performance(  # pylint: disable=too-many-locals
-    db: Session, user: User, deck_id: int | None = None, exam_date: date | None = None
+    db: Session,
+    user: User,
+    deck_id: int | None = None,
+    exam_date: date | None = None,
+    exam_id: int | None = None,
 ) -> dict[str, Any]:
-    """Counts, calibration, misconceptions, leeches, notes and readiness for one deck (with subdecks) or everything."""
+    """Counts, calibration, misconceptions, leeches, notes and readiness for one deck, one exam, or everything."""
+    if exam_id is not None and deck_id is not None:
+        raise Invalid("exam_id", "Pass exam_id or deck_id, not both.")
+
     decks = user_decks(db, user)
     per = counts(db, user, decks)
-    if deck_id is not None:
+    by_roots: list[int] | None = None
+    root_id: int | None = deck_id
+    if exam_id is not None:
+        exam, roots, deck_ids = exams_service.exam_scope(db, user, exam_id)
+        by_roots = roots
+        root_id = None
+        totals = {key: sum(per[rid][key] for rid in roots if rid in per) for key in ("due", "new", "total")}
+        if exam_date is None and exam.starts_at is not None:
+            exam_date = exam.starts_at.astimezone(ZoneInfo(user.timezone)).date()
+    elif deck_id is not None:
         deck_ids = subtree_ids(decks, get_deck(db, user, deck_id).id)
         totals = per[deck_id]
     else:
@@ -104,6 +130,23 @@ def performance(  # pylint: disable=too-many-locals
     at = datetime.now(UTC)
     if exam_date is not None:  # start of the exam day; a past date means now
         at = max(at, datetime.combine(exam_date, time(), ZoneInfo(user.timezone)))
+    if not deck_ids:
+        return {
+            "counts": {"due": 0, "new": 0, "total": 0},
+            "calibration": {c: {"answered": 0, "correct": 0} for c in ("confident", "educated_guess", "complete_guess")},
+            "misconceptions": [],
+            "leeches": [],
+            "notes": [],
+            "readiness": {
+                "at": at.isoformat(),
+                "questions": 0,
+                "seen": 0,
+                "predicted_recall": None,
+                "expected_score": None,
+                "by_deck": [],
+            },
+        }
+
     in_scope = (Review.user_id == user.id, Question.deck_id.in_(deck_ids))
     calibration = {c: {"answered": 0, "correct": 0} for c in ("confident", "educated_guess", "complete_guess")}
     for confidence, answered, correct in db.execute(
@@ -136,5 +179,5 @@ def performance(  # pylint: disable=too-many-locals
         "misconceptions": [{"question": describe(q), "last_wrong_at": last.isoformat()} for q, last in misconceptions],
         "leeches": [{"question": describe(q), "lapses": c.lapses, "reps": c.reps} for c, q in leeches],
         "notes": [{"question_id": qid, "stem": stem, "note": note} for note, qid, stem in notes],
-        "readiness": readiness(db, user, decks, deck_ids, deck_id, at),
+        "readiness": readiness(db, user, decks, deck_ids, root_id, at, by_roots=by_roots),
     }

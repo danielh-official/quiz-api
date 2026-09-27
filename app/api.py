@@ -12,13 +12,15 @@ from app.schemas import (
     CardUpdate,
     DeckCreate,
     DeckUpdate,
+    ExamCreate,
+    ExamUpdate,
     QuestionIn,
     QuestionUpdate,
     SessionCreate,
     SessionUpdate,
     SettingsUpdate,
 )
-from app.services import content, stats, study
+from app.services import content, exams, stats, study
 
 router = APIRouter()
 Db = Annotated[Session, Depends(get_db)]
@@ -121,6 +123,42 @@ def update_session(session_id: int, data: SessionUpdate, db: Db, user: Me) -> Js
     return study.update_session(db, user, session_id, data)
 
 
+@router.get("/exams")
+def list_exams(
+    db: Db,
+    user: Me,
+    upcoming: Annotated[bool, Query(description="Only incomplete exams with starts_at null or in the future.")] = False,
+) -> list[Json]:
+    return [exams.exam_dict(e) for e in exams.list_exams(db, user, upcoming=upcoming)]
+
+
+@router.post("/exams", status_code=201)
+def create_exam(data: ExamCreate, db: Db, user: Me) -> Json:
+    return exams.exam_dict(exams.create_exam(db, user, data))
+
+
+@router.get("/exams/{exam_id}")
+def get_exam(exam_id: int, db: Db, user: Me) -> Json:
+    return exams.exam_dict(exams.get_exam(db, user, exam_id))
+
+
+@router.patch("/exams/{exam_id}")
+def update_exam(exam_id: int, data: ExamUpdate, db: Db, user: Me) -> Json:
+    return exams.exam_dict(exams.update_exam(db, user, exam_id, data))
+
+
+@router.delete("/exams/{exam_id}", status_code=204)
+def delete_exam(exam_id: int, db: Db, user: Me) -> Response:
+    exams.delete_exam(db, user, exam_id)
+    return Response(status_code=204)
+
+
 @router.get("/stats")
-def get_stats(db: Db, user: Me, deck_id: int | None = None, exam_date: date | None = None) -> Json:
-    return stats.performance(db, user, deck_id, exam_date)
+def get_stats(
+    db: Db,
+    user: Me,
+    deck_id: int | None = None,
+    exam_date: date | None = None,
+    exam_id: int | None = None,
+) -> Json:
+    return stats.performance(db, user, deck_id, exam_date, exam_id)

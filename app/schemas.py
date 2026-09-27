@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Literal, Self
 from zoneinfo import available_timezones
 
@@ -97,3 +98,53 @@ class SettingsUpdate(BaseModel):
         if value is not None and value not in available_timezones():
             raise ValueError("Unknown IANA timezone, e.g. America/New_York.")
         return value
+
+
+def _dedupe_deck_ids(value: list[int] | None) -> list[int] | None:
+    if value is None:
+        return None
+    return sorted(set(value))
+
+
+class ExamCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
+    starts_at: datetime | None = None
+    deck_ids: list[int] | None = Field(
+        default=None,
+        description="Omit to add no decks. When set, adds the given decks ([] = none). Do not link both a parent and its child.",
+    )
+
+    @field_validator("deck_ids")
+    @classmethod
+    def deduplicate_deck_ids(cls, value: list[int] | None) -> list[int] | None:
+        return _dedupe_deck_ids(value)
+
+    @model_validator(mode="after")
+    def deck_ids_must_be_list_when_set(self) -> Self:
+        if "deck_ids" in self.model_fields_set and self.deck_ids is None:
+            raise ValueError("deck_ids cannot be null; omit the field or pass a list.")
+        return self
+
+
+class ExamUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=255)
+    starts_at: datetime | None = None
+    completed: bool | None = Field(
+        default=None,
+        description="True marks the exam done (sets completed_at); false clears completed_at.",
+    )
+    deck_ids: list[int] | None = Field(
+        default=None,
+        description="Omit to leave the decks unchanged. When set, replaces the full set ([] clears).",
+    )
+
+    @field_validator("deck_ids")
+    @classmethod
+    def deduplicate_deck_ids(cls, value: list[int] | None) -> list[int] | None:
+        return _dedupe_deck_ids(value)
+
+    @model_validator(mode="after")
+    def deck_ids_must_be_list_when_set(self) -> Self:
+        if "deck_ids" in self.model_fields_set and self.deck_ids is None:
+            raise ValueError("deck_ids cannot be null; omit the field or pass a list.")
+        return self

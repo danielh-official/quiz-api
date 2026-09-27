@@ -19,6 +19,7 @@ TOOLS = {
     "list-decks", "get-deck", "search-questions", "get-performance", "create-deck", "update-deck",
     "create-questions", "update-question", "start-session", "next-question", "submit-answer",
     "update-session", "update-card", "update-settings",
+    "list-exams", "get-exam", "create-exam", "update-exam", "delete-exam",
 }  # fmt: skip
 
 
@@ -44,6 +45,54 @@ def test_tools_and_annotations(monkeypatch: pytest.MonkeyPatch) -> None:
     assert set(tools) == TOOLS
     annotations = tools["list-decks"].annotations
     assert annotations is not None and annotations.read_only_hint is True
+    delete = tools["delete-exam"].annotations
+    assert delete is not None and delete.destructive_hint is True
+
+
+def test_exam_tools_partial_update(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def steps(client: Client[Any]) -> dict[str, Any]:
+        deck = (await client.call_tool("create-deck", {"name": "IAM"})).data["deck"]
+        exam = (
+            await client.call_tool(
+                "create-exam", {"name": "SAA", "deck_ids": [deck["id"]]}
+            )
+        ).data["exam"]
+        renamed = (
+            await client.call_tool(
+                "update-exam", {"exam_id": exam["id"], "name": "SAA-C03"}
+            )
+        ).data["exam"]
+        cleared = (
+            await client.call_tool(
+                "update-exam",
+                {"exam_id": exam["id"], "clear_starts_at": True, "deck_ids": []},
+            )
+        ).data["exam"]
+        done = (
+            await client.call_tool(
+                "update-exam", {"exam_id": exam["id"], "completed": True}
+            )
+        ).data["exam"]
+        upcoming = (await client.call_tool("list-exams", {"upcoming": True})).data["exams"]
+        listed = (await client.call_tool("list-exams", {})).data["exams"]
+        await client.call_tool("delete-exam", {"exam_id": exam["id"]})
+        after = (await client.call_tool("list-exams", {})).data["exams"]
+        return {
+            "renamed": renamed,
+            "cleared": cleared,
+            "done": done,
+            "upcoming": upcoming,
+            "listed": listed,
+            "after": after,
+        }
+
+    out = run(monkeypatch, steps)
+    assert out["renamed"]["name"] == "SAA-C03"
+    assert out["renamed"]["decks"][0]["name"] == "IAM"
+    assert out["cleared"]["starts_at"] is None and out["cleared"]["deck_ids"] == []
+    assert out["done"]["completed_at"] is not None
+    assert out["upcoming"] == []
+    assert len(out["listed"]) == 1 and out["after"] == []
 
 
 def test_full_session_without_answer_leakage(monkeypatch: pytest.MonkeyPatch) -> None:
