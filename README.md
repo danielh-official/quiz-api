@@ -2,7 +2,7 @@
 
 Spaced-repetition multiple-choice quizzes as a small FastAPI + PostgreSQL REST API, with an MCP server at `/mcp`
 so Claude, ChatGPT and other MCP clients can quiz you and write questions. Sign-in is GitHub OAuth, and only
-GitHub logins listed in `ALLOWED_USERS` can use it. This is a trimmed-down rewrite of master-quiz (Laravel).
+GitHub logins listed in `ALLOWED_USERS` can use it.
 
 - **Decks** nest. **Questions** are `single` (4 options, 1 correct) or `select_two` (5 options, 2 correct).
 - Scheduling uses [FSRS](https://github.com/open-spaced-repetition/py-fsrs) with whole-day intervals. The
