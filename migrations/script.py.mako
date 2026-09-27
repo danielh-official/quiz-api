@@ -4,7 +4,7 @@ Revision ID: ${up_revision}
 Revises: ${down_revision | comma,n}
 """
 
-# pylint: disable=invalid-name  # alembic requires these module and variable names
+# pylint: disable=invalid-name,duplicate-code  # alembic: revision ids; repeated column shapes are normal
 from alembic import op
 import sqlalchemy as sa
 ${imports if imports else ""}
