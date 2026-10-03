@@ -13,12 +13,11 @@
     <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.4/dist/htmx.min.js" defer></script>
 </head>
 
-<body>
+<body class="flex min-h-screen flex-col">
     <header class="border-b border-line bg-surface">
         <div class="mx-auto flex max-w-xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
             <a class="text-base font-semibold tracking-tight text-ink no-underline" href="/app">Quiz</a>
             <nav class="flex items-center gap-4 text-sm text-mute">
-                <a class="text-mute no-underline hover:text-ink" href="/">Home</a>
                 {% if user %}
                 <span>{{ user.login }}</span>
                 <form method="post" action="/app/logout" class="inline">
@@ -28,9 +27,14 @@
             </nav>
         </div>
     </header>
-    <main class="mx-auto max-w-xl px-4 pb-16 pt-8 sm:px-6">
+    <main class="mx-auto w-full max-w-xl flex-1 px-4 pt-8 pb-8 sm:px-6">
         {% block content %}{% endblock %}
     </main>
+    <footer class="border-t border-line">
+        <div class="mx-auto flex max-w-xl px-4 py-4 sm:px-6">
+            <a class="text-sm text-mute no-underline hover:text-ink" href="/">Return home</a>
+        </div>
+    </footer>
 </body>
 
 </html>

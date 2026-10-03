@@ -18,19 +18,26 @@
         </label>
         {% endfor %}
     </div>
-    <div class="flex flex-wrap items-center gap-3">
-        <label class="flex items-center gap-2 text-sm text-mute">
-            Confidence
-            <select name="confidence" class="rounded border border-line bg-surface px-2.5 py-2 text-ink">
-                <option value="confident">confident</option>
-                <option value="educated_guess">educated guess</option>
-                <option value="complete_guess">complete guess</option>
-            </select>
-        </label>
-        <button class="inline-flex cursor-pointer items-center rounded border-0 bg-accent px-4 py-2.5 text-sm font-semibold text-accent-fg" type="submit">
-            Submit
-        </button>
-    </div>
+    <fieldset class="border-0 p-0">
+        <legend class="mb-2 text-sm text-mute">Confidence</legend>
+        <div class="flex flex-col gap-2">
+            <label class="flex cursor-pointer items-center gap-2 text-ink">
+                <input type="radio" name="confidence" value="confident" checked>
+                Confident
+            </label>
+            <label class="flex cursor-pointer items-center gap-2 text-ink">
+                <input type="radio" name="confidence" value="educated_guess">
+                Educated Guess
+            </label>
+            <label class="flex cursor-pointer items-center gap-2 text-ink">
+                <input type="radio" name="confidence" value="complete_guess">
+                Complete Guess
+            </label>
+        </div>
+    </fieldset>
+    <button class="inline-flex w-fit cursor-pointer items-center rounded border-0 bg-accent px-4 py-2.5 text-sm font-semibold text-accent-fg" type="submit">
+        Submit
+    </button>
     {% if question.type == 'select_two' %}
     <p class="text-sm text-mute">Pick exactly two options.</p>
     {% endif %}

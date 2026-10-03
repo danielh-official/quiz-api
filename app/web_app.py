@@ -295,4 +295,18 @@ def _text_blocks(value: str | None) -> Markup:
     return Markup(str(escape(value or "")).replace("\n", "<br>\n"))
 
 
+_CONFIDENCE_LABELS = {
+    "confident": "Confident",
+    "educated_guess": "Educated Guess",
+    "complete_guess": "Complete Guess",
+}
+
+
+def _confidence_label(value: str | None) -> str:
+    if not value:
+        return ""
+    return _CONFIDENCE_LABELS.get(value, value.replace("_", " ").title())
+
+
 TEMPLATES.filters.setdefault("text_blocks", _text_blocks)
+TEMPLATES.filters.setdefault("confidence_label", _confidence_label)

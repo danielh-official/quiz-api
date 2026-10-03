@@ -17,7 +17,7 @@
     <ul class="space-y-1 p-0 text-sm">
         {% for key, row in summary.by_confidence.items() %}
         <li class="flex justify-between gap-4 border-b border-line py-2">
-            <span class="text-mute">{{ key|replace('_', ' ') }}</span>
+            <span class="text-mute">{{ key|confidence_label }}</span>
             <span class="tabular-nums text-ink">{{ row.correct }}/{{ row.answered }}</span>
         </li>
         {% endfor %}
