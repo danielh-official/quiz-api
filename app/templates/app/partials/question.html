@@ -6,7 +6,7 @@
     {% if error %}
     <div class="border-l-[3px] border-l-bad bg-bad/10 px-3 py-2.5 text-sm text-bad">{{ error }}</div>
     {% endif %}
-    <div class="font-serif text-lg leading-relaxed text-ink">{{ question.stem | text_blocks }}</div>
+    <div class="md font-serif text-lg leading-relaxed text-ink">{{ question.stem | markdown }}</div>
     <div class="border-t border-line">
         {% for o in labeled_options %}
         <label class="flex cursor-pointer items-start gap-3 border-b border-line py-3">
@@ -14,7 +14,7 @@
                    name="selected"
                    value="{{ o.id }}">
             <span class="min-w-[1.25em] font-semibold tabular-nums text-mute">{{ o.label }}.</span>
-            <span class="text-ink">{{ o.text | text_blocks }}</span>
+            <span class="md text-ink">{{ o.text | markdown(true) }}</span>
         </label>
         {% endfor %}
     </div>

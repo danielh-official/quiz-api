@@ -9,9 +9,11 @@ from typing import Annotated, Any, cast
 from urllib.parse import urlencode
 
 import httpx
+import nh3
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
-from markupsafe import Markup, escape
+from markdown_it import MarkdownIt
+from markupsafe import Markup
 from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -659,9 +661,34 @@ def _question_update_from_form(form: FormData) -> QuestionUpdate:
     )
 
 
-def _text_blocks(value: str | None) -> Markup:
-    """Escape text and keep newlines (stems are Markdown; full MD rendering can come later)."""
-    return Markup(str(escape(value or "")).replace("\n", "<br>\n"))
+_MD = MarkdownIt("commonmark", {"breaks": True, "html": False}).enable("strikethrough")
+_MD_TAGS = {
+    *nh3.ALLOWED_TAGS,
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "pre",
+    "code",
+    "blockquote",
+    "hr",
+    "table",
+    "thead",
+    "tbody",
+    "tr",
+    "th",
+    "td",
+}
+
+
+def _markdown(value: str | None, inline: bool = False) -> Markup:
+    """Render author Markdown to sanitized HTML for stems, options and explanations."""
+    if not value:
+        return Markup("")
+    html = _MD.renderInline(value) if inline else _MD.render(value)
+    return Markup(nh3.clean(html, tags=_MD_TAGS))
 
 
 _CONFIDENCE_LABELS = {
@@ -677,5 +704,5 @@ def _confidence_label(value: str | None) -> str:
     return _CONFIDENCE_LABELS.get(value, value.replace("_", " ").title())
 
 
-TEMPLATES.filters.setdefault("text_blocks", _text_blocks)
+TEMPLATES.filters.setdefault("markdown", _markdown)
 TEMPLATES.filters.setdefault("confidence_label", _confidence_label)

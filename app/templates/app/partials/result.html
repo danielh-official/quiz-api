@@ -15,8 +15,8 @@
         <div class="flex items-start gap-3 border-b border-line py-3 {% if o.correct %}border-l-[3px] border-l-ok pl-3{% endif %}">
             <span class="min-w-[1.25em] font-semibold tabular-nums text-mute">{{ o.label }}.</span>
             <div class="min-w-0">
-                <div class="text-ink">{{ o.text | text_blocks }}{% if o.correct %} <span class="text-sm text-ok">(correct)</span>{% endif %}</div>
-                {% if o.explanation %}<p class="mt-1 text-sm text-mute">{{ o.explanation | text_blocks }}</p>{% endif %}
+                <div class="md text-ink">{{ o.text | markdown(true) }}{% if o.correct %} <span class="text-sm text-ok">(correct)</span>{% endif %}</div>
+                {% if o.explanation %}<div class="md mt-1 text-sm text-mute">{{ o.explanation | markdown }}</div>{% endif %}
             </div>
         </div>
         {% endfor %}
@@ -25,7 +25,7 @@
     {% if result.question.explanation %}
     <div>
         <p class="mb-1 text-sm font-semibold text-ink">Explanation</p>
-        <p class="font-serif leading-relaxed text-ink">{{ result.question.explanation | text_blocks }}</p>
+        <div class="md font-serif leading-relaxed text-ink">{{ result.question.explanation | markdown }}</div>
     </div>
     {% endif %}
 

@@ -43,4 +43,68 @@
   a {
     @apply text-accent;
   }
+
+  /* Author Markdown (stems, options, explanations). */
+  .md {
+    overflow-wrap: break-word;
+  }
+
+  .md > :first-child {
+    margin-top: 0;
+  }
+
+  .md > :last-child {
+    margin-bottom: 0;
+  }
+
+  .md p,
+  .md ul,
+  .md ol,
+  .md pre,
+  .md blockquote {
+    margin: 0.6em 0;
+  }
+
+  .md ul,
+  .md ol {
+    padding-left: 1.25em;
+  }
+
+  .md ul {
+    list-style: disc;
+  }
+
+  .md ol {
+    list-style: decimal;
+  }
+
+  .md li {
+    margin: 0.2em 0;
+  }
+
+  .md strong {
+    font-weight: 600;
+  }
+
+  .md a {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .md code {
+    @apply rounded bg-code px-1 py-0.5 font-mono text-[0.9em];
+  }
+
+  .md pre {
+    @apply overflow-x-auto rounded bg-code px-3 py-2;
+  }
+
+  .md pre code {
+    padding: 0;
+    background: transparent;
+  }
+
+  .md blockquote {
+    @apply border-l-[3px] border-line pl-3 text-mute;
+  }
 }

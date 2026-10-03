@@ -1,13 +1,15 @@
 from collections.abc import Iterator
 
 import pytest
-from conftest import make_deck, make_questions
+from conftest import make_deck, make_questions, question_in
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app import auth as auth_module
 from app.main import app
 from app.models import User
+from app.schemas import QuestionUpdate
+from app.services import content
 from app.web_app import web_claims
 
 
@@ -68,6 +70,24 @@ def test_decks_and_detail(client: TestClient, db: Session, user: User) -> None:
     assert "Start session" in detail.text
     assert "S3" in detail.text
     assert "Performance" in detail.text
+
+
+def test_markdown_renders_on_question_detail(client: TestClient, db: Session, user: User) -> None:
+    login_web(user)
+    deck = make_deck(db, user, "AWS")
+    question = content.create_questions(db, user, deck.id, [question_in("stem")])[0]
+    content.update_question(
+        db,
+        user,
+        question.id,
+        QuestionUpdate(stem="What is **S3**?\n\n- object storage"),
+    )
+
+    page = client.get(f"/app/questions/{question.id}")
+    assert page.status_code == 200
+    assert "<strong>S3</strong>" in page.text
+    assert "<li>object storage</li>" in page.text
+    assert "<script>" not in page.text
 
 
 def test_study_loop_over_html(client: TestClient, db: Session, user: User) -> None:

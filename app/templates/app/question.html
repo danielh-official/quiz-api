@@ -22,7 +22,7 @@
 {% endif %}
 
 <p class="mb-2 text-sm text-mute">{{ question.type }} · pick {{ question.pick }}</p>
-<div class="mb-6 font-serif text-lg leading-relaxed text-ink">{{ question.stem | text_blocks }}</div>
+<div class="md mb-6 font-serif text-lg leading-relaxed text-ink">{{ question.stem | markdown }}</div>
 
 <ul class="mb-6 list-none border-t border-line p-0">
     {% for o in labeled_options %}
@@ -30,12 +30,12 @@
         <div class="flex items-start gap-3">
             <span class="min-w-[1.25em] font-semibold tabular-nums text-mute">{{ o.label }}.</span>
             <div class="min-w-0 flex-1">
-                <div class="text-ink">
-                    {{ o.text | text_blocks }}
+                <div class="md text-ink">
+                    {{ o.text | markdown(true) }}
                     {% if o.correct %}<span class="ml-2 text-sm font-medium text-accent">Correct</span>{% endif %}
                 </div>
                 {% if o.get('explanation') %}
-                <p class="mt-1 text-sm text-mute">{{ o.explanation | text_blocks }}</p>
+                <div class="md mt-1 text-sm text-mute">{{ o.explanation | markdown }}</div>
                 {% endif %}
             </div>
         </div>
@@ -46,7 +46,7 @@
 {% if question.explanation %}
 <div class="mb-8 border-t border-line pt-4">
     <h2 class="mb-2 text-base font-semibold text-ink">Explanation</h2>
-    <div class="text-ink">{{ question.explanation | text_blocks }}</div>
+    <div class="md text-ink">{{ question.explanation | markdown }}</div>
 </div>
 {% endif %}
 
