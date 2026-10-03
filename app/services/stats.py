@@ -64,7 +64,7 @@ def counts(db: Session, user: User, decks: dict[int, Deck], *, active_only: bool
     return out
 
 
-def readiness(
+def readiness(  # pylint: disable=too-many-locals
     db: Session,
     user: User,
     decks: dict[int, Deck],

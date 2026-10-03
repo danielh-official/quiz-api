@@ -355,7 +355,7 @@ def edit_question_form(question_id: int, request: Request, db: Db, user: WebUser
     request.state.user = user
     question = content.get_question(db, user, question_id)
     deck = content.deck_dict(content.get_deck(db, user, question.deck_id))
-    qtype = _question_type(request.query_params.get("type"), default=cast(QuestionType, question.type))
+    qtype = _question_type(request.query_params.get("type"), default=question.type)
     described = content.describe(question)
     if qtype != question.type:
         described = {**described, "type": qtype, "options": _pad_options(described["options"], qtype)}
@@ -618,7 +618,7 @@ def _question_form_values(form: FormData) -> dict[str, Any]:
         correct_raw = str(form.get("correct") or "")
         correct_idxs = {int(correct_raw)} if correct_raw.isdigit() else set()
     else:
-        correct_idxs = {int(v) for v in form.getlist("correct") if str(v).isdigit()}
+        correct_idxs = {int(str(v)) for v in form.getlist("correct") if str(v).isdigit()}
     options = []
     for i in range(count):
         options.append(
@@ -662,24 +662,33 @@ def _question_update_from_form(form: FormData) -> QuestionUpdate:
 
 
 _MD = MarkdownIt("commonmark", {"breaks": True, "html": False}).enable("strikethrough")
+# CommonMark + strikethrough; keep in sync with what markdown-it emits.
 _MD_TAGS = {
-    *nh3.ALLOWED_TAGS,
+    "a",
+    "blockquote",
+    "br",
+    "code",
+    "em",
     "h1",
     "h2",
     "h3",
     "h4",
     "h5",
     "h6",
-    "pre",
-    "code",
-    "blockquote",
     "hr",
+    "li",
+    "ol",
+    "p",
+    "pre",
+    "s",
+    "strong",
     "table",
-    "thead",
     "tbody",
-    "tr",
-    "th",
     "td",
+    "th",
+    "thead",
+    "tr",
+    "ul",
 }
 
 
@@ -688,7 +697,7 @@ def _markdown(value: str | None, inline: bool = False) -> Markup:
     if not value:
         return Markup("")
     html = _MD.renderInline(value) if inline else _MD.render(value)
-    return Markup(nh3.clean(html, tags=_MD_TAGS))
+    return Markup(nh3.clean(html, tags=_MD_TAGS))  # pylint: disable=no-member  # nh3 is a native module
 
 
 _CONFIDENCE_LABELS = {

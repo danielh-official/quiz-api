@@ -95,7 +95,12 @@ def test_markdown_renders_on_question_detail(client: TestClient, db: Session, us
     assert page.status_code == 200
     assert "<strong>S3</strong>" in page.text
     assert "<li>object storage</li>" in page.text
-    assert "<script>" not in page.text
+
+    content.update_question(db, user, question.id, QuestionUpdate(stem="What is **S3**?\n\n<script>alert(1)</script>"))
+    xss = client.get(f"/app/questions/{question.id}")
+    assert "<strong>S3</strong>" in xss.text
+    assert "<script>alert(1)</script>" not in xss.text
+    assert "&lt;script&gt;" in xss.text
 
 
 def test_study_loop_over_html(client: TestClient, db: Session, user: User) -> None:
@@ -250,6 +255,7 @@ def test_question_and_card_crud(client: TestClient, db: Session, user: User) -> 
 
 def test_deck_crud(client: TestClient, db: Session, user: User) -> None:
     login_web(user)
+    assert db is not None  # rolled-back transaction fixture wraps the HTTP calls
     form = client.get("/app/decks/new")
     assert form.status_code == 200
     assert "New deck" in form.text
