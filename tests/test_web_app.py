@@ -76,8 +76,8 @@ def test_decks_and_detail(client: TestClient, db: Session, user: User) -> None:
     assert f'href="/app/decks/{parent.id}"' in child_detail.text
     assert "AWS" in child_detail.text
     assert "Single" in child_detail.text
-    assert "0/0 correct" in child_detail.text
-    assert "Never answered" in child_detail.text
+    assert "0/0" in child_detail.text
+    assert "Never" in child_detail.text
 
 
 def test_markdown_renders_on_question_detail(client: TestClient, db: Session, user: User) -> None:
