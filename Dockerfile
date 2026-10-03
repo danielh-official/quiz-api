@@ -1,3 +1,12 @@
+FROM node:22-bookworm-slim AS css
+WORKDIR /build
+RUN corepack enable && corepack prepare pnpm@10.15.1 --activate
+COPY frontend/package.json frontend/pnpm-lock.yaml frontend/
+RUN cd frontend && pnpm install --frozen-lockfile
+COPY frontend/ frontend/
+COPY app/templates/app app/templates/app/
+RUN cd frontend && pnpm build
+
 FROM python:3.13-slim AS base
 COPY --from=ghcr.io/astral-sh/uv:0.12 /uv /usr/local/bin/uv
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy PATH="/app/.venv/bin:$PATH" PORT=8080
@@ -16,6 +25,7 @@ COPY --from=public.ecr.aws/awsguru/aws-lambda-adapter:1.1.0 /lambda-adapter /opt
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev
 COPY app app
+COPY --from=css /build/app/static/app.css app/static/app.css
 COPY migrations migrations
 COPY alembic.ini .
 RUN useradd --create-home quiz

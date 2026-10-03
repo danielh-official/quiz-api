@@ -29,13 +29,13 @@ so production can't end up open by accident.
 - http://localhost:8000/app is the browser study UI (Jinja + HTMX + Tailwind). Locally with mocked auth it is the `dev` user.
 - http://localhost:8000/docs has the OpenAPI docs, where *Authorize* signs you in to try the REST API.
 
-`/app` styles are Tailwind. While editing templates, keep a watcher running so CSS rebuilds itself:
+`/app` styles are Tailwind. `app/static/app.css` is gitignored and built in the Docker image (Node only at
+build time). Locally:
 
 ```bash
-cd frontend && pnpm install && pnpm watch   # rebuilds app/static/app.css on class changes
+cd frontend && pnpm install && pnpm watch   # rebuilds app/static/app.css as you edit
+# or: pnpm build                           # one-shot, e.g. before pytest
 ```
-
-Before committing (or if you skipped the watcher), run a one-shot build: `cd frontend && pnpm build`.
 
 ### GitHub sign-in (production)
 

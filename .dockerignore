@@ -6,3 +6,5 @@ __pycache__
 .env.aws
 infra
 deploy
+frontend/node_modules
+app/static/app.css
