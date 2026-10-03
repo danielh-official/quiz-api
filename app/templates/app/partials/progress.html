@@ -1,0 +1,6 @@
+<div class="flex flex-col gap-2">
+    <div class="h-1 overflow-hidden rounded-full bg-line">
+        <div class="h-full bg-accent" style="width: {{ (progress.answered / progress.size * 100) | round(1) }}%"></div>
+    </div>
+    <p class="font-mono text-xs tabular-nums text-mute">Question {{ number }} of {{ progress.size }}</p>
+</div>

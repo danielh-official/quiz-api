@@ -1,44 +1,36 @@
-<form class="flex flex-col gap-5"
+<form class="flex flex-col gap-8"
       hx-post="/app/sessions/{{ session_id }}/answers"
       hx-target="#study"
       hx-swap="innerHTML">
+    {% with progress = session, number = session.answered + 1 %}{% include "app/partials/progress.html" %}{% endwith %}
     <input type="hidden" name="question_id" value="{{ question.id }}">
     {% if error %}
     <div class="border-l-[3px] border-l-bad bg-bad/10 px-3 py-2.5 text-sm text-bad">{{ error }}</div>
     {% endif %}
-    <div class="md font-serif text-lg leading-relaxed text-ink">{{ question.stem | markdown }}</div>
-    <div class="border-t border-line">
+    <div class="md font-serif text-xl leading-relaxed text-ink">{{ question.stem | markdown }}</div>
+    <fieldset class="flex flex-col gap-1.5 border-0 p-0">
+        <legend class="mb-3 font-mono text-xs text-mute">
+            {% if question.type == 'select_two' %}Pick exactly two{% else %}Pick one{% endif %}<span class="max-sm:hidden"> · keys 1–{{ labeled_options | length }}</span>
+        </legend>
         {% for o in labeled_options %}
-        <label class="flex cursor-pointer items-start gap-3 border-b border-line py-3">
-            <input class="mt-1.5" type="{{ 'radio' if question.type == 'single' else 'checkbox' }}"
+        <label class="flex cursor-pointer items-start gap-4 rounded-lg px-4 py-3 hover:bg-surface has-checked:bg-accent/10 has-checked:shadow-[inset_3px_0_0_var(--color-accent)] has-focus-visible:outline-2 has-focus-visible:outline-accent">
+            <input class="peer sr-only" type="{{ 'radio' if question.type == 'single' else 'checkbox' }}"
                    name="selected"
                    value="{{ o.id }}">
-            <span class="min-w-[1.25em] font-semibold tabular-nums text-mute">{{ o.label }}.</span>
-            <span class="md text-ink">{{ o.text | markdown(true) }}</span>
+            <kbd class="flex size-7 shrink-0 items-center justify-center rounded-md border border-line font-mono text-[13px] text-mute peer-checked:border-accent peer-checked:bg-accent peer-checked:font-bold peer-checked:text-accent-fg">{{ loop.index }}</kbd>
+            <span class="md min-w-0 pt-0.5 text-ink">{{ o.text | markdown(true) }}</span>
         </label>
         {% endfor %}
-    </div>
+    </fieldset>
     <fieldset class="border-0 p-0">
-        <legend class="mb-2 text-sm text-mute">Confidence</legend>
-        <div class="flex flex-col gap-2">
-            <label class="flex cursor-pointer items-center gap-2 text-ink">
-                <input type="radio" name="confidence" value="confident" checked>
-                Confident
-            </label>
-            <label class="flex cursor-pointer items-center gap-2 text-ink">
-                <input type="radio" name="confidence" value="educated_guess">
-                Educated Guess
-            </label>
-            <label class="flex cursor-pointer items-center gap-2 text-ink">
-                <input type="radio" name="confidence" value="complete_guess">
-                Complete Guess
-            </label>
+        <legend class="mb-3 font-mono text-xs text-mute">Then how sure you are · submits on press</legend>
+        <div class="grid gap-2 sm:grid-cols-3">
+            {% for value, key, label in [('confident', 'c', 'Confident'), ('educated_guess', 'e', 'Educated guess'), ('complete_guess', 'g', 'Complete guess')] %}
+            <button class="flex min-h-12 cursor-pointer items-center justify-center gap-2.5 rounded-lg border border-line bg-surface font-medium text-ink hover:border-accent hover:text-accent focus-visible:outline-2 focus-visible:outline-accent"
+                    type="submit" name="confidence" value="{{ value }}" data-key="{{ key }}">
+                <kbd class="rounded border border-current px-1.5 font-mono text-xs uppercase max-sm:hidden">{{ key }}</kbd>{{ label }}
+            </button>
+            {% endfor %}
         </div>
     </fieldset>
-    <button class="inline-flex w-fit cursor-pointer items-center rounded border-0 bg-accent px-4 py-2.5 text-sm font-semibold text-accent-fg" type="submit">
-        Submit
-    </button>
-    {% if question.type == 'select_two' %}
-    <p class="text-sm text-mute">Pick exactly two options.</p>
-    {% endif %}
 </form>

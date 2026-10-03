@@ -68,6 +68,20 @@
                 else localStorage.removeItem("theme");
             } catch (e) {}
         });
+
+        // Study keys: digits pick options, other keys press the [data-key] control (confidence, next).
+        document.addEventListener("keydown", (e) => {
+            const study = document.getElementById("study");
+            if (!study || e.metaKey || e.ctrlKey || e.altKey) return;
+            if (e.target.closest("textarea, select, input:not([type=radio]):not([type=checkbox])")) return;
+            const key = e.key.toLowerCase();
+            if (!/^[a-z0-9]$/.test(key)) return;
+            const target = study.querySelectorAll("input[name=selected]")[Number(key) - 1]
+                || study.querySelector(`[data-key="${key}"]`);
+            if (!target) return;
+            e.preventDefault();
+            target.click();
+        });
     </script>
 </body>
 
