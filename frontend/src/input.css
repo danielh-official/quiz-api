@@ -16,6 +16,7 @@
   --color-ok: #1f6b3a;
   --color-bad: #8a2b2b;
   --font-sans: "IBM Plex Sans", system-ui, sans-serif;
+  --font-serif: "IBM Plex Serif", "Times New Roman", serif;
 }
 
 @layer base {

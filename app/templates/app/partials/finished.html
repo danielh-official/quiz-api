@@ -1,25 +1,28 @@
-<div class="flex flex-col gap-3 rounded-xl border border-line bg-surface px-6 py-5">
-    <h1 class="text-3xl font-semibold">Session finished</h1>
-    <div class="grid grid-cols-3 gap-3">
-        <div class="rounded-lg bg-code p-3 text-center">
-            <div class="text-xl font-bold">{{ summary.answered }}</div>
-            <div class="text-sm text-mute">answered</div>
+<div class="flex flex-col gap-6">
+    <h1 class="text-[1.75rem] font-semibold leading-tight tracking-tight text-ink">Session finished</h1>
+    <div class="flex flex-wrap items-baseline gap-x-6 gap-y-2 border-y border-line py-4">
+        <div>
+            <span class="text-[1.75rem] font-semibold tabular-nums text-ink">{{ summary.answered }}</span>
+            <span class="ml-1.5 text-sm text-mute">answered</span>
         </div>
-        <div class="rounded-lg bg-code p-3 text-center">
-            <div class="text-xl font-bold">{{ summary.correct }}</div>
-            <div class="text-sm text-mute">correct</div>
+        <div>
+            <span class="text-[1.75rem] font-semibold tabular-nums text-ink">{{ summary.correct }}</span>
+            <span class="ml-1.5 text-sm text-mute">correct</span>
         </div>
-        <div class="rounded-lg bg-code p-3 text-center">
-            <div class="text-xl font-bold">{{ summary.misconceptions }}</div>
-            <div class="text-sm text-mute">misconceptions</div>
+        <div>
+            <span class="text-[1.75rem] font-semibold tabular-nums {% if summary.misconceptions > 0 %}text-due{% else %}text-ink{% endif %}">{{ summary.misconceptions }}</span>
+            <span class="ml-1.5 text-sm text-mute">misconceptions</span>
         </div>
     </div>
-    <ul class="list-disc pl-5">
+    <ul class="space-y-1 p-0 text-sm">
         {% for key, row in summary.by_confidence.items() %}
-        <li>{{ key }}: {{ row.correct }}/{{ row.answered }}</li>
+        <li class="flex justify-between gap-4 border-b border-line py-2">
+            <span class="text-mute">{{ key|replace('_', ' ') }}</span>
+            <span class="tabular-nums text-ink">{{ row.correct }}/{{ row.answered }}</span>
+        </li>
         {% endfor %}
     </ul>
-    <a class="inline-flex w-fit items-center rounded-lg bg-accent px-4 py-2.5 font-semibold text-accent-fg no-underline" href="/app">
+    <a class="inline-flex w-fit items-center rounded bg-accent px-4 py-2.5 text-sm font-semibold text-accent-fg no-underline" href="/app">
         Back to decks
     </a>
 </div>

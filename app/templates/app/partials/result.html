@@ -1,18 +1,22 @@
-<div class="flex flex-col gap-3 rounded-xl border border-line bg-surface px-6 py-5">
+<div class="flex flex-col gap-5">
     {% if result.correct %}
     <p class="text-ok"><strong>Correct</strong></p>
     {% else %}
-    <p class="text-bad"><strong>Incorrect</strong>{% if result.misconception %} · misconception{% endif %}</p>
+    <p class="text-bad"><strong>Incorrect</strong>{% if result.misconception %} <span class="font-normal">(misconception)</span>{% endif %}</p>
     {% endif %}
-    <p class="text-mute">FSRS rating: {{ result.rating }} · next review {{ result.next_review_at }}</p>
+    <p class="text-sm text-mute">
+        FSRS rating <span class="text-ink">{{ result.rating }}</span>
+        <span class="mx-2 text-line">/</span>
+        Next review <span class="text-ink">{{ result.next_review_at }}</span>
+    </p>
 
-    <div>
+    <div class="border-t border-line">
         {% for o in labeled_options %}
-        <div class="my-2 flex items-start gap-2.5 rounded-lg border px-3 py-2.5 {% if o.correct %}border-ok{% else %}border-line{% endif %}">
-            <span class="min-w-[1.2em] font-bold text-mute">{{ o.label }}.</span>
-            <div>
-                <div>{{ o.text | text_blocks }}{% if o.correct %} <span class="text-ok">(correct)</span>{% endif %}</div>
-                {% if o.explanation %}<p class="mt-1 text-mute">{{ o.explanation | text_blocks }}</p>{% endif %}
+        <div class="flex items-start gap-3 border-b border-line py-3 {% if o.correct %}border-l-[3px] border-l-ok pl-3{% endif %}">
+            <span class="min-w-[1.25em] font-semibold tabular-nums text-mute">{{ o.label }}.</span>
+            <div class="min-w-0">
+                <div class="text-ink">{{ o.text | text_blocks }}{% if o.correct %} <span class="text-sm text-ok">(correct)</span>{% endif %}</div>
+                {% if o.explanation %}<p class="mt-1 text-sm text-mute">{{ o.explanation | text_blocks }}</p>{% endif %}
             </div>
         </div>
         {% endfor %}
@@ -20,16 +24,16 @@
 
     {% if result.question.explanation %}
     <div>
-        <strong>Explanation</strong>
-        <p class="mt-1">{{ result.question.explanation | text_blocks }}</p>
+        <p class="mb-1 text-sm font-semibold text-ink">Explanation</p>
+        <p class="font-serif leading-relaxed text-ink">{{ result.question.explanation | text_blocks }}</p>
     </div>
     {% endif %}
 
     {% if result.note %}
-    <p class="text-mute">Note: {{ result.note }}</p>
+    <p class="text-sm text-mute">Note: {{ result.note }}</p>
     {% endif %}
 
-    <a class="inline-flex w-fit cursor-pointer items-center rounded-lg bg-accent px-4 py-2.5 font-semibold text-accent-fg no-underline"
+    <a class="inline-flex w-fit cursor-pointer items-center rounded bg-accent px-4 py-2.5 text-sm font-semibold text-accent-fg no-underline"
        href="/app/sessions/{{ session_id }}/next"
        hx-get="/app/sessions/{{ session_id }}/next"
        hx-target="#study"

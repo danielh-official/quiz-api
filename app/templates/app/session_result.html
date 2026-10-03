@@ -1,7 +1,7 @@
 {% extends "app/layout.html" %}
 {% block title %}Answer{% endblock %}
 {% block content %}
-<p class="mb-4 text-mute">Question {{ result.session.answered }} of {{ result.session.size }}</p>
+<p class="mb-6 text-sm tabular-nums text-mute">Question {{ result.session.answered }} of {{ result.session.size }}</p>
 <div id="study">
     {% include "app/partials/result.html" %}
 </div>
