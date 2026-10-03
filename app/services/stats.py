@@ -1,7 +1,7 @@
 """Deck counts and performance reports."""
 
 from collections import defaultdict
-from datetime import UTC, date, datetime, time
+from datetime import UTC, date, datetime, time, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -12,7 +12,7 @@ from app.models import Card, Deck, Question, Review, User
 from app.services import Invalid
 from app.services import exams as exams_service
 from app.services.content import children_of, describe, effectively_archived, get_deck, subtree_ids, user_decks
-from app.services.study import memory, new_remaining, scheduler, unstudied
+from app.services.study import memory, new_remaining, scheduler, study_day_start, unstudied
 
 
 def per_deck(db: Session, stmt: Select[int, int]) -> dict[int, int]:
@@ -62,6 +62,62 @@ def counts(db: Session, user: User, decks: dict[int, Deck], *, active_only: bool
     for top in children.get(None, []):
         roll_up(top.id)
     return out
+
+
+def activity(  # pylint: disable=too-many-locals
+    db: Session, user: User, decks: dict[int, Deck], *, days: int = 7, window: int = 30
+) -> dict[int, dict[str, Any]]:
+    """Per deck incl. active subdecks: `load` = reviews due on each of the next `days` study days (day 0 includes
+    overdue), `retention` = share of reviews answered correctly in the last `window` days (None without reviews)."""
+    now = datetime.now(UTC)
+    start = study_day_start(user, now)
+    in_decks = Question.deck_id.in_(decks)
+    load: dict[int, list[int]] = defaultdict(lambda: [0] * days)
+    # ponytail: buckets in Python over the next `days` of due cards; group in SQL if this gets slow.
+    for deck_id, due_at in db.execute(
+        select(Question.deck_id, Card.due_at)
+        .join(Card, Card.question_id == Question.id)
+        .where(
+            in_decks,
+            Card.user_id == user.id,
+            Card.suspended_at.is_(None),
+            Card.last_reviewed_at.is_not(None),
+            Card.due_at < start + timedelta(days=days),
+        )
+    ):
+        if due_at is not None:  # filtered above; narrows the type
+            load[deck_id][max(0, (due_at - start).days)] += 1
+    reviews = {
+        deck_id: (answered, correct)
+        for deck_id, answered, correct in db.execute(
+            select(Question.deck_id, func.count(), func.count().filter(Review.correct))
+            .join(Review, Review.question_id == Question.id)
+            .where(in_decks, Review.user_id == user.id, Review.reviewed_at >= now - timedelta(days=window))
+            .group_by(Question.deck_id)
+        )
+    }
+    children = children_of(decks)
+    totals: dict[int, tuple[list[int], int, int]] = {}
+
+    def roll_up(deck_id: int) -> tuple[list[int], int, int]:
+        days_due = list(load[deck_id])
+        answered, correct = reviews.get(deck_id, (0, 0))
+        for child in children.get(deck_id, []):
+            child_load, child_answered, child_correct = roll_up(child.id)
+            if child.archived_at is not None:
+                continue
+            days_due = [a + b for a, b in zip(days_due, child_load)]
+            answered += child_answered
+            correct += child_correct
+        totals[deck_id] = (days_due, answered, correct)
+        return totals[deck_id]
+
+    for top in children.get(None, []):
+        roll_up(top.id)
+    return {
+        deck_id: {"load": days_due, "retention": correct / answered if answered else None}
+        for deck_id, (days_due, answered, correct) in totals.items()
+    }
 
 
 def readiness(  # pylint: disable=too-many-locals

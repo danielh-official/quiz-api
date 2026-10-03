@@ -1,10 +1,11 @@
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 from conftest import answer, make_deck, make_questions
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import User
+from app.models import Card, User
 from app.schemas import CardUpdate
 from app.services import content, stats, study
 
@@ -65,3 +66,21 @@ def test_readiness_coverage_and_predicted_recall(db: Session, user: User) -> Non
     later = stats.performance(db, user, root.id, date.today() + timedelta(days=365))["readiness"]
     assert later["predicted_recall"] < 0.5
     assert stats.performance(db, user, root.id, date(2000, 1, 1))["readiness"]["predicted_recall"] == 1.0
+
+
+def test_activity_load_and_retention_roll_up(db: Session, user: User) -> None:
+    root = make_deck(db, user, "Root")
+    child = make_deck(db, user, "Child", parent_id=root.id)
+    right, wrong = make_questions(db, user, child, 2)
+    session_id = study.start_session(db, user, child.id)["session_id"]
+    answer(db, user, session_id, right)
+    answer(db, user, session_id, wrong, right=False)
+    start = study.study_day_start(user, datetime.now(UTC))
+    cards = {c.question_id: c for c in db.scalars(select(Card).where(Card.user_id == user.id))}
+    cards[right.id].due_at = start + timedelta(days=3, hours=1)
+    cards[wrong.id].due_at = start - timedelta(days=2)  # overdue counts on day 0
+    db.flush()
+
+    per = stats.activity(db, user, content.user_decks(db, user))
+    assert per[child.id] == {"load": [1, 0, 0, 1, 0, 0, 0], "retention": 0.5}
+    assert per[root.id] == per[child.id]
