@@ -27,6 +27,10 @@ class DeckUpdate(BaseModel):
     parent_id: int | None = None
     session_size: int | None = Field(default=None, ge=1, le=500)
     new_per_day: int | None = Field(default=None, ge=0, le=1000)
+    archived: bool | None = Field(
+        default=None,
+        description="Archive or unarchive this deck. Archiving hides it and its subdecks from normal view.",
+    )
 
 
 class OptionIn(BaseModel):

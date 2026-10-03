@@ -1,5 +1,5 @@
 from datetime import date
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Body, Depends, Query, Response
 from sqlalchemy.orm import Session
@@ -21,6 +21,8 @@ from app.schemas import (
     SettingsUpdate,
 )
 from app.services import content, exams, stats, study
+
+ArchiveFilter = Literal["active", "archived", "all"]
 
 router = APIRouter()
 Db = Annotated[Session, Depends(get_db)]
@@ -45,8 +47,8 @@ def delete_me(db: Db, user: Me) -> Response:
 
 
 @router.get("/decks")
-def list_decks(db: Db, user: Me) -> list[Json]:
-    return content.list_decks(db, user)
+def list_decks(db: Db, user: Me, archived: bool = False) -> list[Json]:
+    return content.list_decks(db, user, archived=archived)
 
 
 @router.post("/decks", status_code=201)
@@ -78,8 +80,14 @@ def create_questions(
 
 
 @router.get("/questions/search")
-def search_questions(db: Db, user: Me, q: Annotated[str, Query()], deck_id: int | None = None) -> Json:
-    return content.search_questions(db, user, q, deck_id)
+def search_questions(
+    db: Db,
+    user: Me,
+    q: Annotated[str, Query()],
+    deck_id: int | None = None,
+    archived: Annotated[ArchiveFilter, Query(description='"active", "archived", or "all".')] = "active",
+) -> Json:
+    return content.search_questions(db, user, q, deck_id, archived=archived)
 
 
 @router.get("/questions/{question_id}")

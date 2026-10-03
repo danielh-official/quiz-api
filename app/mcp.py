@@ -3,7 +3,7 @@
 from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import date, datetime
-from typing import Annotated, Any
+from typing import Annotated, Any, cast
 
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
@@ -31,11 +31,15 @@ from app.schemas import (
     SettingsUpdate,
 )
 from app.services import Forbidden, Invalid, NotFound, content, exams, stats, study
+from app.services.content import ArchiveFilter
 
 INSTRUCTIONS = """\
 Quiz API is the user's spaced-repetition quiz app for multiple-choice questions.
 
 - Decks nest; studying, searching and stats on a deck include its subdecks.
+- Archive a deck with update-deck(archived=true): it and its subdecks leave normal list/study/search;
+  list-decks(archived=true) shows directly archived decks; unarchive with archived=false (children
+  archived on their own stay archived). Archived decks are read-only until unarchived (delete still works).
 - Questions are "single" (4 options, 1 correct) or "select_two" (5 options, 2 correct). Text is Markdown.
   Options have stable ids; answers reference option ids.
 - Answers carry a confidence: confident, educated_guess or complete_guess. FSRS scheduling:
@@ -85,10 +89,15 @@ def caller() -> Iterator[tuple[Session, User]]:
 
 
 @mcp.tool(name="list-decks", annotations=READ)
-def list_decks() -> dict[str, Any]:
-    """List every deck as a tree (depth-first) with due/new/total question counts that include subdecks."""
+def list_decks(
+    archived: Annotated[
+        bool, Field(description="If true, list directly archived decks only; default is the active tree.")
+    ] = False,
+) -> dict[str, Any]:
+    """List decks as a tree (depth-first) with due/new/total question counts that include subdecks.
+    Default: active decks only. archived=true: directly archived decks (to unarchive)."""
     with caller() as (db, user):
-        return {"decks": content.list_decks(db, user)}
+        return {"decks": content.list_decks(db, user, archived=archived)}
 
 
 @mcp.tool(name="get-deck", annotations=READ)
@@ -103,11 +112,17 @@ def get_deck(deck_id: int, page: Annotated[int, Field(ge=1, description="Page of
 def search_questions(
     query: Annotated[str, Field(min_length=2, max_length=200)],
     deck_id: Annotated[int | None, Field(description="Limit to this deck and its subdecks.")] = None,
+    archived: Annotated[
+        str,
+        Field(description='"active" (default), "archived", or "all" — filter by whether the question\'s deck is archived.'),
+    ] = "active",
 ) -> dict[str, Any]:
     """Case-insensitive substring search over stems, option texts and explanations (max 25 results).
     Use it before creating questions to avoid duplicates."""
     with caller() as (db, user):
-        return content.search_questions(db, user, query, deck_id)
+        if archived not in ("active", "archived", "all"):
+            raise ToolError('archived must be "active", "archived", or "all".')
+        return content.search_questions(db, user, query, deck_id, archived=cast(ArchiveFilter, archived))
 
 
 @mcp.tool(name="get-performance", annotations=READ)
@@ -150,13 +165,19 @@ def update_deck(
     parent_id: Annotated[int | None, Field(description="New parent deck, or 0 to make it top-level.")] = None,
     session_size: int | None = None,
     new_per_day: int | None = None,
+    archived: Annotated[
+        bool | None, Field(description="true to archive, false to unarchive. Archived decks are hidden and read-only.")
+    ] = None,
 ) -> dict[str, Any]:
-    """Rename, re-describe, move or change the study settings of a deck. Omitted fields stay unchanged."""
+    """Rename, re-describe, move, archive/unarchive or change the study settings of a deck.
+    Omitted fields stay unchanged. Other edits on an archived deck require unarchiving first (same call is fine)."""
     with caller() as (db, user):
         given = {"name": name, "description": description, "session_size": session_size, "new_per_day": new_per_day}
         changes: dict[str, Any] = {k: v for k, v in given.items() if v is not None}
         if parent_id is not None:
             changes["parent_id"] = parent_id or None
+        if archived is not None:
+            changes["archived"] = archived
         return {"deck": content.deck_dict(content.update_deck(db, user, deck_id, DeckUpdate(**changes)))}
 
 

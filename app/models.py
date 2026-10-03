@@ -63,6 +63,7 @@ class Deck(Base):
     description: Mapped[str | None]
     session_size: Mapped[int] = mapped_column(SmallInteger, server_default="20")
     new_per_day: Mapped[int] = mapped_column(SmallInteger, server_default="20")
+    archived_at: Mapped[datetime | None]
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
 

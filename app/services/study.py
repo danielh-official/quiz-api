@@ -11,7 +11,16 @@ from sqlalchemy.orm import Session
 from app.models import Card, Deck, Question, Review, StudySession, User
 from app.schemas import QUESTION_SHAPES, AnswerIn, Confidence, SessionUpdate
 from app.services import Invalid, NotFound
-from app.services.content import card_for, describe, get_deck, get_question, path_names, subtree_ids, user_decks
+from app.services.content import (
+    card_for,
+    describe,
+    effectively_archived,
+    get_deck,
+    get_question,
+    path_names,
+    subtree_ids,
+    user_decks,
+)
 
 RECENT_SUMMARIES = 3  # returned by start_session so the next session can pick up where the last ones left off
 
@@ -87,7 +96,7 @@ def new_remaining(db: Session, user: User, decks: dict[int, Deck], now: datetime
         ).all()
     )
     return {
-        deck_id: max(0, deck.new_per_day - sum(introduced.get(i, 0) for i in subtree_ids(decks, deck_id)))
+        deck_id: max(0, deck.new_per_day - sum(introduced.get(i, 0) for i in subtree_ids(decks, deck_id, active_only=True)))
         for deck_id, deck in decks.items()
     }
 
@@ -120,7 +129,7 @@ def next_new(db: Session, user: User, decks: dict[int, Deck], root_id: int, now:
     # ponytail: scans unstudied question ids in order; fine for thousands of new questions.
     candidates = db.execute(
         select(Question.id, Question.deck_id)
-        .where(Question.deck_id.in_(subtree_ids(decks, root_id)), unstudied(user))
+        .where(Question.deck_id.in_(subtree_ids(decks, root_id, active_only=True)), unstudied(user))
         .order_by(Question.id)
     )
     for question_id, deck_id in candidates:
@@ -129,15 +138,22 @@ def next_new(db: Session, user: User, decks: dict[int, Deck], root_id: int, now:
     return None
 
 
+def require_active_session_deck(db: Session, user: User, deck_id: int) -> None:
+    decks = user_decks(db, user)
+    if deck_id not in decks or effectively_archived(decks, deck_id):
+        raise Invalid("deck_id", "Deck is archived.")
+
+
 def start_session(db: Session, user: User, deck_id: int, size: int | None = None) -> dict[str, Any]:
     from app.services.stats import counts  # pylint: disable=import-outside-toplevel  # import cycle
 
     deck = get_deck(db, user, deck_id)
+    require_active_session_deck(db, user, deck.id)
     session = StudySession(user_id=user.id, deck_id=deck.id, size=max(1, min(size or deck.session_size, 500)), answered=0)
     db.add(session)
     db.commit()
     decks = user_decks(db, user)
-    available = counts(db, user, decks)[deck.id]
+    available = counts(db, user, decks, active_only=True)[deck.id]
     return {
         "session_id": session.id,
         "size": session.size,
@@ -194,10 +210,12 @@ def summary(db: Session, session: StudySession) -> dict[str, Any]:
 def next_question(db: Session, user: User, session_id: int) -> dict[str, Any]:
     """Next question without its answer (options shuffled), or the summary once the session is done."""
     session = get_session(db, user, session_id)
+    require_active_session_deck(db, user, session.deck_id)
     if session.finished_at is None and session.answered < session.size:
         now = datetime.now(UTC)
         decks = user_decks(db, user)
-        question = next_due(db, user, subtree_ids(decks, session.deck_id), now) or next_new(db, user, decks, session.deck_id, now)
+        scope = subtree_ids(decks, session.deck_id, active_only=True)
+        question = next_due(db, user, scope, now) or next_new(db, user, decks, session.deck_id, now)
         if question:
             return {
                 "finished": False,
@@ -212,10 +230,11 @@ def next_question(db: Session, user: User, session_id: int) -> dict[str, Any]:
 
 def submit_answer(db: Session, user: User, session_id: int, answer: AnswerIn) -> dict[str, Any]:
     session = get_session(db, user, session_id)
+    require_active_session_deck(db, user, session.deck_id)
     question = get_question(db, user, answer.question_id)
     if session.finished_at is not None or session.answered >= session.size:
         raise Invalid("session", "This session is already finished.")
-    if question.deck_id not in subtree_ids(user_decks(db, user), session.deck_id):
+    if question.deck_id not in subtree_ids(user_decks(db, user), session.deck_id, active_only=True):
         raise Invalid("question_id", "This question is not part of the session.")
 
     selected = list(dict.fromkeys(answer.selected))

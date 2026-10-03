@@ -25,6 +25,10 @@ If no quiz-api tools are available, tell the user how to connect instead of pret
 ## Data model
 
 - **Decks** nest. Studying, searching and stats on a deck include all its subdecks.
+- **Archive** a deck with `update-deck(archived=true)`: it (and its subdecks) leave the normal list, study
+  queue, and default search. `list-decks(archived=true)` shows decks archived directly; unarchive with
+  `archived=false` (children archived on their own stay archived until unarchived themselves). Archived
+  decks are read-only until restored; hard delete still works. Search: `archived` = `active` | `archived` | `all`.
 - **Questions** are `single` (exactly 4 options, 1 correct) or `select_two` (exactly 5 options, 2 correct).
   Stems, options and explanations are Markdown. Every option has a stable `id`; answers use option ids.
 - **Confidence** comes with every answer: `confident`, `educated_guess` or `complete_guess`.

@@ -9,8 +9,9 @@ from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session
 
 from app.models import Card, Deck, Question, Review, User
-from app.services import Invalid, exams as exams_service
-from app.services.content import children_of, describe, get_deck, subtree_ids, user_decks
+from app.services import Invalid
+from app.services import exams as exams_service
+from app.services.content import children_of, describe, effectively_archived, get_deck, subtree_ids, user_decks
 from app.services.study import memory, new_remaining, scheduler, unstudied
 
 
@@ -18,8 +19,11 @@ def per_deck(db: Session, stmt: Select[int, int]) -> dict[int, int]:
     return dict(db.execute(stmt.group_by(Question.deck_id)).all())
 
 
-def counts(db: Session, user: User, decks: dict[int, Deck]) -> dict[int, dict[str, int]]:
-    """due / new / total per deck, each including subdecks. new = what the Anki v3 limits admit today."""
+def counts(db: Session, user: User, decks: dict[int, Deck], *, active_only: bool = False) -> dict[int, dict[str, int]]:
+    """due / new / total per deck, each including subdecks. new = what the Anki v3 limits admit today.
+
+    active_only: directly archived children are omitted from a parent's roll-up (active list/study).
+    """
     now = datetime.now(UTC)
     in_decks = Question.deck_id.in_(decks)
     total = per_deck(db, select(Question.deck_id, func.count()).where(in_decks))
@@ -41,7 +45,12 @@ def counts(db: Session, user: User, decks: dict[int, Deck]) -> dict[int, dict[st
     out: dict[int, dict[str, int]] = {}
 
     def roll_up(deck_id: int) -> dict[str, int]:
-        kids = [roll_up(child.id) for child in children.get(deck_id, [])]
+        kids = []
+        for child in children.get(deck_id, []):
+            child_counts = roll_up(child.id)
+            if active_only and child.archived_at is not None:
+                continue
+            kids.append(child_counts)
         # Nested caps form a laminar family, so this min() equals what the per-question walk admits.
         out[deck_id] = {
             "due": due.get(deck_id, 0) + sum(k["due"] for k in kids),
@@ -86,14 +95,16 @@ def readiness(
             "expected_score": round(sum(known) / len(values), 3) if values else None,
         }
 
+    retired = root_id is not None and effectively_archived(decks, root_id)
     if by_roots is not None:
         roots = [decks[rid] for rid in by_roots if rid in decks]
     else:
-        roots = children_of(decks).get(root_id, [])
+        kids = children_of(decks).get(root_id, [])
+        roots = kids if retired else [d for d in kids if d.archived_at is None]
     return {
         "at": at.isoformat(),
         **score(deck_ids),
-        "by_deck": [{"deck_id": d.id, "name": d.name, **score(subtree_ids(decks, d.id))} for d in roots],
+        "by_deck": [{"deck_id": d.id, "name": d.name, **score(subtree_ids(decks, d.id, active_only=not retired))} for d in roots],
     }
 
 
@@ -109,22 +120,26 @@ def performance(  # pylint: disable=too-many-locals
         raise Invalid("exam_id", "Pass exam_id or deck_id, not both.")
 
     decks = user_decks(db, user)
-    per = counts(db, user, decks)
     by_roots: list[int] | None = None
     root_id: int | None = deck_id
     if exam_id is not None:
         exam, roots, deck_ids = exams_service.exam_scope(db, user, exam_id)
         by_roots = roots
         root_id = None
+        per = counts(db, user, decks, active_only=True)
         totals = {key: sum(per[rid][key] for rid in roots if rid in per) for key in ("due", "new", "total")}
         if exam_date is None and exam.starts_at is not None:
             exam_date = exam.starts_at.astimezone(ZoneInfo(user.timezone)).date()
     elif deck_id is not None:
-        deck_ids = subtree_ids(decks, get_deck(db, user, deck_id).id)
+        get_deck(db, user, deck_id)
+        retired = effectively_archived(decks, deck_id)
+        deck_ids = subtree_ids(decks, deck_id, active_only=not retired)
+        per = counts(db, user, decks, active_only=not retired)
         totals = per[deck_id]
     else:
-        deck_ids = list(decks)
-        tops = [per[d.id] for d in children_of(decks).get(None, [])]
+        deck_ids = [did for did in decks if not effectively_archived(decks, did)]
+        per = counts(db, user, decks, active_only=True)
+        tops = [per[d.id] for d in children_of(decks).get(None, []) if d.archived_at is None]
         totals = {key: sum(t[key] for t in tops) for key in ("due", "new", "total")}
 
     at = datetime.now(UTC)

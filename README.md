@@ -203,7 +203,7 @@ Every route needs `Authorization: Bearer <token>`, except `/up`, `/`, `/robots.t
 | Method | Path | |
 |---|---|---|
 | GET, PATCH, DELETE | `/me` | Profile and settings (`timezone`, `desired_retention`). DELETE removes everything |
-| GET, POST | `/decks` | Tree with due/new/total counts; create |
+| GET, POST | `/decks` | Tree with due/new/total counts (`?archived=true` for archived); create |
 | GET, PATCH, DELETE | `/decks/{id}` | GET adds subdecks and questions (`?page=`) |
 | POST | `/decks/{id}/questions` | 1–50 questions, all-or-nothing |
 | GET | `/questions/search?q=&deck_id=` | |

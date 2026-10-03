@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.models import Deck, DeckExam, Exam, User
 from app.schemas import ExamCreate, ExamUpdate
 from app.services import Invalid, NotFound
-from app.services.content import subtree_ids, user_decks
+from app.services.content import effectively_archived, subtree_ids, user_decks
 
 
 def get_exam(db: Session, user: User, exam_id: int) -> Exam:
@@ -69,9 +69,19 @@ def _reject_nested_links(db: Session, user: User, deck_ids: list[int]) -> None:
             current = decks[current].parent_id
 
 
+def _reject_archived_links(db: Session, user: User, deck_ids: list[int]) -> None:
+    if not deck_ids:
+        return
+    decks = user_decks(db, user)
+    for deck_id in deck_ids:
+        if effectively_archived(decks, deck_id):
+            raise Invalid("deck_ids", f"Deck {deck_id} is archived.")
+
+
 def _replace_deck_links(db: Session, user: User, exam: Exam, deck_ids: list[int]) -> None:
     owned = _owned_deck_ids(db, user, deck_ids)
     _reject_nested_links(db, user, owned)
+    _reject_archived_links(db, user, owned)
     db.execute(delete(DeckExam).where(DeckExam.exam_id == exam.id))
     if owned:
         db.add_all([DeckExam(exam_id=exam.id, deck_id=deck_id) for deck_id in owned])
@@ -114,14 +124,14 @@ def delete_exam(db: Session, user: User, exam_id: int) -> None:
 
 
 def exam_scope(db: Session, user: User, exam_id: int) -> tuple[Exam, list[int], list[int]]:
-    """Exam, linked root deck ids, and the union of their subtree deck ids (for stats)."""
+    """Exam, linked root deck ids still active, and the union of their active subtree deck ids (for stats)."""
     exam = get_exam(db, user, exam_id)
     decks = user_decks(db, user)
-    roots = [link.deck_id for link in exam.deck_exams]
+    roots = [link.deck_id for link in exam.deck_exams if not effectively_archived(decks, link.deck_id)]
     scope: list[int] = []
     seen: set[int] = set()
     for root_id in roots:
-        for deck_id in subtree_ids(decks, root_id):
+        for deck_id in subtree_ids(decks, root_id, active_only=True):
             if deck_id not in seen:
                 seen.add(deck_id)
                 scope.append(deck_id)
