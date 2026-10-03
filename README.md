@@ -26,8 +26,16 @@ refuses to start on any other `APP_URL`, and always in the production image (`AP
 so production can't end up open by accident.
 
 - http://localhost:8000/ is the home page: how to connect an AI and run your own copy.
-- http://localhost:8000/app is the browser study UI (Jinja + HTMX). Locally with mocked auth it is the `dev` user.
+- http://localhost:8000/app is the browser study UI (Jinja + HTMX + Tailwind). Locally with mocked auth it is the `dev` user.
 - http://localhost:8000/docs has the OpenAPI docs, where *Authorize* signs you in to try the REST API.
+
+`/app` styles are Tailwind. While editing templates, keep a watcher running so CSS rebuilds itself:
+
+```bash
+cd frontend && pnpm install && pnpm watch   # rebuilds app/static/app.css on class changes
+```
+
+Before committing (or if you skipped the watcher), run a one-shot build: `cd frontend && pnpm build`.
 
 ### GitHub sign-in (production)
 

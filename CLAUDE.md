@@ -14,6 +14,8 @@ uv run pytest tests/test_limits.py -k parent      # one file / matching tests
 uv run --with mypy mypy app tests                 # strict mode, config in pyproject.toml
 uv run --with pylint pylint app tests migrations  # max line length 130
 uv run --with ruff ruff format app tests migrations  # line length 130; CI checks with --check
+cd frontend && pnpm install && pnpm watch         # Tailwind rebuilds app/static/app.css as you edit
+cd frontend && pnpm build                         # one-shot build before commit if watch wasn't running
 uv run alembic revision --autogenerate -m "..."   # after changing app/models.py
 deploy/aws.sh                                     # terraform apply infra/ + ship local code; settings in .env.aws
 ```
@@ -46,9 +48,11 @@ Pushes to `main` deploy to AWS Lambda through `.github/workflows/deploy.yml` aft
   Render suspended the deploy for "suspicious activity"; open redirects and login-first pages read as phishing, so keep
   both out (README "Avoiding suspension"). Tests turn `MOCK` off in conftest; mock tests turn it back on.
 - **Web (`app/web.py`, `app/web_app.py`, `app/templates/`)**: static Jinja home plus `robots.txt` (no sign-in on `/`).
-  Authenticated study UI at `/app` (Jinja + HTMX) with pre-registered PKCE client `web-app` and an HTTP-only access
-  cookie. The home page, README and this file describe the same setup; change them together. Swagger's *Authorize*
-  on `/docs` uses the separate `swagger-ui` client.
+  Authenticated study UI at `/app` (Jinja + HTMX + Tailwind) with pre-registered PKCE client `web-app` and an HTTP-only
+  access cookie. Tailwind lives in `frontend/` (v4 CLI + pnpm); use `pnpm watch` while editing, `pnpm build` before
+  commit, and commit `app/static/app.css` (Docker/prod don't run Node).
+  The home page, README and this file describe the same setup; change them together. Swagger's *Authorize* on `/docs`
+  uses the separate `swagger-ui` client.
 - **Study (`app/services/study.py`)**: FSRS with no learning steps, so every interval is whole days. The rating
   comes from correctness + confidence (`rating_for`). The study day starts at 4am in the user's timezone. Daily
   new-question limits follow Anki v3 rules down the nested deck tree (`new_remaining`, `admits`).
