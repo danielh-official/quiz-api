@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app import auth as auth_module
 from app.main import app
 from app.models import User
-from app.schemas import QuestionUpdate
+from app.schemas import CardUpdate, DeckUpdate, QuestionUpdate
 from app.services import content
 from app.web_app import web_claims
 
@@ -251,6 +251,47 @@ def test_question_and_card_crud(client: TestClient, db: Session, user: User) -> 
     assert deleted.status_code == 303
     assert deleted.headers["location"] == f"/app/decks/{deck.id}"
     assert client.get(question_path).status_code == 404
+
+
+def test_archived_and_suspended_pages(client: TestClient, db: Session, user: User) -> None:
+    login_web(user)
+    parent = make_deck(db, user, "Parent")
+    child = make_deck(db, user, "Child", parent_id=parent.id)
+    content.update_deck(db, user, child.id, DeckUpdate(archived=True))
+    active, paused = make_questions(db, user, parent, n=2, prefix="P")
+    content.update_card(db, user, paused.id, CardUpdate(suspended=True))
+
+    index = client.get("/app")
+    assert index.status_code == 200
+    assert "Archived" in index.text
+    assert "Parent" in index.text
+    assert "Child" not in index.text
+
+    archived = client.get("/app/archived")
+    assert archived.status_code == 200
+    assert "Child" in archived.text
+
+    parent_page = client.get(f"/app/decks/{parent.id}")
+    assert parent_page.status_code == 200
+    assert "Archived subdecks (1)" in parent_page.text
+    assert "Suspended (1)" in parent_page.text
+    assert "P0" in parent_page.text  # active stem prefix
+    assert f"/app/questions/{paused.id}" not in parent_page.text
+
+    kids = client.get(f"/app/decks/{parent.id}/archived")
+    assert kids.status_code == 200
+    assert "Child" in kids.text
+    assert f'href="/app/decks/{child.id}"' in kids.text
+
+    suspended = client.get(f"/app/decks/{parent.id}/suspended")
+    assert suspended.status_code == 200
+    assert f'href="/app/questions/{paused.id}"' in suspended.text
+    assert f'href="/app/questions/{active.id}"' not in suspended.text
+
+    # Deep links still work.
+    assert client.get(f"/app/decks/{child.id}").status_code == 200
+    assert "Archived" in client.get(f"/app/decks/{child.id}").text
+    assert client.get(f"/app/questions/{paused.id}").status_code == 200
 
 
 def test_deck_crud(client: TestClient, db: Session, user: User) -> None:

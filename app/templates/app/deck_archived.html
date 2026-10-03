@@ -1,0 +1,27 @@
+{% extends "app/layout.html" %}
+{% block title %}Archived subdecks · {{ detail.deck.name }}{% endblock %}
+{% block content %}
+<p class="mb-3 text-sm text-mute">
+    <a class="text-mute no-underline hover:text-ink" href="/app">Decks</a>
+    {% for crumb in detail.deck.crumbs %}
+    <span class="text-line"> / </span><a class="text-mute no-underline hover:text-ink" href="/app/decks/{{ crumb.id }}">{{ crumb.name }}</a>
+    {% endfor %}
+    <span class="text-line"> / </span><span>Archived</span>
+</p>
+<h1 class="mb-1 text-[1.75rem] font-semibold leading-tight tracking-tight text-ink">Archived subdecks</h1>
+<p class="mb-8 text-mute">Directly archived children of {{ detail.deck.name }}.</p>
+
+{% if detail.subdecks %}
+<ul class="list-none border-t border-line p-0">
+    {% for s in detail.subdecks %}
+    <li class="border-b border-line">
+        <a class="block py-2.5 text-ink no-underline hover:text-accent" href="/app/decks/{{ s.id }}">{{ s.name }}</a>
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<div class="border-t border-line pt-6">
+    <p class="text-mute">No archived subdecks.</p>
+</div>
+{% endif %}
+{% endblock %}

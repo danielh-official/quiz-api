@@ -1,0 +1,29 @@
+{% extends "app/layout.html" %}
+{% block title %}Archived decks{% endblock %}
+{% block content %}
+<p class="mb-3 text-sm text-mute">
+    <a class="text-mute no-underline hover:text-ink" href="/app">Decks</a>
+    <span class="text-line"> / </span><span>Archived</span>
+</p>
+<h1 class="mb-1 text-[1.75rem] font-semibold leading-tight tracking-tight text-ink">Archived decks</h1>
+<p class="mb-8 text-mute">Directly archived decks. Open one to edit and unarchive it.</p>
+
+{% if decks %}
+<ul class="list-none border-t border-line p-0">
+    {% for d in decks %}
+    <li class="border-b border-line">
+        <a class="flex items-baseline justify-between gap-4 py-3 pr-1 text-ink no-underline hover:text-accent"
+           style="padding-left: calc(0.75rem + {{ d.depth * 1.25 }}rem)"
+           href="/app/decks/{{ d.id }}">
+            <span class="min-w-0 font-medium {% if d.depth %}font-normal{% endif %}">{{ d.name }}</span>
+            <span class="shrink-0 text-sm tabular-nums text-mute">{{ d.total }} total</span>
+        </a>
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<div class="border-t border-line pt-6">
+    <p class="text-mute">No archived decks.</p>
+</div>
+{% endif %}
+{% endblock %}

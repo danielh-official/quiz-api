@@ -9,7 +9,12 @@
     {% endif %}
     {% endfor %}
 </p>
-<h1 class="mb-1 text-[1.75rem] font-semibold leading-tight tracking-tight text-ink">{{ detail.deck.name }}</h1>
+<div class="mb-1 flex flex-wrap items-baseline gap-3">
+    <h1 class="text-[1.75rem] font-semibold leading-tight tracking-tight text-ink">{{ detail.deck.name }}</h1>
+    {% if detail.deck.archived %}
+    <span class="text-sm font-medium text-mute">Archived</span>
+    {% endif %}
+</div>
 {% if detail.deck.description %}
 <p class="mb-6 text-mute">{{ detail.deck.description }}</p>
 {% else %}
@@ -35,12 +40,24 @@
     <form method="post" action="/app/decks/{{ detail.deck.id }}/sessions">
         <button
             class="inline-flex cursor-pointer items-center rounded border-0 bg-accent px-4 py-2.5 text-sm font-semibold text-accent-fg disabled:cursor-not-allowed disabled:opacity-40"
-            type="submit"{% if detail.deck.due == 0 and detail.deck.new == 0 %} disabled{% endif %}>
+            type="submit"{% if detail.deck.archived or (detail.deck.due == 0 and detail.deck.new == 0) %} disabled{% endif %}>
             Start session
         </button>
     </form>
     <a class="text-sm text-mute no-underline hover:text-ink" href="/app/decks/{{ detail.deck.id }}/edit">Edit deck</a>
+    {% if not detail.deck.archived %}
     <a class="text-sm text-mute no-underline hover:text-ink" href="/app/decks/{{ detail.deck.id }}/questions/new">Add question</a>
+    {% endif %}
+    {% if detail.deck.archived_children_count %}
+    <a class="text-sm text-mute no-underline hover:text-ink" href="/app/decks/{{ detail.deck.id }}/archived">
+        Archived subdecks ({{ detail.deck.archived_children_count }})
+    </a>
+    {% endif %}
+    {% if detail.deck.suspended_count %}
+    <a class="text-sm text-mute no-underline hover:text-ink" href="/app/decks/{{ detail.deck.id }}/suspended">
+        Suspended ({{ detail.deck.suspended_count }})
+    </a>
+    {% endif %}
 </div>
 
 {% if detail.subdecks %}

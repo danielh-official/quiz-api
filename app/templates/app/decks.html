@@ -6,7 +6,10 @@
         <h1 class="mb-1 text-[1.75rem] font-semibold leading-tight tracking-tight text-ink">Decks</h1>
         <p class="text-mute">Open a deck to study it and its subdecks.</p>
     </div>
-    <a class="shrink-0 text-sm font-medium text-accent no-underline hover:underline" href="/app/decks/new">New deck</a>
+    <div class="flex shrink-0 flex-col items-end gap-1 text-sm">
+        <a class="font-medium text-accent no-underline hover:underline" href="/app/decks/new">New deck</a>
+        <a class="text-mute no-underline hover:text-ink" href="/app/archived">Archived</a>
+    </div>
 </div>
 
 {% if decks %}

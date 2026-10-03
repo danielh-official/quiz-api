@@ -206,6 +206,13 @@ def decks_index(request: Request, db: Db, user: WebUser) -> HTMLResponse:
     return render("app/decks.html", request, decks=decks)
 
 
+@router.get("/archived")
+def archived_decks(request: Request, db: Db, user: WebUser) -> HTMLResponse:
+    request.state.user = user
+    decks = content.list_decks(db, user, archived=True)
+    return render("app/archived.html", request, decks=decks)
+
+
 @router.get("/decks/new")
 def new_deck_form(request: Request, db: Db, user: WebUser) -> HTMLResponse:
     request.state.user = user
@@ -245,6 +252,20 @@ def deck_detail(deck_id: int, request: Request, db: Db, user: WebUser) -> HTMLRe
     detail = content.deck_detail(db, user, deck_id)
     performance = stats.performance(db, user, deck_id=deck_id)
     return render("app/deck.html", request, detail=detail, performance=performance)
+
+
+@router.get("/decks/{deck_id}/archived")
+def deck_archived_children(deck_id: int, request: Request, db: Db, user: WebUser) -> HTMLResponse:
+    request.state.user = user
+    detail = content.deck_detail(db, user, deck_id, archived_children=True)
+    return render("app/deck_archived.html", request, detail=detail)
+
+
+@router.get("/decks/{deck_id}/suspended")
+def deck_suspended_cards(deck_id: int, request: Request, db: Db, user: WebUser) -> HTMLResponse:
+    request.state.user = user
+    detail = content.deck_detail(db, user, deck_id, suspended=True)
+    return render("app/deck_suspended.html", request, detail=detail)
 
 
 @router.get("/decks/{deck_id}/edit")
