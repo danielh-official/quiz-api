@@ -63,7 +63,7 @@ def test_decks_and_detail(client: TestClient, db: Session, user: User) -> None:
     decks = client.get("/app")
     assert decks.status_code == 200
     assert "AWS" in decks.text and "S3" in decks.text
-    assert "2 new" in decks.text or "2 total" in decks.text
+    assert ">New</th>" in decks.text and ">2</td>" in decks.text
 
     detail = client.get(f"/app/decks/{parent.id}")
     assert detail.status_code == 200

@@ -1,37 +1,55 @@
 {% extends "app/layout.html" %}
 {% block title %}Decks{% endblock %}
+{% block crumb %}<span class="text-mute">/</span>decks{% endblock %}
 {% block content %}
-<div class="mb-8 flex items-baseline justify-between gap-4">
+{% set tops = decks | selectattr("depth", "equalto", 0) | list %}
+<div class="mb-6 flex flex-wrap items-end justify-between gap-4">
     <div>
-        <h1 class="mb-1 text-[1.75rem] font-semibold leading-tight tracking-tight text-ink">Decks</h1>
-        <p class="text-mute">Open a deck to study it and its subdecks.</p>
+        <h1 class="mb-1 text-[1.4rem] font-semibold leading-tight text-ink">Decks</h1>
+        <p class="text-sm tabular-nums text-mute">{{ tops | sum(attribute="due") }} due · {{ tops | sum(attribute="new") }} new · study day starts 04:00</p>
     </div>
-    <div class="flex shrink-0 flex-col items-end gap-1 text-sm">
-        <a class="font-medium text-accent no-underline hover:underline" href="/app/decks/new">New deck</a>
-        <a class="text-mute no-underline hover:text-ink" href="/app/archived">Archived</a>
+    <div class="flex gap-2 text-sm">
+        <a class="rounded-md border border-line px-3.5 py-2.5 text-mute no-underline hover:text-ink" href="/app/archived">Archived</a>
+        <a class="rounded-md bg-accent px-3.5 py-2.5 font-semibold text-accent-fg no-underline" href="/app/decks/new">New deck</a>
     </div>
 </div>
 
 {% if decks %}
-<ul class="list-none border-t border-line p-0">
-    {% for d in decks %}
-    <li class="relative border-b border-line {% if d.due > 0 %}border-l-[3px] border-l-due{% else %}border-l-[3px] border-l-transparent{% endif %}">
-        <a class="flex items-baseline justify-between gap-4 py-3 pr-1 text-ink no-underline hover:text-accent"
-           style="padding-left: calc(0.75rem + {{ d.depth * 1.25 }}rem)"
-           href="/app/decks/{{ d.id }}">
-            <span class="min-w-0 font-medium {% if d.depth %}font-normal{% endif %}">{{ d.name }}</span>
-            <span class="flex shrink-0 items-baseline gap-3 text-sm tabular-nums text-mute">
-                {% if d.due > 0 %}
-                <span class="font-medium text-due">{{ d.due }} due</span>
-                {% else %}
-                <span>{{ d.due }} due</span>
-                {% endif %}
-                <span>{{ d.new }} new</span>
-            </span>
-        </a>
-    </li>
-    {% endfor %}
-</ul>
+<div class="overflow-x-auto rounded-lg border border-line">
+    <table class="w-full min-w-[600px] border-collapse text-sm">
+        <thead>
+            <tr class="bg-surface text-left font-mono text-xs text-mute">
+                <th class="px-4 py-2.5 font-medium">Deck</th>
+                <th class="w-16 px-4 py-2.5 text-right font-medium">Due</th>
+                <th class="w-16 px-4 py-2.5 text-right font-medium">New</th>
+                <th class="w-36 px-4 py-2.5 font-medium">Load · 7 days</th>
+                <th class="w-24 px-4 py-2.5 text-right font-medium">Retention</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for d in decks %}
+            {% set peak = d.load | max %}
+            <tr class="border-t border-line hover:bg-surface">
+                <td class="p-0">
+                    <a class="block py-3 pr-4 text-ink no-underline {% if not d.depth %}font-semibold{% endif %}"
+                       style="padding-left: calc(1rem + {{ d.depth * 1.25 }}rem)"
+                       href="/app/decks/{{ d.id }}">{% if d.depth %}<span class="font-mono text-mute">└ </span>{% endif %}{{ d.name }}</a>
+                </td>
+                <td class="px-4 py-3 text-right font-mono tabular-nums {% if d.due > 0 %}font-bold text-due{% else %}text-mute{% endif %}">{{ d.due }}</td>
+                <td class="px-4 py-3 text-right font-mono tabular-nums text-mute">{{ d.new }}</td>
+                <td class="px-4 py-3">
+                    <div class="flex h-[18px] items-end gap-[3px]" role="img" aria-label="Due over the next 7 days: {{ d.load | join(', ') }}" title="{{ d.load | join(' · ') }}">
+                        {% for n in d.load %}
+                        <span class="w-2 rounded-[1px] {% if n %}bg-accent/70{% else %}bg-line{% endif %}" style="height: {{ ((n / peak * 100) if peak else 0) | round(1) }}%; min-height: 2px"></span>
+                        {% endfor %}
+                    </div>
+                </td>
+                <td class="px-4 py-3 text-right font-mono tabular-nums text-mute">{% if d.retention is not none %}{{ (d.retention * 100) | round | int }}%{% else %}—{% endif %}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 {% else %}
 <div class="border-t border-line pt-6">
     <p class="mb-2 text-ink">No decks yet.</p>
@@ -39,4 +57,3 @@
 </div>
 {% endif %}
 {% endblock %}
-

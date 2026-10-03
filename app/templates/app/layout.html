@@ -19,7 +19,7 @@
 <body class="flex min-h-screen flex-col">
     <header class="border-b border-line">
         <div class="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-3 font-mono text-[13px] sm:px-6">
-            <span class="py-1 font-bold"><a class="no-underline" href="/app">quiz</a></span>
+            <span class="py-1 font-bold"><a class="no-underline" href="/app">quiz</a>{% block crumb %}{% endblock %}</span>
             <nav class="flex items-center gap-4 text-mute">
                 {% if user %}
                 <span>{{ user.login }}</span>

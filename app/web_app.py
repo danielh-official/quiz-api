@@ -203,7 +203,8 @@ def safe_next(value: str | None) -> str:
 def decks_index(request: Request, db: Db, user: WebUser) -> HTMLResponse:
     request.state.user = user
     decks = content.list_decks(db, user)
-    return render("app/decks.html", request, decks=decks)
+    activity = stats.activity(db, user, content.user_decks(db, user))
+    return render("app/decks.html", request, decks=[{**d, **activity[d["id"]]} for d in decks])
 
 
 @router.get("/archived")
