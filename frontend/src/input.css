@@ -4,30 +4,32 @@
 @source "../../app/templates/app/**/*.html";
 
 @theme {
-  --color-canvas: #f7f7f5;
-  --color-surface: #ffffff;
-  --color-ink: #1d1d1b;
-  --color-mute: #6b6b66;
-  --color-line: #e4e4df;
-  --color-accent: #2f6b4f;
-  --color-accent-fg: #ffffff;
-  --color-code: #f0f0ec;
+  --color-canvas: #e8eaed;
+  --color-surface: #f4f6fa;
+  --color-ink: #0f1c2e;
+  --color-mute: #5c6570;
+  --color-line: #c9ced6;
+  --color-accent: #1b4dff;
+  --color-accent-fg: #f4f6fa;
+  --color-code: #dde1e8;
+  --color-due: #c45c26;
   --color-ok: #1f6b3a;
   --color-bad: #8a2b2b;
-  --font-sans: system-ui, -apple-system, sans-serif;
+  --font-sans: "IBM Plex Sans", system-ui, sans-serif;
 }
 
 @layer base {
   @media (prefers-color-scheme: dark) {
     :root {
-      --color-canvas: #151514;
-      --color-surface: #1e1e1c;
-      --color-ink: #ececea;
-      --color-mute: #a0a09a;
-      --color-line: #33332f;
-      --color-accent: #5fae86;
-      --color-accent-fg: #0d1a13;
-      --color-code: #2a2a27;
+      --color-canvas: #0f1c2e;
+      --color-surface: #162536;
+      --color-ink: #e8eaed;
+      --color-mute: #9aa3ad;
+      --color-line: #2a3a4d;
+      --color-accent: #6b8cff;
+      --color-accent-fg: #0f1c2e;
+      --color-code: #1a2a3c;
+      --color-due: #e08955;
       --color-ok: #6dca8b;
       --color-bad: #e08080;
     }

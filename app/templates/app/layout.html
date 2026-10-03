@@ -6,25 +6,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow">
     <title>{% block title %}Quiz{% endblock %} · Quiz API</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/app.css">
     <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.4/dist/htmx.min.js" defer></script>
 </head>
 
 <body>
     <header class="border-b border-line bg-surface">
-        <div class="mx-auto flex max-w-xl items-center justify-between gap-3 px-4 py-3">
-            <a class="font-bold text-ink no-underline" href="/app">Quiz</a>
-            <div class="flex items-center gap-3 text-sm text-mute">
+        <div class="mx-auto flex max-w-xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
+            <a class="text-base font-semibold tracking-tight text-ink no-underline" href="/app">Quiz</a>
+            <nav class="flex items-center gap-4 text-sm text-mute">
+                <a class="text-mute no-underline hover:text-ink" href="/">Home</a>
                 {% if user %}
                 <span>{{ user.login }}</span>
                 <form method="post" action="/app/logout" class="inline">
                     <button class="cursor-pointer border-0 bg-transparent p-0 text-accent" type="submit">Log out</button>
                 </form>
                 {% endif %}
-            </div>
+            </nav>
         </div>
     </header>
-    <main class="mx-auto max-w-xl px-4 pb-16 pt-8">
+    <main class="mx-auto max-w-xl px-4 pb-16 pt-8 sm:px-6">
         {% block content %}{% endblock %}
     </main>
 </body>

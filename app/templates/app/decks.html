@@ -1,22 +1,33 @@
 {% extends "app/layout.html" %}
 {% block title %}Decks{% endblock %}
 {% block content %}
-<h1 class="mb-2 text-3xl font-semibold">Decks</h1>
-<p class="mb-4 text-mute">Study a deck to include its subdecks.</p>
+<h1 class="mb-1 text-[1.75rem] font-semibold leading-tight tracking-tight text-ink">Decks</h1>
+<p class="mb-8 text-mute">Open a deck to study it and its subdecks.</p>
 
 {% if decks %}
-<ul class="mt-4 list-none rounded-xl border border-line bg-surface p-0">
+<ul class="list-none border-t border-line p-0">
     {% for d in decks %}
-    <li class="flex items-center justify-between gap-3 border-b border-line px-5 py-2.5 last:border-b-0"
-        style="padding-left: calc(1.25rem + {{ d.depth * 1.125 }}rem)">
-        <a class="min-w-0 flex-1" href="/app/decks/{{ d.id }}">{{ d.name }}</a>
-        <span class="shrink-0 whitespace-nowrap text-sm text-mute">{{ d.due }} due · {{ d.new }} new · {{ d.total }} total</span>
+    <li class="relative border-b border-line {% if d.due > 0 %}border-l-[3px] border-l-due{% else %}border-l-[3px] border-l-transparent{% endif %}">
+        <a class="flex items-baseline justify-between gap-4 py-3 pr-1 text-ink no-underline hover:text-accent"
+           style="padding-left: calc(0.75rem + {{ d.depth * 1.25 }}rem)"
+           href="/app/decks/{{ d.id }}">
+            <span class="min-w-0 font-medium {% if d.depth %}font-normal{% endif %}">{{ d.name }}</span>
+            <span class="flex shrink-0 items-baseline gap-3 text-sm tabular-nums text-mute">
+                {% if d.due > 0 %}
+                <span class="font-medium text-due">{{ d.due }} due</span>
+                {% else %}
+                <span>{{ d.due }} due</span>
+                {% endif %}
+                <span>{{ d.new }} new</span>
+            </span>
+        </a>
     </li>
     {% endfor %}
 </ul>
 {% else %}
-<div class="mt-4 rounded-xl border border-line bg-surface px-6 py-5">
-    <p>No decks yet. Create some via the API, MCP, or <a href="/docs">/docs</a>.</p>
+<div class="border-t border-line pt-6">
+    <p class="mb-2 text-ink">No decks yet.</p>
+    <p class="text-mute">Create some with the API, an MCP client, or <a href="/docs">/docs</a>.</p>
 </div>
 {% endif %}
 {% endblock %}
