@@ -1,8 +1,13 @@
 {% extends "app/layout.html" %}
 {% block title %}Decks{% endblock %}
 {% block content %}
-<h1 class="mb-1 text-[1.75rem] font-semibold leading-tight tracking-tight text-ink">Decks</h1>
-<p class="mb-8 text-mute">Open a deck to study it and its subdecks.</p>
+<div class="mb-8 flex items-baseline justify-between gap-4">
+    <div>
+        <h1 class="mb-1 text-[1.75rem] font-semibold leading-tight tracking-tight text-ink">Decks</h1>
+        <p class="text-mute">Open a deck to study it and its subdecks.</p>
+    </div>
+    <a class="shrink-0 text-sm font-medium text-accent no-underline hover:underline" href="/app/decks/new">New deck</a>
+</div>
 
 {% if decks %}
 <ul class="list-none border-t border-line p-0">
@@ -27,7 +32,8 @@
 {% else %}
 <div class="border-t border-line pt-6">
     <p class="mb-2 text-ink">No decks yet.</p>
-    <p class="text-mute">Create some with the API, an MCP client, or <a href="/docs">/docs</a>.</p>
+    <p class="text-mute"><a class="text-accent no-underline hover:underline" href="/app/decks/new">Create a deck</a> to get started.</p>
 </div>
 {% endif %}
 {% endblock %}
+

@@ -27,7 +27,7 @@ from app.auth import (
 )
 from app.db import get_db
 from app.models import User
-from app.schemas import AnswerIn, Confidence
+from app.schemas import AnswerIn, Confidence, DeckCreate, DeckUpdate, OptionIn, QuestionIn, QuestionUpdate, CardUpdate
 from app.services import Invalid, NotFound, content, stats, study
 from app.web import TEMPLATES
 
@@ -192,12 +192,80 @@ def decks_index(request: Request, db: Db, user: WebUser) -> HTMLResponse:
     return render("app/decks.html", request, decks=decks)
 
 
+@router.get("/decks/new")
+def new_deck_form(request: Request, db: Db, user: WebUser) -> HTMLResponse:
+    request.state.user = user
+    return render(
+        "app/deck_form.html",
+        request,
+        mode="create",
+        deck=None,
+        parents=content.list_decks(db, user),
+        error=None,
+    )
+
+
+@router.post("/decks/new")
+async def create_deck(request: Request, db: Db, user: WebUser) -> Response:
+    request.state.user = user
+    form = await request.form()
+    try:
+        data = _deck_create_from_form(form)
+        deck = content.create_deck(db, user, data)
+    except (Invalid, ValidationError) as exc:
+        return render(
+            "app/deck_form.html",
+            request,
+            status_code=422,
+            mode="create",
+            deck=_deck_form_values(form),
+            parents=content.list_decks(db, user),
+            error=_form_error(exc),
+        )
+    return RedirectResponse(f"/app/decks/{deck.id}", status_code=303)
+
+
 @router.get("/decks/{deck_id}")
 def deck_detail(deck_id: int, request: Request, db: Db, user: WebUser) -> HTMLResponse:
     request.state.user = user
     detail = content.deck_detail(db, user, deck_id)
     performance = stats.performance(db, user, deck_id=deck_id)
     return render("app/deck.html", request, detail=detail, performance=performance)
+
+
+@router.get("/decks/{deck_id}/edit")
+def edit_deck_form(deck_id: int, request: Request, db: Db, user: WebUser) -> HTMLResponse:
+    request.state.user = user
+    deck = content.deck_dict(content.get_deck(db, user, deck_id))
+    parents = [d for d in content.list_decks(db, user) if d["id"] != deck_id]
+    return render("app/deck_form.html", request, mode="edit", deck=deck, parents=parents, error=None)
+
+
+@router.post("/decks/{deck_id}/edit")
+async def update_deck(deck_id: int, request: Request, db: Db, user: WebUser) -> Response:
+    request.state.user = user
+    form = await request.form()
+    try:
+        data = _deck_update_from_form(form)
+        content.update_deck(db, user, deck_id, data)
+    except (Invalid, NotFound, ValidationError) as exc:
+        parents = [d for d in content.list_decks(db, user) if d["id"] != deck_id]
+        return render(
+            "app/deck_form.html",
+            request,
+            status_code=422,
+            mode="edit",
+            deck={"id": deck_id, **_deck_form_values(form)},
+            parents=parents,
+            error=_form_error(exc),
+        )
+    return RedirectResponse(f"/app/decks/{deck_id}", status_code=303)
+
+
+@router.post("/decks/{deck_id}/delete")
+def delete_deck(deck_id: int, db: Db, user: WebUser) -> RedirectResponse:
+    content.delete_deck(db, user, deck_id)
+    return RedirectResponse("/app", status_code=303)
 
 
 @router.post("/decks/{deck_id}/sessions")
@@ -288,6 +356,58 @@ async def session_answer(session_id: int, request: Request, db: Db, user: WebUse
 
 def labeled_options(options: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [{**option, "label": OPTION_LABELS[i]} for i, option in enumerate(options)]
+
+
+def _form_error(exc: Exception) -> str:
+    if isinstance(exc, Invalid):
+        return exc.message
+    if isinstance(exc, ValidationError):
+        return str(exc.errors()[0]["msg"])
+    return str(exc)
+
+
+def _optional_int(value: object) -> int | None:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    return int(text)
+
+
+def _deck_form_values(form: FormData) -> dict[str, Any]:
+    return {
+        "name": str(form.get("name") or ""),
+        "description": str(form.get("description") or "") or None,
+        "parent_id": _optional_int(form.get("parent_id")),
+        "session_size": int(str(form.get("session_size") or "20")),
+        "new_per_day": int(str(form.get("new_per_day") or "20")),
+        "archived": str(form.get("archived") or "") == "on",
+    }
+
+
+def _deck_create_from_form(form: FormData) -> DeckCreate:
+    values = _deck_form_values(form)
+    return DeckCreate(
+        name=values["name"],
+        description=values["description"],
+        parent_id=values["parent_id"],
+        session_size=values["session_size"],
+        new_per_day=values["new_per_day"],
+    )
+
+
+def _deck_update_from_form(form: FormData) -> DeckUpdate:
+    values = _deck_form_values(form)
+    # Archiving with other fields in one PATCH is rejected; archive alone.
+    if values["archived"]:
+        return DeckUpdate(archived=True)
+    return DeckUpdate(
+        name=values["name"],
+        description=values["description"],
+        parent_id=values["parent_id"],
+        session_size=values["session_size"],
+        new_per_day=values["new_per_day"],
+        archived=False,
+    )
 
 
 def _text_blocks(value: str | None) -> Markup:

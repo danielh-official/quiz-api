@@ -1,0 +1,72 @@
+{% extends "app/layout.html" %}
+{% block title %}{% if mode == 'create' %}New deck{% else %}Edit {{ deck.name }}{% endif %}{% endblock %}
+{% block content %}
+<p class="mb-3 text-sm text-mute">
+    <a class="text-mute no-underline hover:text-ink" href="/app">Decks</a>
+    {% if mode == 'edit' %}
+    <span class="text-line"> / </span>
+    <a class="text-mute no-underline hover:text-ink" href="/app/decks/{{ deck.id }}">{{ deck.name }}</a>
+    {% endif %}
+</p>
+<h1 class="mb-6 text-[1.75rem] font-semibold leading-tight tracking-tight text-ink">
+    {% if mode == 'create' %}New deck{% else %}Edit deck{% endif %}
+</h1>
+
+{% if error %}
+<div class="mb-4 border-l-[3px] border-l-bad bg-bad/10 px-3 py-2.5 text-sm text-bad">{{ error }}</div>
+{% endif %}
+
+<form method="post" action="{% if mode == 'create' %}/app/decks/new{% else %}/app/decks/{{ deck.id }}/edit{% endif %}" class="flex flex-col gap-5">
+    <label class="flex flex-col gap-1.5">
+        <span class="text-sm text-mute">Name</span>
+        <input class="rounded border border-line bg-surface px-3 py-2 text-ink" type="text" name="name" required maxlength="255"
+               value="{{ deck.name if deck else '' }}">
+    </label>
+    <label class="flex flex-col gap-1.5">
+        <span class="text-sm text-mute">Description</span>
+        <textarea class="min-h-24 rounded border border-line bg-surface px-3 py-2 text-ink" name="description" maxlength="5000">{{ deck.description if deck and deck.description else '' }}</textarea>
+    </label>
+    <label class="flex flex-col gap-1.5">
+        <span class="text-sm text-mute">Parent deck</span>
+        <select class="rounded border border-line bg-surface px-3 py-2 text-ink" name="parent_id">
+            <option value="">— Top level —</option>
+            {% for p in parents %}
+            <option value="{{ p.id }}"{% if deck and deck.parent_id == p.id %} selected{% endif %}>
+                {{ '—' * p.depth }}{% if p.depth %} {% endif %}{{ p.name }}
+            </option>
+            {% endfor %}
+        </select>
+    </label>
+    <div class="grid grid-cols-2 gap-4">
+        <label class="flex flex-col gap-1.5">
+            <span class="text-sm text-mute">Session size</span>
+            <input class="rounded border border-line bg-surface px-3 py-2 text-ink tabular-nums" type="number" name="session_size" min="1" max="500" required
+                   value="{{ deck.session_size if deck else 20 }}">
+        </label>
+        <label class="flex flex-col gap-1.5">
+            <span class="text-sm text-mute">New per day</span>
+            <input class="rounded border border-line bg-surface px-3 py-2 text-ink tabular-nums" type="number" name="new_per_day" min="0" max="1000" required
+                   value="{{ deck.new_per_day if deck else 20 }}">
+        </label>
+    </div>
+    {% if mode == 'edit' %}
+    <label class="flex cursor-pointer items-center gap-2 text-ink">
+        <input type="checkbox" name="archived"{% if deck.archived %} checked{% endif %}>
+        Archived
+    </label>
+    {% endif %}
+    <div class="flex flex-wrap items-center gap-4 pt-2">
+        <button class="inline-flex cursor-pointer items-center rounded border-0 bg-accent px-4 py-2.5 text-sm font-semibold text-accent-fg" type="submit">
+            {% if mode == 'create' %}Create deck{% else %}Save{% endif %}
+        </button>
+        <a class="text-sm text-mute no-underline hover:text-ink" href="{% if mode == 'edit' %}/app/decks/{{ deck.id }}{% else %}/app{% endif %}">Cancel</a>
+    </div>
+</form>
+
+{% if mode == 'edit' %}
+<form method="post" action="/app/decks/{{ deck.id }}/delete" class="mt-12 border-t border-line pt-6"
+      onsubmit="return confirm('Delete this deck and all its questions? This cannot be undone.');">
+    <button class="cursor-pointer border-0 bg-transparent p-0 text-sm text-bad" type="submit">Delete deck</button>
+</form>
+{% endif %}
+{% endblock %}

@@ -146,6 +146,45 @@ def test_other_users_deck_is_404_html(client: TestClient, db: Session, user: Use
     assert "Not found" in response.text
 
 
+def test_deck_crud(client: TestClient, db: Session, user: User) -> None:
+    login_web(user)
+    form = client.get("/app/decks/new")
+    assert form.status_code == 200
+    assert "New deck" in form.text
+
+    created = client.post(
+        "/app/decks/new",
+        data={"name": "AWS", "description": "Cloud", "parent_id": "", "session_size": "10", "new_per_day": "5"},
+    )
+    assert created.status_code == 303
+    deck_path = created.headers["location"]
+    assert deck_path.startswith("/app/decks/")
+    deck_id = int(deck_path.rsplit("/", 1)[-1])
+
+    detail = client.get(deck_path)
+    assert detail.status_code == 200
+    assert "AWS" in detail.text
+    assert "Edit deck" in detail.text
+
+    edited = client.post(
+        f"/app/decks/{deck_id}/edit",
+        data={
+            "name": "AWS Certified",
+            "description": "Cloud",
+            "parent_id": "",
+            "session_size": "15",
+            "new_per_day": "5",
+        },
+    )
+    assert edited.status_code == 303
+    assert "AWS Certified" in client.get(deck_path).text
+
+    deleted = client.post(f"/app/decks/{deck_id}/delete")
+    assert deleted.status_code == 303
+    assert deleted.headers["location"] == "/app"
+    assert client.get(deck_path).status_code == 404
+
+
 def test_safe_next_rejects_external(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(auth_module, "MOCK", True)
     response = client.get("/app/login", params={"next": "https://evil.example/"})
