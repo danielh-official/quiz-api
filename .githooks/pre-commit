@@ -4,9 +4,12 @@ set -euo pipefail
 root="$(git rev-parse --show-toplevel)"
 cd "$root"
 
-uv run --with ruff ruff format app tests migrations
-# Include any formatting fixes in this commit.
-git add -u -- app tests migrations
+# Format only staged Python files and re-stage just those, so split commits stay split.
+staged=$(git diff --cached --name-only --diff-filter=ACMR -- 'app/*.py' 'tests/*.py' 'migrations/*.py')
+if [ -n "$staged" ]; then
+  echo "$staged" | xargs uv run --with ruff ruff format
+  echo "$staged" | xargs git add --
+fi
 
 uv run --with mypy mypy app tests
 uv run --with pylint pylint app tests migrations
