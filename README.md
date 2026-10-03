@@ -26,6 +26,7 @@ refuses to start on any other `APP_URL`, and always in the production image (`AP
 so production can't end up open by accident.
 
 - http://localhost:8000/ is the home page: how to connect an AI and run your own copy.
+- http://localhost:8000/app is the browser study UI (Jinja + HTMX). Locally with mocked auth it is the `dev` user.
 - http://localhost:8000/docs has the OpenAPI docs, where *Authorize* signs you in to try the REST API.
 
 ### GitHub sign-in (production)
@@ -139,13 +140,13 @@ phishing those domains are known for. This has happened to this project on Rende
 
 - **Use your own domain.** Every host above supports custom domains, and the AWS setup requires one. Scanners and
   blocklists treat shared host subdomains with suspicion, and one bad neighbour can get the whole suffix flagged.
-- **No login page.** The home page is static: it explains the project, calls itself a personal instance and has
-  no sign-in, form or password field. Sign-in only happens inside MCP clients and behind Swagger's *Authorize*
-  button on `/docs`, which nothing links to as a call to action.
+- **No login page on `/`.** The home page is static: it explains the project, calls itself a personal instance and has
+  no sign-in form or password field. Browser OAuth for the study UI lives under `/app` (not the marketing home).
+  MCP clients and Swagger's *Authorize* on `/docs` run their own flows.
 - **No open redirects.** Dynamic client registration only accepts callbacks on loopback, `claude.ai`, `claude.com`,
-  `chatgpt.com` and `/docs` (`CLIENT_REDIRECT_URIS` in `app/auth.py`). Without that list, anyone could register a
-  client and hand out `/authorize` links on your domain that end on their own site. To support another MCP client,
-  add its callback there.
+  `chatgpt.com`, `/docs` and `/app/oauth/callback` (`CLIENT_REDIRECT_URIS` in `app/auth.py`). Without that list, anyone
+  could register a client and hand out `/authorize` links on your domain that end on their own site. To support
+  another MCP client, add its callback there.
 - **Stay out of search.** `robots.txt` disallows everything and every page is `noindex`.
 - **One account per person.** Railway's [fair use policy](https://railway.com/legal/fair-use) bans multiple
   trial accounts, and every host's acceptable use policy lets it suspend without notice

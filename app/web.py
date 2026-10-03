@@ -1,4 +1,4 @@
-"""The home page: how to connect an AI and run your own copy. No sign-in; MCP clients and /docs do their own OAuth."""
+"""The home page: how to connect an AI and run your own copy. No sign-in on `/`; the study UI is `/app`."""
 
 from pathlib import Path
 

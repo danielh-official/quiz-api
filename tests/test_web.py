@@ -15,6 +15,7 @@ def test_home_is_static(client: TestClient) -> None:
     assert f"{config.APP_URL}/mcp" in page and 'href="/docs"' in page and "{{" not in page and "{%" not in page
     assert "claude plugin install" not in page  # no marketplace configured
     assert "<form" not in page and "Sign in" not in page and 'type="password"' not in page  # nothing to log in to
+    assert 'href="/app"' in page  # study UI is linked, OAuth stays under /app
     assert "noindex" in page and "fetch(" not in page
 
 
