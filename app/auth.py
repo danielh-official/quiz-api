@@ -31,6 +31,7 @@ CLIENT_REDIRECT_URIS = [
     "https://claude.com/*",
     "https://chatgpt.com/*",
     f"{config.APP_URL}/docs/oauth2-redirect",  # the /docs Authorize button
+    f"{config.APP_URL}/app/oauth/callback",  # Jinja + HTMX browser UI
 ]
 
 
@@ -76,6 +77,10 @@ MOCK_CLAIMS: dict[str, Any] = {"sub": "dev", "login": "dev", "name": "Dev", "ema
 
 # /docs "Authorize" button: signs in through the same GitHub OAuth flow as MCP clients.
 SWAGGER_CLIENT_ID = "swagger-ui"
+# Browser UI at /app: public PKCE client; access token lives in an HTTP-only cookie.
+WEB_CLIENT_ID = "web-app"
+WEB_ACCESS_COOKIE = "quiz_access_token"
+WEB_REDIRECT_URI = f"{config.APP_URL}/app/oauth/callback"
 oauth2_scheme = OAuth2AuthorizationCodeBearer(
     authorizationUrl="/authorize",
     tokenUrl="/token",
@@ -94,6 +99,22 @@ async def register_swagger_client() -> None:
             client_id=SWAGGER_CLIENT_ID,
             client_name="Quiz API docs",
             redirect_uris=[AnyUrl(f"{config.APP_URL}/docs/oauth2-redirect")],
+            token_endpoint_auth_method="none",
+            grant_types=["authorization_code", "refresh_token"],
+            scope="read:user",
+        )
+    )
+
+
+async def register_web_client() -> None:
+    """Pre-register the /app browser UI as a public PKCE client."""
+    if not auth:
+        return
+    await auth.register_client(
+        OAuthClientInformationFull(
+            client_id=WEB_CLIENT_ID,
+            client_name="Quiz API web",
+            redirect_uris=[AnyUrl(WEB_REDIRECT_URI)],
             token_endpoint_auth_method="none",
             grant_types=["authorization_code", "refresh_token"],
             scope="read:user",

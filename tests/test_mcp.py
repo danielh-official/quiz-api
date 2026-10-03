@@ -209,7 +209,7 @@ def test_registration_rejects_foreign_redirects(monkeypatch: pytest.MonkeyPatch)
         assert register("https://claude.ai.evil.example/callback") == 400
 
 
-def test_swagger_client_registered(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_swagger_and_web_clients_registered(monkeypatch: pytest.MonkeyPatch) -> None:
     for name, value in {
         "GITHUB_CLIENT_ID": "id",
         "GITHUB_CLIENT_SECRET": "secret",
@@ -223,11 +223,15 @@ def test_swagger_client_registered(monkeypatch: pytest.MonkeyPatch) -> None:
         pytest.fail("Expected provider to be initialized")
     monkeypatch.setattr(auth_module, "auth", provider)
 
-    async def main() -> OAuthClientInformationFull | None:
+    async def main() -> tuple[OAuthClientInformationFull | None, OAuthClientInformationFull | None]:
         await auth_module.register_swagger_client()
-        return await provider.get_client("swagger-ui")
+        await auth_module.register_web_client()
+        return await provider.get_client("swagger-ui"), await provider.get_client("web-app")
 
-    swagger = asyncio.run(main())
+    swagger, web = asyncio.run(main())
     if swagger is None or swagger.redirect_uris is None:
         pytest.fail("Expected the swagger client to be registered with redirect URIs")
+    if web is None or web.redirect_uris is None:
+        pytest.fail("Expected the web-app client to be registered with redirect URIs")
     assert [str(u) for u in swagger.redirect_uris] == [f"{config.APP_URL}/docs/oauth2-redirect"]
+    assert [str(u) for u in web.redirect_uris] == [f"{config.APP_URL}/app/oauth/callback"]
