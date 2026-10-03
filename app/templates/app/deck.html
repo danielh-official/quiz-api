@@ -84,7 +84,7 @@
             <span class="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs tabular-nums text-mute">
                 <span>{% if q.type == 'select_two' %}Select two{% else %}Single{% endif %}</span>
                 <span>{{ q.correct }}/{{ q.answered }} correct</span>
-                <span>{% if q.last_answered_at %}Last {{ q.last_answered_at[:10] }}{% else %}Never answered{% endif %}</span>
+                <span>{% if q.last_answered_at %}Last <time datetime="{{ q.last_answered_at }}" data-local-date>{{ q.last_answered_at[:10] }}</time>{% else %}Never answered{% endif %}</span>
             </span>
         </a>
     </li>

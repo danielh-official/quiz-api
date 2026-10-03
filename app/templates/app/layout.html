@@ -35,6 +35,19 @@
             <a class="text-sm text-mute no-underline hover:text-ink" href="/">Return home</a>
         </div>
     </footer>
+    <script>
+        function formatLocalDates(root) {
+            (root || document).querySelectorAll("time[data-local-date]").forEach((el) => {
+                const raw = el.dateTime || el.getAttribute("datetime");
+                if (!raw) return;
+                const d = new Date(raw);
+                if (Number.isNaN(d.getTime())) return;
+                el.textContent = d.toLocaleDateString(undefined, { dateStyle: "medium" });
+            });
+        }
+        document.addEventListener("DOMContentLoaded", () => formatLocalDates());
+        document.body.addEventListener("htmx:afterSwap", (e) => formatLocalDates(e.detail.target));
+    </script>
 </body>
 
 </html>

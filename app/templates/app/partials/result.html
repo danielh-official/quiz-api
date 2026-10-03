@@ -7,7 +7,7 @@
     <p class="text-sm text-mute">
         FSRS rating <span class="text-ink">{{ result.rating }}</span>
         <span class="mx-2 text-line">/</span>
-        Next review <span class="text-ink">{{ result.next_review_at }}</span>
+        Next review <time class="text-ink" datetime="{{ result.next_review_at }}" data-local-date>{{ result.next_review_at[:10] }}</time>
     </p>
 
     <div class="border-t border-line">

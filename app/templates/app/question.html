@@ -55,7 +55,7 @@
     <p class="mb-4 text-sm text-mute">
         {{ card.reps }} reviews
         · {{ card.lapses }} lapses
-        {% if card.due_at %}· due {{ card.due_at[:10] }}{% else %}· new{% endif %}
+        {% if card.due_at %}· due <time datetime="{{ card.due_at }}" data-local-date>{{ card.due_at[:10] }}</time>{% else %}· new{% endif %}
         {% if card.suspended %}· suspended{% endif %}
     </p>
     <form method="post" action="/app/questions/{{ question.id }}/card" class="flex flex-col gap-4">
