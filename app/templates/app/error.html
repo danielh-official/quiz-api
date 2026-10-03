@@ -1,9 +1,13 @@
 {% extends "app/layout.html" %}
 {% block title %}{{ title }}{% endblock %}
 {% block content %}
-<div class="mt-4 rounded-xl border border-line bg-surface px-6 py-5">
-    <h1 class="mb-2 text-3xl font-semibold">{{ title }}</h1>
-    <p class="mb-4">{{ message }}</p>
-    <p><a href="/app/login">Try again</a> · <a href="/">Home</a></p>
+<div class="border-t border-line pt-6">
+    <h1 class="mb-2 text-[1.75rem] font-semibold leading-tight tracking-tight text-ink">{{ title }}</h1>
+    <p class="mb-6 text-mute">{{ message }}</p>
+    <p class="text-sm">
+        <a href="/app/login">Try again</a>
+        <span class="mx-2 text-line">/</span>
+        <a class="text-mute no-underline hover:text-ink" href="/">Home</a>
+    </p>
 </div>
 {% endblock %}
