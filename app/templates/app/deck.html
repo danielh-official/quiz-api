@@ -3,9 +3,9 @@
 {% block content %}
 <p class="mb-3 text-sm text-mute">
     <a class="text-mute no-underline hover:text-ink" href="/app">Decks</a>
-    {% for part in detail.deck.path %}
+    {% for crumb in detail.deck.crumbs %}
     {% if not loop.last %}
-    <span class="text-line"> / </span><span>{{ part }}</span>
+    <span class="text-line"> / </span><a class="text-mute no-underline hover:text-ink" href="/app/decks/{{ crumb.id }}">{{ crumb.name }}</a>
     {% endif %}
     {% endfor %}
 </p>

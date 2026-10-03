@@ -67,13 +67,18 @@ def subtree_ids(decks: dict[int, Deck], root_id: int, *, active_only: bool = Fal
     return ids
 
 
-def path_names(decks: dict[int, Deck], deck_id: int) -> list[str]:
-    names: list[str] = []
+def path_crumbs(decks: dict[int, Deck], deck_id: int) -> list[dict[str, Any]]:
+    """Ancestor chain from root to deck_id, each entry {id, name}."""
+    crumbs: list[dict[str, Any]] = []
     current: int | None = deck_id
     while current is not None:
-        names.append(decks[current].name)
+        crumbs.append({"id": current, "name": decks[current].name})
         current = decks[current].parent_id
-    return names[::-1]
+    return crumbs[::-1]
+
+
+def path_names(decks: dict[int, Deck], deck_id: int) -> list[str]:
+    return [c["name"] for c in path_crumbs(decks, deck_id)]
 
 
 def get_deck(db: Session, user: User, deck_id: int) -> Deck:
@@ -204,7 +209,12 @@ def deck_detail(db: Session, user: User, deck_id: int, page: int = 1) -> dict[st
     stats = question_answer_stats(db, user, [q.id for q in questions])
     # Full subtree counts when browsing a deck (including archived branches under it).
     return {
-        "deck": {**deck_dict(deck), "path": path_names(decks, deck.id), **counts(db, user, decks)[deck.id]},
+        "deck": {
+            **deck_dict(deck),
+            "path": path_names(decks, deck.id),
+            "crumbs": path_crumbs(decks, deck.id),
+            **counts(db, user, decks)[deck.id],
+        },
         "subdecks": [deck_dict(d) for d in children_of(decks).get(deck.id, [])],
         "questions": [
             {

@@ -73,6 +73,8 @@ def test_decks_and_detail(client: TestClient, db: Session, user: User) -> None:
 
     child_detail = client.get(f"/app/decks/{child.id}")
     assert child_detail.status_code == 200
+    assert f'href="/app/decks/{parent.id}"' in child_detail.text
+    assert "AWS" in child_detail.text
     assert "Single" in child_detail.text
     assert "0/0 correct" in child_detail.text
     assert "Never answered" in child_detail.text
