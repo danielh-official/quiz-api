@@ -1,18 +1,18 @@
-<div class="card stack">
+<div class="flex flex-col gap-3 rounded-xl border border-line bg-surface px-6 py-5">
     {% if result.correct %}
-    <p class="ok"><strong>Correct</strong></p>
+    <p class="text-ok"><strong>Correct</strong></p>
     {% else %}
-    <p class="bad"><strong>Incorrect</strong>{% if result.misconception %} · misconception{% endif %}</p>
+    <p class="text-bad"><strong>Incorrect</strong>{% if result.misconception %} · misconception{% endif %}</p>
     {% endif %}
-    <p class="muted">FSRS rating: {{ result.rating }} · next review {{ result.next_review_at }}</p>
+    <p class="text-mute">FSRS rating: {{ result.rating }} · next review {{ result.next_review_at }}</p>
 
     <div>
         {% for o in labeled_options %}
-        <div class="option {% if o.correct %}correct{% endif %}">
-            <span class="label">{{ o.label }}.</span>
+        <div class="my-2 flex items-start gap-2.5 rounded-lg border px-3 py-2.5 {% if o.correct %}border-ok{% else %}border-line{% endif %}">
+            <span class="min-w-[1.2em] font-bold text-mute">{{ o.label }}.</span>
             <div>
-                <div>{{ o.text | text_blocks }}{% if o.correct %} <span class="ok">(correct)</span>{% endif %}</div>
-                {% if o.explanation %}<p class="muted">{{ o.explanation | text_blocks }}</p>{% endif %}
+                <div>{{ o.text | text_blocks }}{% if o.correct %} <span class="text-ok">(correct)</span>{% endif %}</div>
+                {% if o.explanation %}<p class="mt-1 text-mute">{{ o.explanation | text_blocks }}</p>{% endif %}
             </div>
         </div>
         {% endfor %}
@@ -21,15 +21,15 @@
     {% if result.question.explanation %}
     <div>
         <strong>Explanation</strong>
-        <p>{{ result.question.explanation | text_blocks }}</p>
+        <p class="mt-1">{{ result.question.explanation | text_blocks }}</p>
     </div>
     {% endif %}
 
     {% if result.note %}
-    <p class="muted">Note: {{ result.note }}</p>
+    <p class="text-mute">Note: {{ result.note }}</p>
     {% endif %}
 
-    <a class="button"
+    <a class="inline-flex w-fit cursor-pointer items-center rounded-lg bg-accent px-4 py-2.5 font-semibold text-accent-fg no-underline"
        href="/app/sessions/{{ session_id }}/next"
        hx-get="/app/sessions/{{ session_id }}/next"
        hx-target="#study"

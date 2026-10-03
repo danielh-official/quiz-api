@@ -4,6 +4,7 @@ __pycache__/
 .env
 *.zip
 .env.aws
+frontend/node_modules/
 infra/.terraform/
 infra/terraform.tfstate*
 infra/.terraform.tfstate.lock.info

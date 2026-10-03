@@ -24,6 +24,13 @@ def login_web(user: User | None = None, login: str = "alice", sub: str = "1", na
     app.dependency_overrides[web_claims] = lambda: {"sub": sub, "login": login, "name": name, "email": None}
 
 
+def test_app_stylesheet_is_served(client: TestClient) -> None:
+    css = client.get("/static/app.css")
+    assert css.status_code == 200
+    assert "text/css" in css.headers["content-type"]
+    assert "bg-accent" in css.text or "--color-accent" in css.text
+
+
 def test_app_requires_auth_when_not_mocked(client: TestClient) -> None:
     response = client.get("/app")
     assert response.status_code == 303

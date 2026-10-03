@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+/* Scan Jinja templates for class names. */
+@source "../../app/templates/app/**/*.html";
+
+@theme {
+  --color-canvas: #f7f7f5;
+  --color-surface: #ffffff;
+  --color-ink: #1d1d1b;
+  --color-mute: #6b6b66;
+  --color-line: #e4e4df;
+  --color-accent: #2f6b4f;
+  --color-accent-fg: #ffffff;
+  --color-code: #f0f0ec;
+  --color-ok: #1f6b3a;
+  --color-bad: #8a2b2b;
+  --font-sans: system-ui, -apple-system, sans-serif;
+}
+
+@layer base {
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --color-canvas: #151514;
+      --color-surface: #1e1e1c;
+      --color-ink: #ececea;
+      --color-mute: #a0a09a;
+      --color-line: #33332f;
+      --color-accent: #5fae86;
+      --color-accent-fg: #0d1a13;
+      --color-code: #2a2a27;
+      --color-ok: #6dca8b;
+      --color-bad: #e08080;
+    }
+  }
+
+  body {
+    @apply bg-canvas font-sans text-ink antialiased;
+  }
+
+  a {
+    @apply text-accent;
+  }
+}

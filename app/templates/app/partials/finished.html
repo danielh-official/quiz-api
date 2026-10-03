@@ -1,14 +1,25 @@
-<div class="card stack">
-    <h1>Session finished</h1>
-    <div class="stats-grid">
-        <div class="stat"><div class="n">{{ summary.answered }}</div><div class="k">answered</div></div>
-        <div class="stat"><div class="n">{{ summary.correct }}</div><div class="k">correct</div></div>
-        <div class="stat"><div class="n">{{ summary.misconceptions }}</div><div class="k">misconceptions</div></div>
+<div class="flex flex-col gap-3 rounded-xl border border-line bg-surface px-6 py-5">
+    <h1 class="text-3xl font-semibold">Session finished</h1>
+    <div class="grid grid-cols-3 gap-3">
+        <div class="rounded-lg bg-code p-3 text-center">
+            <div class="text-xl font-bold">{{ summary.answered }}</div>
+            <div class="text-sm text-mute">answered</div>
+        </div>
+        <div class="rounded-lg bg-code p-3 text-center">
+            <div class="text-xl font-bold">{{ summary.correct }}</div>
+            <div class="text-sm text-mute">correct</div>
+        </div>
+        <div class="rounded-lg bg-code p-3 text-center">
+            <div class="text-xl font-bold">{{ summary.misconceptions }}</div>
+            <div class="text-sm text-mute">misconceptions</div>
+        </div>
     </div>
-    <ul>
+    <ul class="list-disc pl-5">
         {% for key, row in summary.by_confidence.items() %}
         <li>{{ key }}: {{ row.correct }}/{{ row.answered }}</li>
         {% endfor %}
     </ul>
-    <a class="button" href="/app">Back to decks</a>
+    <a class="inline-flex w-fit items-center rounded-lg bg-accent px-4 py-2.5 font-semibold text-accent-fg no-underline" href="/app">
+        Back to decks
+    </a>
 </div>

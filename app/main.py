@@ -1,9 +1,11 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import AsyncGenerator
 from urllib.parse import quote
 
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from fastmcp.utilities.lifespan import combine_lifespans
 from pydantic import ValidationError
 
@@ -16,6 +18,7 @@ from app.web_app import WebAuthRequired, render, router as web_app_router
 
 # Serves /mcp plus the OAuth endpoints (/authorize, /token, /register, /auth/callback, /.well-known/*).
 mcp_app = mcp.http_app(path="/mcp", stateless_http=True)
+STATIC_DIR = Path(__file__).parent / "static"
 
 
 @asynccontextmanager
@@ -33,6 +36,7 @@ app = FastAPI(
 app.include_router(api_router)
 app.include_router(web_router)
 app.include_router(web_app_router)
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
 def _app_request(request: Request) -> bool:
