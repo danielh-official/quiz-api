@@ -4,36 +4,34 @@
 @source "../../app/templates/**/*.html";
 
 @theme {
-  --color-canvas: #e8eaed;
-  --color-surface: #f4f6fa;
-  --color-ink: #0f1c2e;
-  --color-mute: #5c6570;
-  --color-line: #c9ced6;
-  --color-accent: #1b4dff;
-  --color-accent-fg: #f4f6fa;
-  --color-code: #dde1e8;
-  --color-due: #c45c26;
-  --color-ok: #1f6b3a;
-  --color-bad: #8a2b2b;
+  /* light-dark(): system theme by default; :root[data-theme] pins one. */
+  --color-canvas: light-dark(#f5f6f8, #111418);
+  --color-surface: light-dark(#ffffff, #191d23);
+  --color-ink: light-dark(#14181d, #e6e8eb);
+  --color-mute: light-dark(#5b636e, #9aa1ab);
+  --color-line: light-dark(#d9dde3, #2c333c);
+  --color-accent: light-dark(#4f46e5, #a5b4fc);
+  --color-accent-fg: light-dark(#ffffff, #111418);
+  --color-code: light-dark(#e9ecf0, #1d222a);
+  --color-due: light-dark(#b45309, #f2b33d);
+  --color-ok: light-dark(#17803d, #5fd39a);
+  --color-bad: light-dark(#b42318, #f28b82);
   --font-sans: "IBM Plex Sans", system-ui, sans-serif;
   --font-serif: "IBM Plex Serif", "Times New Roman", serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
 }
 
 @layer base {
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --color-canvas: #0f1c2e;
-      --color-surface: #162536;
-      --color-ink: #e8eaed;
-      --color-mute: #9aa3ad;
-      --color-line: #2a3a4d;
-      --color-accent: #6b8cff;
-      --color-accent-fg: #0f1c2e;
-      --color-code: #1a2a3c;
-      --color-due: #e08955;
-      --color-ok: #6dca8b;
-      --color-bad: #e08080;
-    }
+  :root {
+    color-scheme: light dark;
+  }
+
+  :root[data-theme="light"] {
+    color-scheme: light;
+  }
+
+  :root[data-theme="dark"] {
+    color-scheme: dark;
   }
 
   body {

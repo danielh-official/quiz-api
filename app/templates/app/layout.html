@@ -6,22 +6,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow">
     <title>{% block title %}Quiz{% endblock %} · Quiz API</title>
+    <script>
+        try { document.documentElement.dataset.theme = localStorage.getItem("theme") || ""; } catch (e) {}
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/app.css">
     <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.4/dist/htmx.min.js" defer></script>
 </head>
 
 <body class="flex min-h-screen flex-col">
-    <header class="border-b border-line bg-surface">
-        <div class="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
-            <a class="text-base font-semibold tracking-tight text-ink no-underline" href="/app">Quiz</a>
-            <nav class="flex items-center gap-4 text-sm text-mute">
+    <header class="border-b border-line">
+        <div class="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-3 font-mono text-[13px] sm:px-6">
+            <span class="py-1 font-bold"><a class="no-underline" href="/app">quiz</a></span>
+            <nav class="flex items-center gap-4 text-mute">
                 {% if user %}
                 <span>{{ user.login }}</span>
                 <form method="post" action="/app/logout" class="inline">
-                    <button class="cursor-pointer border-0 bg-transparent p-0 text-accent" type="submit">Log out</button>
+                    <button class="cursor-pointer border-0 bg-transparent p-0 font-mono text-mute hover:text-ink" type="submit">log out</button>
                 </form>
                 {% endif %}
             </nav>
@@ -30,9 +33,17 @@
     <main class="mx-auto w-full max-w-3xl flex-1 px-4 pt-8 pb-8 sm:px-6">
         {% block content %}{% endblock %}
     </main>
-    <footer class="border-t border-line mt-4">
-        <div class="mx-auto flex max-w-3xl px-4 py-4 sm:px-6 justify-center">
-            <a class="text-sm text-mute no-underline hover:text-ink" href="/">Return home</a>
+    <footer class="mt-4 border-t border-line">
+        <div class="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3 px-4 py-4 text-sm sm:px-6">
+            <a class="text-mute no-underline hover:text-ink" href="/">Return home</a>
+            <label class="flex items-center gap-2 text-mute">
+                Theme
+                <select id="theme" class="rounded border border-line bg-surface px-2 py-1 text-ink">
+                    <option value="">System</option>
+                    <option value="dark">Dark</option>
+                    <option value="light">Light</option>
+                </select>
+            </label>
         </div>
     </footer>
     <script>
@@ -47,6 +58,16 @@
         }
         document.addEventListener("DOMContentLoaded", () => formatLocalDates());
         document.body.addEventListener("htmx:afterSwap", (e) => formatLocalDates(e.detail.target));
+
+        const theme = document.getElementById("theme");
+        theme.value = document.documentElement.dataset.theme;
+        theme.addEventListener("change", () => {
+            document.documentElement.dataset.theme = theme.value;
+            try {
+                if (theme.value) localStorage.setItem("theme", theme.value);
+                else localStorage.removeItem("theme");
+            } catch (e) {}
+        });
     </script>
 </body>
 
