@@ -1,0 +1,14 @@
+<div class="card stack">
+    <h1>Session finished</h1>
+    <div class="stats-grid">
+        <div class="stat"><div class="n">{{ summary.answered }}</div><div class="k">answered</div></div>
+        <div class="stat"><div class="n">{{ summary.correct }}</div><div class="k">correct</div></div>
+        <div class="stat"><div class="n">{{ summary.misconceptions }}</div><div class="k">misconceptions</div></div>
+    </div>
+    <ul>
+        {% for key, row in summary.by_confidence.items() %}
+        <li>{{ key }}: {{ row.correct }}/{{ row.answered }}</li>
+        {% endfor %}
+    </ul>
+    <a class="button" href="/app">Back to decks</a>
+</div>

@@ -1,0 +1,61 @@
+{% extends "app/layout.html" %}
+{% block title %}{{ detail.deck.name }}{% endblock %}
+{% block content %}
+<p class="muted"><a href="/app">Decks</a>
+    {% for part in detail.deck.path %}
+    {% if not loop.last %} / {{ part }}{% endif %}
+    {% endfor %}
+</p>
+<h1>{{ detail.deck.name }}</h1>
+{% if detail.deck.description %}
+<p>{{ detail.deck.description }}</p>
+{% endif %}
+
+<div class="stats-grid" style="margin-top: 16px">
+    <div class="stat"><div class="n">{{ detail.deck.due }}</div><div class="k">due</div></div>
+    <div class="stat"><div class="n">{{ detail.deck.new }}</div><div class="k">new</div></div>
+    <div class="stat"><div class="n">{{ detail.deck.total }}</div><div class="k">total</div></div>
+</div>
+
+<form method="post" action="/app/decks/{{ detail.deck.id }}/sessions" style="margin-top: 20px">
+    <button class="button" type="submit"{% if detail.deck.due == 0 and detail.deck.new == 0 %} disabled{% endif %}>
+        Start session
+    </button>
+</form>
+
+{% if detail.subdecks %}
+<h2>Subdecks</h2>
+<ul class="deck-list card">
+    {% for s in detail.subdecks %}
+    <li>
+        <a class="name" href="/app/decks/{{ s.id }}">{{ s.name }}</a>
+    </li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+<h2>Performance</h2>
+<div class="card">
+    <p class="muted">Calibration (correct / answered)</p>
+    <ul>
+        {% for key, row in performance.calibration.items() %}
+        <li>{{ key }}: {{ row.correct }}/{{ row.answered }}</li>
+        {% endfor %}
+    </ul>
+    {% if performance.readiness.predicted_recall is not none %}
+    <p>Predicted recall: {{ (performance.readiness.predicted_recall * 100)|round|int }}%</p>
+    {% endif %}
+</div>
+
+{% if detail.questions %}
+<h2>Questions</h2>
+<ul class="card" style="padding-left: 22px">
+    {% for q in detail.questions %}
+    <li>{{ q.stem.split('\n')[0][:120] }}{% if q.stem|length > 120 %}…{% endif %}</li>
+    {% endfor %}
+</ul>
+{% if detail.pages > 1 %}
+<p class="muted">Page {{ detail.page }} of {{ detail.pages }}</p>
+{% endif %}
+{% endif %}
+{% endblock %}

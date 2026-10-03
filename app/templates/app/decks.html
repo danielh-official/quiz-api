@@ -1,0 +1,21 @@
+{% extends "app/layout.html" %}
+{% block title %}Decks{% endblock %}
+{% block content %}
+<h1>Decks</h1>
+<p class="muted">Study a deck to include its subdecks.</p>
+
+{% if decks %}
+<ul class="deck-list card">
+    {% for d in decks %}
+    <li style="padding-left: {{ d.depth * 18 }}px">
+        <a class="name" href="/app/decks/{{ d.id }}">{{ d.name }}</a>
+        <span class="counts">{{ d.due }} due · {{ d.new }} new · {{ d.total }} total</span>
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<div class="card">
+    <p>No decks yet. Create some via the API, MCP, or <a href="/docs">/docs</a>.</p>
+</div>
+{% endif %}
+{% endblock %}

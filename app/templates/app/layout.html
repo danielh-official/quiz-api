@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <title>{% block title %}Quiz{% endblock %} · Quiz API</title>
+    <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.4/dist/htmx.min.js" defer></script>
+    <style>
+        :root {
+            --bg: #f7f7f5;
+            --card: #fff;
+            --text: #1d1d1b;
+            --muted: #6b6b66;
+            --line: #e4e4df;
+            --accent: #2f6b4f;
+            --accent-text: #fff;
+            --code: #f0f0ec;
+            --warn: #8a5a00;
+            --ok: #1f6b3a;
+            --bad: #8a2b2b;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #151514;
+                --card: #1e1e1c;
+                --text: #ececea;
+                --muted: #a0a09a;
+                --line: #33332f;
+                --accent: #5fae86;
+                --accent-text: #0d1a13;
+                --code: #2a2a27;
+                --warn: #e0b050;
+                --ok: #6dca8b;
+                --bad: #e08080;
+            }
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font: 16px/1.55 system-ui, -apple-system, sans-serif;
+        }
+
+        header.app-bar {
+            border-bottom: 1px solid var(--line);
+            background: var(--card);
+        }
+
+        header.app-bar .inner {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        header.app-bar a.brand {
+            color: var(--text);
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        header.app-bar .meta {
+            color: var(--muted);
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        main {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 32px 16px 64px;
+        }
+
+        h1 { font-size: 28px; margin: 0 0 8px; }
+        h2 { font-size: 18px; margin: 28px 0 8px; }
+        p { margin: 8px 0; }
+        .muted { color: var(--muted); }
+        .warn { color: var(--warn); }
+        .ok { color: var(--ok); }
+        .bad { color: var(--bad); }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 20px 24px;
+            margin-top: 16px;
+        }
+
+        .button, button.button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--accent);
+            color: var(--accent-text);
+            border: 0;
+            border-radius: 8px;
+            padding: 10px 16px;
+            font: inherit;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        button.linkish, .linkish {
+            background: none;
+            border: 0;
+            color: var(--accent);
+            font: inherit;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        a { color: var(--accent); }
+
+        .deck-list { list-style: none; padding: 0; margin: 0; }
+        .deck-list li {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--line);
+        }
+        .deck-list li:last-child { border-bottom: 0; }
+        .deck-list .name { flex: 1; }
+        .deck-list .counts { color: var(--muted); font-size: 14px; white-space: nowrap; }
+
+        .option {
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+            padding: 10px 12px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            margin: 8px 0;
+            cursor: pointer;
+        }
+        .option input { margin-top: 4px; }
+        .option .label {
+            font-weight: 700;
+            min-width: 1.2em;
+            color: var(--muted);
+        }
+
+        .option.correct { border-color: var(--ok); }
+        .option.wrong { border-color: var(--bad); }
+
+        select, .field {
+            font: inherit;
+            padding: 8px 10px;
+            border-radius: 8px;
+            border: 1px solid var(--line);
+            background: var(--card);
+            color: var(--text);
+        }
+
+        .stack { display: flex; flex-direction: column; gap: 12px; }
+        .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+        .stat {
+            background: var(--code);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+        .stat .n { font-size: 22px; font-weight: 700; }
+        .stat .k { color: var(--muted); font-size: 13px; }
+
+        .error-banner {
+            background: color-mix(in srgb, var(--bad) 12%, var(--card));
+            border: 1px solid var(--bad);
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin: 12px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <header class="app-bar">
+        <div class="inner">
+            <a class="brand" href="/app">Quiz</a>
+            <div class="meta">
+                {% if user %}
+                <span>{{ user.login }}</span>
+                <form method="post" action="/app/logout" style="display:inline">
+                    <button class="linkish" type="submit">Log out</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+</body>
+
+</html>

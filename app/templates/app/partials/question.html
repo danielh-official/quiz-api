@@ -1,0 +1,35 @@
+<form class="card stack"
+      hx-post="/app/sessions/{{ session_id }}/answers"
+      hx-target="#study"
+      hx-swap="innerHTML">
+    <input type="hidden" name="question_id" value="{{ question.id }}">
+    {% if error %}
+    <div class="error-banner">{{ error }}</div>
+    {% endif %}
+    <div class="stem">{{ question.stem | text_blocks }}</div>
+    <div>
+        {% for o in labeled_options %}
+        <label class="option">
+            <input type="{{ 'radio' if question.type == 'single' else 'checkbox' }}"
+                   name="selected"
+                   value="{{ o.id }}">
+            <span class="label">{{ o.label }}.</span>
+            <span>{{ o.text | text_blocks }}</span>
+        </label>
+        {% endfor %}
+    </div>
+    <div class="row">
+        <label>
+            Confidence
+            <select name="confidence" class="field">
+                <option value="confident">confident</option>
+                <option value="educated_guess">educated guess</option>
+                <option value="complete_guess">complete guess</option>
+            </select>
+        </label>
+        <button class="button" type="submit">Submit</button>
+    </div>
+    {% if question.type == 'select_two' %}
+    <p class="muted">Pick exactly two options.</p>
+    {% endif %}
+</form>

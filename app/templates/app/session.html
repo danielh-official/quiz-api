@@ -1,0 +1,8 @@
+{% extends "app/layout.html" %}
+{% block title %}Study{% endblock %}
+{% block content %}
+<p class="muted">Question {{ session.answered + 1 }} of {{ session.size }}</p>
+<div id="study">
+    {% include "app/partials/question.html" %}
+</div>
+{% endblock %}
