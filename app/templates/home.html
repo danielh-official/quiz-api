@@ -1,36 +1,50 @@
 {% extends "layout.html" %}
 {% block content %}
-<div class="card">A personal instance: only its owner's approved GitHub accounts can use it. To use Quiz API
-    yourself, run your own copy (below).</div>
+<h1 class="mb-1 text-[1.75rem] font-semibold leading-tight tracking-tight text-ink">Quiz API</h1>
+<p class="mb-6 text-mute">Spaced-repetition quizzes you study and write with Claude, ChatGPT or any MCP client.</p>
 
-<h2>0. Run your own copy</h2>
-<p>This server only admits approved GitHub users. To run your own copy:</p>
-<ol>
+<div class="mb-10 border-l-[3px] border-l-accent bg-surface px-4 py-3 text-sm text-ink">
+    A personal instance: only its owner's approved GitHub accounts can use it. To use Quiz API yourself, run your own
+    copy below. If this is your instance,
+    <a href="/app">open the study UI</a>.
+</div>
+
+<h2 class="mb-2 mt-10 text-base font-semibold text-ink">0. Run your own copy</h2>
+<p class="mb-3 text-ink">This server only admits approved GitHub users. To run your own copy:</p>
+<ol class="list-decimal space-y-2 pl-5 text-ink">
     <li>Fork <a href="https://github.com/danielh-official/quiz-api" target="_blank">danielh-official/quiz-api</a>.</li>
     <li>Create a Postgres database (for example a free <a href="https://neon.tech" target="_blank">Neon</a> project).</li>
     <li>Deploy the repo's Dockerfile to <a href="https://aws.amazon.com/lambda/" target="_blank">AWS Lambda</a>
-        (Terraform in <code>infra/</code>, as this instance does), <a href="https://render.com" target="_blank">Render</a>,
-        <a href="https://railway.com" target="_blank">Railway</a> or <a href="https://fly.io" target="_blank">Fly</a>,
+        (Terraform in <code class="rounded bg-code px-1 text-sm">infra/</code>, as this instance does),
+        <a href="https://render.com" target="_blank">Render</a>,
+        <a href="https://railway.com" target="_blank">Railway</a> or
+        <a href="https://fly.io" target="_blank">Fly</a>,
         ideally on your own domain. The README has steps for each, and how to avoid being mistaken for phishing.</li>
-    <li>Create a GitHub OAuth app with your server's URL as the homepage and <code>&lt;URL&gt;/auth/callback</code> as
-        the callback.</li>
-    <li>Set <code>APP_URL</code>, <code>DATABASE_URL</code>, <code>GITHUB_CLIENT_ID</code>,
-        <code>GITHUB_CLIENT_SECRET</code>, <code>ALLOWED_USERS</code> (your GitHub login),
-        <code>JWT_SIGNING_KEY</code> and <code>STORAGE_ENCRYPTION_KEY</code>.</li>
+    <li>Create a GitHub OAuth app with your server's URL as the homepage and
+        <code class="rounded bg-code px-1 text-sm">&lt;URL&gt;/auth/callback</code> as the callback.</li>
+    <li>Set <code class="rounded bg-code px-1 text-sm">APP_URL</code>,
+        <code class="rounded bg-code px-1 text-sm">DATABASE_URL</code>,
+        <code class="rounded bg-code px-1 text-sm">GITHUB_CLIENT_ID</code>,
+        <code class="rounded bg-code px-1 text-sm">GITHUB_CLIENT_SECRET</code>,
+        <code class="rounded bg-code px-1 text-sm">ALLOWED_USERS</code> (your GitHub login),
+        <code class="rounded bg-code px-1 text-sm">JWT_SIGNING_KEY</code> and
+        <code class="rounded bg-code px-1 text-sm">STORAGE_ENCRYPTION_KEY</code>.</li>
 </ol>
-<p class="muted">The README covers local development and every setting.</p>
+<p class="mt-3 text-sm text-mute">The README covers local development and every setting.</p>
 
-<h2>1. Connect your AI</h2>
-<p>The MCP server lives at:</p>
-<pre data-copy>{{ app_url }}/mcp</pre>
-<ul>
+<h2 class="mb-2 mt-10 text-base font-semibold text-ink">1. Connect your AI</h2>
+<p class="mb-2 text-ink">The MCP server lives at:</p>
+<pre class="relative my-2 overflow-x-auto rounded bg-code px-3 py-3 pr-16 font-mono text-sm break-all whitespace-pre-wrap" data-copy>{{ app_url }}/mcp</pre>
+<ul class="mt-4 list-disc space-y-3 pl-5 text-ink">
     <li><strong>Claude Code</strong>:
         {% if plugin_marketplace %}install the plugin, which adds the MCP server and a study skill:
-        <pre data-copy>claude plugin marketplace add {{ plugin_marketplace }}</pre>
-        <pre data-copy>claude plugin install quiz-api@quiz-api</pre>
-        Start a new session, run <code>/mcp</code>, pick <code>plugin:quiz-api:quiz-api</code> and sign in.
-        Without the plugin, {% endif %}run the command below, then <code>/mcp</code> and sign in.
-        <pre data-copy>claude mcp add --transport http quiz-api {{ app_url }}/mcp</pre>
+        <pre class="relative my-2 overflow-x-auto rounded bg-code px-3 py-3 pr-16 font-mono text-sm break-all whitespace-pre-wrap" data-copy>claude plugin marketplace add {{ plugin_marketplace }}</pre>
+        <pre class="relative my-2 overflow-x-auto rounded bg-code px-3 py-3 pr-16 font-mono text-sm break-all whitespace-pre-wrap" data-copy>claude plugin install quiz-api@quiz-api</pre>
+        Start a new session, run <code class="rounded bg-code px-1 text-sm">/mcp</code>, pick
+        <code class="rounded bg-code px-1 text-sm">plugin:quiz-api:quiz-api</code> and sign in.
+        Without the plugin, {% endif %}run the command below, then
+        <code class="rounded bg-code px-1 text-sm">/mcp</code> and sign in.
+        <pre class="relative my-2 overflow-x-auto rounded bg-code px-3 py-3 pr-16 font-mono text-sm break-all whitespace-pre-wrap" data-copy>claude mcp add --transport http quiz-api {{ app_url }}/mcp</pre>
     </li>
     <li><strong>Claude.ai / Claude Desktop</strong>: Customize → Connectors → <strong>+</strong> → Add custom connector
         → paste the URL above. On Team and Enterprise, an owner first adds it under Organization settings → Connectors.
@@ -39,28 +53,36 @@
         turn on Developer mode. Then ChatGPT Plugins → <strong>+</strong> → create a developer-mode app with the URL
         above and OAuth.</li>
 </ul>
-<p class="muted">Claude.ai and ChatGPT need a public HTTPS address; localhost only works with Claude Code.</p>
+<p class="mt-3 text-sm text-mute">Claude.ai and ChatGPT need a public HTTPS address; localhost only works with Claude Code.</p>
 
-<h2>2. Browser UI</h2>
-<p>There is also a small HTMX study UI at <a href="/app"><code>/app</code></a> (decks, sessions, light stats).
-    Locally with mocked auth it opens as the <code>dev</code> user; with GitHub configured it uses the same OAuth
-    flow as MCP and <code>/docs</code>.</p>
+<h2 class="mb-2 mt-10 text-base font-semibold text-ink">2. Study in the browser</h2>
+<p class="text-ink">Use the HTMX study UI at <a href="/app"><code class="rounded bg-code px-1 text-sm">/app</code></a>
+    for decks, sessions and light stats. Locally with mocked auth it opens as the
+    <code class="rounded bg-code px-1 text-sm">dev</code> user; with GitHub configured it uses the same OAuth flow as MCP
+    and <code class="rounded bg-code px-1 text-sm">/docs</code>.</p>
+<p class="mt-4">
+    <a class="inline-flex items-center rounded bg-accent px-4 py-2.5 text-sm font-semibold text-accent-fg no-underline"
+       href="/app">Open study UI</a>
+</p>
 
-<h2>3. Start studying</h2>
-<p>Just talk to your AI, for example:</p>
-<ul>
-    <li>“Set my Quiz API timezone to Europe/Berlin.” <span class="muted">(daily limits reset at 4am your time)</span>
-    </li>
+<h2 class="mb-2 mt-10 text-base font-semibold text-ink">3. Start studying with an AI</h2>
+<p class="mb-3 text-ink">Talk to your AI, for example:</p>
+<ul class="list-disc space-y-2 pl-5 text-ink">
+    <li>“Set my Quiz API timezone to Europe/Berlin.”
+        <span class="text-sm text-mute">(daily limits reset at 4am your time)</span></li>
     <li>“Create a deck called AWS Solutions Architect and write 10 questions about S3.”</li>
     <li>“Quiz me on my AWS deck.”</li>
     <li>“Where am I weakest? Write new questions for those topics.”</li>
 </ul>
-<p class="muted">Tip: Claude Code's prompt suggestions (the greyed-out next message) can give answers away. Study from a
-    folder whose <code>.claude/settings.json</code> turns them off:</p>
-<pre data-copy>{ "promptSuggestionEnabled": false }</pre>
+<p class="mt-3 text-sm text-mute">Tip: Claude Code's prompt suggestions (the greyed-out next message) can give answers away.
+    Study from a folder whose <code class="rounded bg-code px-1">.claude/settings.json</code> turns them off:</p>
+<pre class="relative my-2 overflow-x-auto rounded bg-code px-3 py-3 pr-16 font-mono text-sm break-all whitespace-pre-wrap" data-copy>{ "promptSuggestionEnabled": false }</pre>
 
-<h2>4. Use the REST API directly</h2>
-<p>Browse and try every endpoint in the interactive docs: <em>Authorize</em> there signs you in with GitHub.
-    Deleting decks, questions or your account is only possible here, not through MCP.</p>
-<p><a class="button" href="/docs" target="_blank">Open API docs</a></p>
+<h2 class="mb-2 mt-10 text-base font-semibold text-ink">4. Use the REST API directly</h2>
+<p class="mb-4 text-ink">Browse and try every endpoint in the interactive docs. <em>Authorize</em> there signs you in with
+    GitHub. Deleting decks, questions or your account is only possible here, not through MCP.</p>
+<p>
+    <a class="inline-flex items-center rounded bg-accent px-4 py-2.5 text-sm font-semibold text-accent-fg no-underline"
+       href="/docs" target="_blank">Open API docs</a>
+</p>
 {% endblock %}

@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* Scan Jinja templates for class names. */
-@source "../../app/templates/app/**/*.html";
+@source "../../app/templates/**/*.html";
 
 @theme {
   --color-canvas: #e8eaed;

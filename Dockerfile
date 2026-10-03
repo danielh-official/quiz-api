@@ -4,7 +4,7 @@ RUN corepack enable && corepack prepare pnpm@10.15.1 --activate
 COPY frontend/package.json frontend/pnpm-lock.yaml frontend/
 RUN cd frontend && pnpm install --frozen-lockfile
 COPY frontend/ frontend/
-COPY app/templates/app app/templates/app/
+COPY app/templates app/templates/
 RUN cd frontend && pnpm build
 
 FROM python:3.13-slim AS base
