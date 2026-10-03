@@ -40,6 +40,8 @@ Quiz API is the user's spaced-repetition quiz app for multiple-choice questions.
 - Archive a deck with update-deck(archived=true): it and its subdecks leave normal list/study/search;
   list-decks(archived=true) shows directly archived decks; unarchive with archived=false (children
   archived on their own stay archived). Archived decks are read-only until unarchived (delete still works).
+  get-deck defaults to active subdecks and non-suspended questions; archived_children=true lists directly
+  archived child decks; suspended=true lists only suspended cards in that deck.
 - Questions are "single" (4 options, 1 correct) or "select_two" (5 options, 2 correct). Text is Markdown.
   Options have stable ids; answers reference option ids.
 - Answers carry a confidence: confident, educated_guess or complete_guess. FSRS scheduling:
@@ -101,11 +103,18 @@ def list_decks(
 
 
 @mcp.tool(name="get-deck", annotations=READ)
-def get_deck(deck_id: int, page: Annotated[int, Field(ge=1, description="Page of questions, from 1.")] = 1) -> dict[str, Any]:
+def get_deck(
+    deck_id: int,
+    page: Annotated[int, Field(ge=1, description="Page of questions, from 1.")] = 1,
+    suspended: Annotated[bool, Field(description="If true, list only suspended cards in this deck; default omits them.")] = False,
+    archived_children: Annotated[
+        bool, Field(description="If true, subdecks are directly archived children only; default omits them.")
+    ] = False,
+) -> dict[str, Any]:
     """Get a deck with its settings, path, direct subdecks and the questions stored directly in it
-    (answers and explanations included), 50 per page."""
+    (answers and explanations included), 50 per page. Default hides archived child decks and suspended cards."""
     with caller() as (db, user):
-        return content.deck_detail(db, user, deck_id, page)
+        return content.deck_detail(db, user, deck_id, page, suspended=suspended, archived_children=archived_children)
 
 
 @mcp.tool(name="search-questions", annotations=READ)

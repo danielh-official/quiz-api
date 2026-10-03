@@ -7,7 +7,7 @@ from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 from app.models import Review, User
-from app.schemas import AnswerIn, OptionIn, QuestionIn, QuestionType, QuestionUpdate
+from app.schemas import AnswerIn, CardUpdate, OptionIn, QuestionIn, QuestionType, QuestionUpdate
 from app.services import NotFound, content, study
 
 
@@ -46,6 +46,20 @@ def test_option_ids_survive_reordering_and_edits(db: Session, user: User) -> Non
     assert ids[1] not in stored
     assert ids[2:] == [stored[1], stored[0]]
     assert len(set(ids)) == 4
+
+
+def test_deck_detail_hides_suspended_unless_requested(db: Session, user: User) -> None:
+    deck = make_deck(db, user)
+    active, paused = make_questions(db, user, deck, n=2, prefix="Q")
+    content.update_card(db, user, paused.id, CardUpdate(suspended=True))
+
+    detail = content.deck_detail(db, user, deck.id)
+    assert [q["id"] for q in detail["questions"]] == [active.id]
+    assert detail["deck"]["suspended_count"] == 1
+
+    suspended = content.deck_detail(db, user, deck.id, suspended=True)
+    assert [q["id"] for q in suspended["questions"]] == [paused.id]
+    assert suspended["suspended"] is True
 
 
 def test_deck_detail_includes_answer_stats(db: Session, user: User) -> None:

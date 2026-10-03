@@ -80,7 +80,11 @@ def test_counts_exclude_archived_child(db: Session, user: User) -> None:
     listed = {d["name"]: d for d in content.list_decks(db, user)}
     assert listed["P"]["total"] == 1
     detail = content.deck_detail(db, user, parent.id)
-    assert detail["deck"]["total"] == 3  # full browse includes archived branch
+    assert detail["deck"]["total"] == 1  # active_only: archived child omitted from roll-up
+    assert detail["subdecks"] == []
+    assert detail["deck"]["archived_children_count"] == 1
+    archived = content.deck_detail(db, user, parent.id, archived_children=True)
+    assert [s["name"] for s in archived["subdecks"]] == ["C"]
 
 
 def test_search_archive_filter(db: Session, user: User) -> None:

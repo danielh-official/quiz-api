@@ -7,6 +7,7 @@ from typing import Any, Literal
 
 from sqlalchemy import Text, cast, func, literal_column, or_, select, update
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import ColumnElement
 
 from app.models import Card, Deck, Question, Review, User
 from app.schemas import (
@@ -189,42 +190,77 @@ def question_answer_stats(db: Session, user: User, question_ids: list[int]) -> d
     }
 
 
-def deck_detail(db: Session, user: User, deck_id: int, page: int = 1) -> dict[str, Any]:
-    """Deck settings, path, direct subdecks and a page of its own questions (with answers)."""
+def deck_detail(  # pylint: disable=too-many-locals
+    db: Session,
+    user: User,
+    deck_id: int,
+    page: int = 1,
+    *,
+    suspended: bool = False,
+    archived_children: bool = False,
+) -> dict[str, Any]:
+    """Deck settings, path, direct subdecks and a page of its own questions (with answers).
+
+    Default: active (non-archived) subdecks and non-suspended questions.
+    suspended=True: questions are only this deck's suspended cards.
+    archived_children=True: subdecks are only directly archived children.
+    """
     from app.services.stats import counts  # pylint: disable=import-outside-toplevel  # import cycle
 
     deck = get_deck(db, user, deck_id)
     decks = user_decks(db, user)
     page = max(page, 1)
-    total = db.execute(select(func.count()).where(Question.deck_id == deck.id)).scalar_one()
+    children = children_of(decks).get(deck.id, [])
+    active_children = [d for d in children if d.archived_at is None]
+    archived_kids = [d for d in children if d.archived_at is not None]
+    subdecks = archived_kids if archived_children else active_children
+
+    if suspended:
+        suspend_filter: ColumnElement[bool] = Card.suspended_at.is_not(None)
+    else:
+        suspend_filter = or_(Card.id.is_(None), Card.suspended_at.is_(None))
+    card_join = (Card.question_id == Question.id) & (Card.user_id == user.id)
+    total = db.execute(
+        select(func.count(Question.id)).outerjoin(Card, card_join).where(Question.deck_id == deck.id, suspend_filter)
+    ).scalar_one()
     questions = list(
         db.scalars(
             select(Question)
-            .where(Question.deck_id == deck.id)
+            .outerjoin(Card, card_join)
+            .where(Question.deck_id == deck.id, suspend_filter)
             .order_by(Question.id)
             .offset((page - 1) * QUESTIONS_PER_PAGE)
             .limit(QUESTIONS_PER_PAGE)
         )
     )
-    stats = question_answer_stats(db, user, [q.id for q in questions])
-    # Full subtree counts when browsing a deck (including archived branches under it).
+    answer_stats = question_answer_stats(db, user, [q.id for q in questions])
+    suspended_count = db.execute(
+        select(func.count())
+        .select_from(Question)
+        .join(Card, card_join)
+        .where(Question.deck_id == deck.id, Card.suspended_at.is_not(None))
+    ).scalar_one()
     return {
         "deck": {
             **deck_dict(deck),
             "path": path_names(decks, deck.id),
             "crumbs": path_crumbs(decks, deck.id),
-            **counts(db, user, decks)[deck.id],
+            **counts(db, user, decks, active_only=True)[deck.id],
+            "archived_children_count": len(archived_kids),
+            "suspended_count": suspended_count,
         },
-        "subdecks": [deck_dict(d) for d in children_of(decks).get(deck.id, [])],
+        "subdecks": [deck_dict(d) for d in subdecks],
         "questions": [
             {
                 **describe(q),
-                **stats.get(q.id, {"answered": 0, "correct": 0, "last_answered_at": None}),
+                **answer_stats.get(q.id, {"answered": 0, "correct": 0, "last_answered_at": None}),
             }
             for q in questions
         ],
         "page": page,
         "pages": max(1, -(-total // QUESTIONS_PER_PAGE)),
+        "suspended": suspended,
+        "archived_children": archived_children,
     }
 
 

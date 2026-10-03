@@ -29,13 +29,15 @@ If no quiz-api tools are available, tell the user how to connect instead of pret
   queue, and default search. `list-decks(archived=true)` shows decks archived directly; unarchive with
   `archived=false` (children archived on their own stay archived until unarchived themselves). Archived
   decks are read-only until restored; hard delete still works. Search: `archived` = `active` | `archived` | `all`.
+  `get-deck` defaults to active subdecks and non-suspended questions; `archived_children=true` lists
+  directly archived child decks; `suspended=true` lists only suspended cards in that deck.
 - **Questions** are `single` (exactly 4 options, 1 correct) or `select_two` (exactly 5 options, 2 correct).
   Stems, options and explanations are Markdown. Every option has a stable `id`; answers use option ids.
 - **Confidence** comes with every answer: `confident`, `educated_guess` or `complete_guess`.
   FSRS rating: correct + confident = Good, correct + educated_guess = Hard, anything else = Again.
 - A **misconception** is a wrong answer given with confidence — the most valuable thing to catch.
 - **Notes**: one private note per question for the user's own reasoning. Questions can also be **suspended**
-  (skipped when studying) with `update-card`.
+  (skipped when studying; omitted from default `get-deck` question lists) with `update-card`.
 - **Session summary**: a free-form running summary per study session, rewritten after every answer and returned
   (latest three, any deck) by `start-session`.
 - **Daily limits**: each deck's `new_per_day` caps new questions introduced per study day, counting its subdecks.

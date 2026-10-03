@@ -57,8 +57,15 @@ def create_deck(data: DeckCreate, db: Db, user: Me) -> Json:
 
 
 @router.get("/decks/{deck_id}")
-def get_deck(deck_id: int, db: Db, user: Me, page: int = 1) -> Json:
-    return content.deck_detail(db, user, deck_id, page)
+def get_deck(
+    deck_id: int,
+    db: Db,
+    user: Me,
+    page: int = 1,
+    suspended: bool = False,
+    archived_children: bool = False,
+) -> Json:
+    return content.deck_detail(db, user, deck_id, page, suspended=suspended, archived_children=archived_children)
 
 
 @router.patch("/decks/{deck_id}")
