@@ -71,6 +71,12 @@ def test_decks_and_detail(client: TestClient, db: Session, user: User) -> None:
     assert "S3" in detail.text
     assert "Performance" in detail.text
 
+    child_detail = client.get(f"/app/decks/{child.id}")
+    assert child_detail.status_code == 200
+    assert "Single" in child_detail.text
+    assert "0/0 correct" in child_detail.text
+    assert "Never answered" in child_detail.text
+
 
 def test_markdown_renders_on_question_detail(client: TestClient, db: Session, user: User) -> None:
     login_web(user)

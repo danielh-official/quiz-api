@@ -48,6 +48,27 @@ def test_option_ids_survive_reordering_and_edits(db: Session, user: User) -> Non
     assert len(set(ids)) == 4
 
 
+def test_deck_detail_includes_answer_stats(db: Session, user: User) -> None:
+    deck = make_deck(db, user)
+    single, dual = (
+        make_questions(db, user, deck, n=1, prefix="S")[0],
+        make_questions(db, user, deck, n=1, prefix="D", type="select_two")[0],
+    )
+    session = study.start_session(db, user, deck.id, size=2)["session_id"]
+    answer(db, user, session, single)
+    answer(db, user, session, dual, right=False)
+
+    detail = content.deck_detail(db, user, deck.id)
+    by_id = {q["id"]: q for q in detail["questions"]}
+    assert by_id[single.id]["type"] == "single"
+    assert by_id[single.id]["answered"] == 1
+    assert by_id[single.id]["correct"] == 1
+    assert by_id[single.id]["last_answered_at"] is not None
+    assert by_id[dual.id]["type"] == "select_two"
+    assert by_id[dual.id]["answered"] == 1
+    assert by_id[dual.id]["correct"] == 0
+
+
 def test_reviews_keep_meaning_after_reorder(db: Session, user: User) -> None:
     deck = make_deck(db, user)
     [q] = make_questions(db, user, deck)

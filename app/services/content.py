@@ -8,7 +8,7 @@ from typing import Any, Literal
 from sqlalchemy import Text, cast, func, literal_column, or_, select, update
 from sqlalchemy.orm import Session
 
-from app.models import Card, Deck, Question, User
+from app.models import Card, Deck, Question, Review, User
 from app.schemas import (
     QUESTION_SHAPES,
     CardUpdate,
@@ -160,6 +160,30 @@ def list_decks(db: Session, user: User, archived: bool = False) -> list[dict[str
     return out
 
 
+def question_answer_stats(db: Session, user: User, question_ids: list[int]) -> dict[int, dict[str, Any]]:
+    """Per-question answered/correct counts and last review time for this user."""
+    if not question_ids:
+        return {}
+    rows = db.execute(
+        select(
+            Review.question_id,
+            func.count(),
+            func.count().filter(Review.correct),
+            func.max(Review.reviewed_at),
+        )
+        .where(Review.user_id == user.id, Review.question_id.in_(question_ids))
+        .group_by(Review.question_id)
+    )
+    return {
+        question_id: {
+            "answered": answered,
+            "correct": correct,
+            "last_answered_at": last.isoformat() if last else None,
+        }
+        for question_id, answered, correct, last in rows
+    }
+
+
 def deck_detail(db: Session, user: User, deck_id: int, page: int = 1) -> dict[str, Any]:
     """Deck settings, path, direct subdecks and a page of its own questions (with answers)."""
     from app.services.stats import counts  # pylint: disable=import-outside-toplevel  # import cycle
@@ -168,18 +192,27 @@ def deck_detail(db: Session, user: User, deck_id: int, page: int = 1) -> dict[st
     decks = user_decks(db, user)
     page = max(page, 1)
     total = db.execute(select(func.count()).where(Question.deck_id == deck.id)).scalar_one()
-    questions = db.scalars(
-        select(Question)
-        .where(Question.deck_id == deck.id)
-        .order_by(Question.id)
-        .offset((page - 1) * QUESTIONS_PER_PAGE)
-        .limit(QUESTIONS_PER_PAGE)
+    questions = list(
+        db.scalars(
+            select(Question)
+            .where(Question.deck_id == deck.id)
+            .order_by(Question.id)
+            .offset((page - 1) * QUESTIONS_PER_PAGE)
+            .limit(QUESTIONS_PER_PAGE)
+        )
     )
+    stats = question_answer_stats(db, user, [q.id for q in questions])
     # Full subtree counts when browsing a deck (including archived branches under it).
     return {
         "deck": {**deck_dict(deck), "path": path_names(decks, deck.id), **counts(db, user, decks)[deck.id]},
         "subdecks": [deck_dict(d) for d in children_of(decks).get(deck.id, [])],
-        "questions": [describe(q) for q in questions],
+        "questions": [
+            {
+                **describe(q),
+                **stats.get(q.id, {"answered": 0, "correct": 0, "last_answered_at": None}),
+            }
+            for q in questions
+        ],
         "page": page,
         "pages": max(1, -(-total // QUESTIONS_PER_PAGE)),
     }
