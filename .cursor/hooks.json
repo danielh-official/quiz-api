@@ -6,6 +6,12 @@
         "command": ".cursor/hooks/lint-python.sh",
         "timeout": 120
       }
+    ],
+    "stop": [
+      {
+        "command": ".cursor/hooks/check.sh",
+        "timeout": 600
+      }
     ]
   }
 }

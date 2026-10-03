@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Install once: git config core.hooksPath .githooks
+set -euo pipefail
+root="$(git rev-parse --show-toplevel)"
+cd "$root"
+
+uv run --with ruff ruff format app tests migrations
+# Include any formatting fixes in this commit.
+git add -u -- app tests migrations
+
+uv run --with mypy mypy app tests
+uv run --with pylint pylint app tests migrations
+uv run pytest -q
