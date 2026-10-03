@@ -1,0 +1,75 @@
+{% extends "app/layout.html" %}
+{% block title %}Question{% endblock %}
+{% block content %}
+<p class="mb-3 text-sm text-mute">
+    <a class="text-mute no-underline hover:text-ink" href="/app">Decks</a>
+    <span class="text-line"> / </span>
+    <a class="text-mute no-underline hover:text-ink" href="/app/decks/{{ deck.id }}">{{ deck.name }}</a>
+</p>
+<div class="mb-6 flex flex-wrap items-baseline justify-between gap-3">
+    <h1 class="text-[1.75rem] font-semibold leading-tight tracking-tight text-ink">Question</h1>
+    <div class="flex gap-4 text-sm">
+        <a class="text-mute no-underline hover:text-ink" href="/app/questions/{{ question.id }}/edit">Edit</a>
+        <form method="post" action="/app/questions/{{ question.id }}/delete" class="inline"
+              onsubmit="return confirm('Delete this question? This cannot be undone.');">
+            <button class="cursor-pointer border-0 bg-transparent p-0 text-bad" type="submit">Delete</button>
+        </form>
+    </div>
+</div>
+
+{% if error %}
+<div class="mb-4 border-l-[3px] border-l-bad bg-bad/10 px-3 py-2.5 text-sm text-bad">{{ error }}</div>
+{% endif %}
+
+<p class="mb-2 text-sm text-mute">{{ question.type }} · pick {{ question.pick }}</p>
+<div class="mb-6 font-serif text-lg leading-relaxed text-ink">{{ question.stem | text_blocks }}</div>
+
+<ul class="mb-6 list-none border-t border-line p-0">
+    {% for o in labeled_options %}
+    <li class="border-b border-line py-3">
+        <div class="flex items-start gap-3">
+            <span class="min-w-[1.25em] font-semibold tabular-nums text-mute">{{ o.label }}.</span>
+            <div class="min-w-0 flex-1">
+                <div class="text-ink">
+                    {{ o.text | text_blocks }}
+                    {% if o.correct %}<span class="ml-2 text-sm font-medium text-accent">Correct</span>{% endif %}
+                </div>
+                {% if o.get('explanation') %}
+                <p class="mt-1 text-sm text-mute">{{ o.explanation | text_blocks }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </li>
+    {% endfor %}
+</ul>
+
+{% if question.explanation %}
+<div class="mb-8 border-t border-line pt-4">
+    <h2 class="mb-2 text-base font-semibold text-ink">Explanation</h2>
+    <div class="text-ink">{{ question.explanation | text_blocks }}</div>
+</div>
+{% endif %}
+
+<section class="border-t border-line pt-6">
+    <h2 class="mb-1 text-base font-semibold text-ink">Card</h2>
+    <p class="mb-4 text-sm text-mute">
+        {{ card.reps }} reviews
+        · {{ card.lapses }} lapses
+        {% if card.due_at %}· due {{ card.due_at[:10] }}{% else %}· new{% endif %}
+        {% if card.suspended %}· suspended{% endif %}
+    </p>
+    <form method="post" action="/app/questions/{{ question.id }}/card" class="flex flex-col gap-4">
+        <label class="flex flex-col gap-1.5">
+            <span class="text-sm text-mute">Private note</span>
+            <textarea class="min-h-24 rounded border border-line bg-surface px-3 py-2 text-ink" name="note" maxlength="10000">{{ card.note or '' }}</textarea>
+        </label>
+        <label class="flex cursor-pointer items-center gap-2 text-ink">
+            <input type="checkbox" name="suspended"{% if card.suspended %} checked{% endif %}>
+            Suspended
+        </label>
+        <button class="inline-flex w-fit cursor-pointer items-center rounded border-0 bg-accent px-4 py-2.5 text-sm font-semibold text-accent-fg" type="submit">
+            Save card
+        </button>
+    </form>
+</section>
+{% endblock %}

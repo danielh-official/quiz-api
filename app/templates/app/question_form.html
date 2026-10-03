@@ -1,0 +1,111 @@
+{% extends "app/layout.html" %}
+{% block title %}{% if mode == 'create' %}New question{% else %}Edit question{% endif %}{% endblock %}
+{% block content %}
+<p class="mb-3 text-sm text-mute">
+    <a class="text-mute no-underline hover:text-ink" href="/app">Decks</a>
+    <span class="text-line"> / </span>
+    <a class="text-mute no-underline hover:text-ink" href="/app/decks/{{ deck.id }}">{{ deck.name }}</a>
+    {% if mode == 'edit' %}
+    <span class="text-line"> / </span>
+    <a class="text-mute no-underline hover:text-ink" href="/app/questions/{{ question.id }}">Question</a>
+    {% endif %}
+</p>
+<h1 class="mb-6 text-[1.75rem] font-semibold leading-tight tracking-tight text-ink">
+    {% if mode == 'create' %}New question{% else %}Edit question{% endif %}
+</h1>
+
+{% if error %}
+<div class="mb-4 border-l-[3px] border-l-bad bg-bad/10 px-3 py-2.5 text-sm text-bad">{{ error }}</div>
+{% endif %}
+
+{% set form_action = '/app/decks/' ~ deck.id ~ '/questions/new' if mode == 'create' else '/app/questions/' ~ question.id ~ '/edit' %}
+{% set type_base = '/app/decks/' ~ deck.id ~ '/questions/new' if mode == 'create' else '/app/questions/' ~ question.id ~ '/edit' %}
+
+<form method="post" action="{{ form_action }}" class="flex flex-col gap-5">
+    <fieldset class="border-0 p-0">
+        <legend class="mb-2 text-sm text-mute">Type</legend>
+        <div class="flex flex-col gap-2">
+            <label class="flex cursor-pointer items-center gap-2 text-ink">
+                <input type="radio" name="type" value="single"{% if question.type == 'single' %} checked{% endif %}
+                       onchange="window.location='{{ type_base }}?type=single'">
+                Single — 4 options, 1 correct
+            </label>
+            <label class="flex cursor-pointer items-center gap-2 text-ink">
+                <input type="radio" name="type" value="select_two"{% if question.type == 'select_two' %} checked{% endif %}
+                       onchange="window.location='{{ type_base }}?type=select_two'">
+                Select two — 5 options, 2 correct
+            </label>
+        </div>
+    </fieldset>
+
+    {% if mode == 'edit' %}
+    <label class="flex flex-col gap-1.5">
+        <span class="text-sm text-mute">Deck</span>
+        <select class="rounded border border-line bg-surface px-3 py-2 text-ink" name="deck_id">
+            {% for d in decks %}
+            <option value="{{ d.id }}"{% if (question.deck_id or deck.id) == d.id %} selected{% endif %}>
+                {{ '—' * d.depth }}{% if d.depth %} {% endif %}{{ d.name }}
+            </option>
+            {% endfor %}
+        </select>
+    </label>
+    {% endif %}
+
+    <label class="flex flex-col gap-1.5">
+        <span class="text-sm text-mute">Stem</span>
+        <textarea class="min-h-28 rounded border border-line bg-surface px-3 py-2 font-serif text-ink" name="stem" required maxlength="5000">{{ question.stem or '' }}</textarea>
+    </label>
+
+    <div class="border-t border-line pt-4">
+        <h2 class="mb-3 text-base font-semibold text-ink">Options</h2>
+        <div class="flex flex-col gap-5">
+            {% for o in question.options %}
+            <div class="border-b border-line pb-4">
+                <input type="hidden" name="option_id_{{ loop.index0 }}" value="{{ o.id or '' }}">
+                <div class="mb-2 flex items-center justify-between gap-3">
+                    <span class="text-sm font-semibold text-mute">{{ 'ABCDEFGHIJ'[loop.index0] }}</span>
+                    <label class="flex cursor-pointer items-center gap-2 text-sm text-ink">
+                        {% if question.type == 'single' %}
+                        <input type="radio" name="correct" value="{{ loop.index0 }}"{% if o.correct %} checked{% endif %} required>
+                        {% else %}
+                        <input type="checkbox" name="correct" value="{{ loop.index0 }}"{% if o.correct %} checked{% endif %}>
+                        {% endif %}
+                        Correct
+                    </label>
+                </div>
+                <label class="mb-2 flex flex-col gap-1.5">
+                    <span class="text-sm text-mute">Text</span>
+                    <input class="rounded border border-line bg-surface px-3 py-2 text-ink" type="text" name="option_text_{{ loop.index0 }}"
+                           required maxlength="1000" value="{{ o.text or '' }}">
+                </label>
+                <label class="flex flex-col gap-1.5">
+                    <span class="text-sm text-mute">Explanation</span>
+                    <textarea class="min-h-16 rounded border border-line bg-surface px-3 py-2 text-ink" name="option_explanation_{{ loop.index0 }}"
+                              maxlength="2000">{{ o.explanation or '' }}</textarea>
+                </label>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <label class="flex flex-col gap-1.5">
+        <span class="text-sm text-mute">Overall explanation</span>
+        <textarea class="min-h-24 rounded border border-line bg-surface px-3 py-2 text-ink" name="explanation" maxlength="5000">{{ question.explanation or '' }}</textarea>
+    </label>
+
+    {% if mode == 'edit' %}
+    <label class="flex cursor-pointer items-center gap-2 text-ink">
+        <input type="checkbox" name="reset_progress"{% if question.reset_progress %} checked{% endif %}>
+        Reset scheduling progress for this question
+    </label>
+    {% endif %}
+
+    <div class="flex flex-wrap items-center gap-4 pt-2">
+        <button class="inline-flex cursor-pointer items-center rounded border-0 bg-accent px-4 py-2.5 text-sm font-semibold text-accent-fg" type="submit">
+            {% if mode == 'create' %}Create question{% else %}Save{% endif %}
+        </button>
+        <a class="text-sm text-mute no-underline hover:text-ink"
+           href="{% if mode == 'edit' %}/app/questions/{{ question.id }}{% else %}/app/decks/{{ deck.id }}{% endif %}">Cancel</a>
+    </div>
+</form>
+{% endblock %}

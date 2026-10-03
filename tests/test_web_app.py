@@ -146,6 +146,80 @@ def test_other_users_deck_is_404_html(client: TestClient, db: Session, user: Use
     assert "Not found" in response.text
 
 
+def test_question_and_card_crud(client: TestClient, db: Session, user: User) -> None:
+    login_web(user)
+    deck = make_deck(db, user, "AWS")
+
+    form = client.get(f"/app/decks/{deck.id}/questions/new")
+    assert form.status_code == 200
+    assert "New question" in form.text
+
+    created = client.post(
+        f"/app/decks/{deck.id}/questions/new",
+        data={
+            "type": "single",
+            "stem": "What is S3?",
+            "explanation": "Object storage",
+            "correct": "0",
+            "option_text_0": "Object storage",
+            "option_explanation_0": "Yes",
+            "option_text_1": "A database",
+            "option_explanation_1": "No",
+            "option_text_2": "A CDN",
+            "option_explanation_2": "No",
+            "option_text_3": "A VPC",
+            "option_explanation_3": "No",
+        },
+    )
+    assert created.status_code == 303
+    question_path = created.headers["location"]
+    assert question_path.startswith("/app/questions/")
+    question_id = int(question_path.rsplit("/", 1)[-1])
+
+    detail = client.get(question_path)
+    assert detail.status_code == 200
+    assert "What is S3?" in detail.text
+    assert "Object storage" in detail.text
+    assert "Card" in detail.text
+
+    deck_page = client.get(f"/app/decks/{deck.id}")
+    assert "What is S3?" in deck_page.text
+    assert f"/app/questions/{question_id}" in deck_page.text
+    assert "Add question" in deck_page.text
+
+    edited = client.post(
+        f"/app/questions/{question_id}/edit",
+        data={
+            "type": "single",
+            "deck_id": str(deck.id),
+            "stem": "What is Amazon S3?",
+            "explanation": "Object storage",
+            "correct": "0",
+            "option_id_0": "",
+            "option_text_0": "Object storage",
+            "option_text_1": "A database",
+            "option_text_2": "A CDN",
+            "option_text_3": "A VPC",
+        },
+    )
+    assert edited.status_code == 303
+    assert "What is Amazon S3?" in client.get(question_path).text
+
+    card = client.post(
+        f"/app/questions/{question_id}/card",
+        data={"note": "Remember buckets", "suspended": "on"},
+    )
+    assert card.status_code == 303
+    saved = client.get(question_path)
+    assert "Remember buckets" in saved.text
+    assert "suspended" in saved.text
+
+    deleted = client.post(f"/app/questions/{question_id}/delete")
+    assert deleted.status_code == 303
+    assert deleted.headers["location"] == f"/app/decks/{deck.id}"
+    assert client.get(question_path).status_code == 404
+
+
 def test_deck_crud(client: TestClient, db: Session, user: User) -> None:
     login_web(user)
     form = client.get("/app/decks/new")

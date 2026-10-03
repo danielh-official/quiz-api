@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from markupsafe import Markup, escape
 from pydantic import ValidationError
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 from starlette.datastructures import FormData
 
@@ -26,8 +27,19 @@ from app.auth import (
     token_claims,
 )
 from app.db import get_db
-from app.models import User
-from app.schemas import AnswerIn, Confidence, DeckCreate, DeckUpdate, OptionIn, QuestionIn, QuestionUpdate, CardUpdate
+from app.models import Card, User
+from app.schemas import (
+    QUESTION_SHAPES,
+    AnswerIn,
+    CardUpdate,
+    Confidence,
+    DeckCreate,
+    DeckUpdate,
+    OptionIn,
+    QuestionIn,
+    QuestionType,
+    QuestionUpdate,
+)
 from app.services import Invalid, NotFound, content, stats, study
 from app.web import TEMPLATES
 
@@ -274,6 +286,156 @@ def start_session(deck_id: int, db: Db, user: WebUser) -> RedirectResponse:
     return RedirectResponse(f"/app/sessions/{started['session_id']}", status_code=303)
 
 
+@router.get("/decks/{deck_id}/questions/new")
+def new_question_form(deck_id: int, request: Request, db: Db, user: WebUser) -> HTMLResponse:
+    request.state.user = user
+    deck = content.deck_dict(content.require_active_deck(db, user, deck_id))
+    qtype = _question_type(request.query_params.get("type"))
+    return render(
+        "app/question_form.html",
+        request,
+        mode="create",
+        deck=deck,
+        decks=content.list_decks(db, user),
+        question=_blank_question(qtype),
+        error=None,
+    )
+
+
+@router.post("/decks/{deck_id}/questions/new")
+async def create_question(deck_id: int, request: Request, db: Db, user: WebUser) -> Response:
+    request.state.user = user
+    form = await request.form()
+    try:
+        data = _question_in_from_form(form)
+        created = content.create_questions(db, user, deck_id, [data])[0]
+    except (Invalid, NotFound, ValidationError, ValueError) as exc:
+        deck = content.deck_dict(content.get_deck(db, user, deck_id))
+        return render(
+            "app/question_form.html",
+            request,
+            status_code=422,
+            mode="create",
+            deck=deck,
+            decks=content.list_decks(db, user),
+            question=_question_form_values(form),
+            error=_form_error(exc),
+        )
+    return RedirectResponse(f"/app/questions/{created.id}", status_code=303)
+
+
+@router.get("/questions/{question_id}")
+def question_detail(question_id: int, request: Request, db: Db, user: WebUser) -> HTMLResponse:
+    request.state.user = user
+    question = content.get_question(db, user, question_id)
+    deck = content.deck_dict(content.get_deck(db, user, question.deck_id))
+    card = db.scalar(select(Card).where(Card.user_id == user.id, Card.question_id == question.id))
+    card_view = {
+        "note": card.note if card else None,
+        "suspended": bool(card and card.suspended_at is not None),
+        "reps": card.reps if card else 0,
+        "lapses": card.lapses if card else 0,
+        "due_at": card.due_at.isoformat() if card and card.due_at else None,
+    }
+    return render(
+        "app/question.html",
+        request,
+        question=content.describe(question),
+        deck=deck,
+        card=card_view,
+        labeled_options=labeled_options(question.options),
+        error=None,
+    )
+
+
+@router.get("/questions/{question_id}/edit")
+def edit_question_form(question_id: int, request: Request, db: Db, user: WebUser) -> HTMLResponse:
+    request.state.user = user
+    question = content.get_question(db, user, question_id)
+    deck = content.deck_dict(content.get_deck(db, user, question.deck_id))
+    qtype = _question_type(request.query_params.get("type"), default=cast(QuestionType, question.type))
+    described = content.describe(question)
+    if qtype != question.type:
+        described = {**described, "type": qtype, "options": _pad_options(described["options"], qtype)}
+    return render(
+        "app/question_form.html",
+        request,
+        mode="edit",
+        deck=deck,
+        decks=content.list_decks(db, user),
+        question=described,
+        error=None,
+    )
+
+
+@router.post("/questions/{question_id}/edit")
+async def update_question(question_id: int, request: Request, db: Db, user: WebUser) -> Response:
+    request.state.user = user
+    form = await request.form()
+    try:
+        data = _question_update_from_form(form)
+        content.update_question(db, user, question_id, data)
+    except (Invalid, NotFound, ValidationError, ValueError) as exc:
+        question = content.get_question(db, user, question_id)
+        deck = content.deck_dict(content.get_deck(db, user, question.deck_id))
+        return render(
+            "app/question_form.html",
+            request,
+            status_code=422,
+            mode="edit",
+            deck=deck,
+            decks=content.list_decks(db, user),
+            question={"id": question_id, **_question_form_values(form)},
+            error=_form_error(exc),
+        )
+    return RedirectResponse(f"/app/questions/{question_id}", status_code=303)
+
+
+@router.post("/questions/{question_id}/delete")
+def delete_question(question_id: int, db: Db, user: WebUser) -> RedirectResponse:
+    question = content.get_question(db, user, question_id)
+    deck_id = question.deck_id
+    content.delete_question(db, user, question_id)
+    return RedirectResponse(f"/app/decks/{deck_id}", status_code=303)
+
+
+@router.post("/questions/{question_id}/card")
+async def update_card(question_id: int, request: Request, db: Db, user: WebUser) -> Response:
+    request.state.user = user
+    form = await request.form()
+    try:
+        content.update_card(
+            db,
+            user,
+            question_id,
+            CardUpdate(
+                note=str(form.get("note") or ""),
+                suspended=str(form.get("suspended") or "") == "on",
+            ),
+        )
+    except (Invalid, NotFound, ValidationError) as exc:
+        question = content.get_question(db, user, question_id)
+        deck = content.deck_dict(content.get_deck(db, user, question.deck_id))
+        card = db.scalar(select(Card).where(Card.user_id == user.id, Card.question_id == question.id))
+        return render(
+            "app/question.html",
+            request,
+            status_code=422,
+            question=content.describe(question),
+            deck=deck,
+            card={
+                "note": str(form.get("note") or "") or None,
+                "suspended": str(form.get("suspended") or "") == "on",
+                "reps": card.reps if card else 0,
+                "lapses": card.lapses if card else 0,
+                "due_at": card.due_at.isoformat() if card and card.due_at else None,
+            },
+            labeled_options=labeled_options(question.options),
+            error=_form_error(exc),
+        )
+    return RedirectResponse(f"/app/questions/{question_id}", status_code=303)
+
+
 @router.get("/sessions/{session_id}")
 def session_page(session_id: int, request: Request, db: Db, user: WebUser) -> HTMLResponse:
     request.state.user = user
@@ -362,7 +524,11 @@ def _form_error(exc: Exception) -> str:
     if isinstance(exc, Invalid):
         return exc.message
     if isinstance(exc, ValidationError):
-        return str(exc.errors()[0]["msg"])
+        err = exc.errors()[0]
+        msg = str(err["msg"])
+        return msg.removeprefix("Value error, ")
+    if isinstance(exc, ValueError):
+        return str(exc)
     return str(exc)
 
 
@@ -407,6 +573,89 @@ def _deck_update_from_form(form: FormData) -> DeckUpdate:
         session_size=values["session_size"],
         new_per_day=values["new_per_day"],
         archived=False,
+    )
+
+
+def _question_type(value: object, default: QuestionType = "single") -> QuestionType:
+    text = str(value or default)
+    return cast(QuestionType, text if text in QUESTION_SHAPES else default)
+
+
+def _blank_question(qtype: QuestionType) -> dict[str, Any]:
+    count, _ = QUESTION_SHAPES[qtype]
+    return {
+        "type": qtype,
+        "stem": "",
+        "explanation": None,
+        "deck_id": None,
+        "options": [{"id": None, "text": "", "correct": False, "explanation": None} for _ in range(count)],
+        "reset_progress": False,
+    }
+
+
+def _pad_options(options: list[dict[str, Any]], qtype: QuestionType) -> list[dict[str, Any]]:
+    count, _ = QUESTION_SHAPES[qtype]
+    padded = [
+        {
+            "id": o.get("id"),
+            "text": o.get("text") or "",
+            "correct": bool(o.get("correct")),
+            "explanation": o.get("explanation"),
+        }
+        for o in options[:count]
+    ]
+    while len(padded) < count:
+        padded.append({"id": None, "text": "", "correct": False, "explanation": None})
+    return padded
+
+
+def _question_form_values(form: FormData) -> dict[str, Any]:
+    qtype = _question_type(form.get("type"))
+    count, _ = QUESTION_SHAPES[qtype]
+    if qtype == "single":
+        correct_raw = str(form.get("correct") or "")
+        correct_idxs = {int(correct_raw)} if correct_raw.isdigit() else set()
+    else:
+        correct_idxs = {int(v) for v in form.getlist("correct") if str(v).isdigit()}
+    options = []
+    for i in range(count):
+        options.append(
+            {
+                "id": str(form.get(f"option_id_{i}") or "") or None,
+                "text": str(form.get(f"option_text_{i}") or ""),
+                "correct": i in correct_idxs,
+                "explanation": str(form.get(f"option_explanation_{i}") or "") or None,
+            }
+        )
+    return {
+        "type": qtype,
+        "stem": str(form.get("stem") or ""),
+        "explanation": str(form.get("explanation") or "") or None,
+        "deck_id": _optional_int(form.get("deck_id")),
+        "options": options,
+        "reset_progress": str(form.get("reset_progress") or "") == "on",
+    }
+
+
+def _question_in_from_form(form: FormData) -> QuestionIn:
+    values = _question_form_values(form)
+    return QuestionIn(
+        type=values["type"],
+        stem=values["stem"],
+        explanation=values["explanation"],
+        options=[OptionIn(**o) for o in values["options"]],
+    )
+
+
+def _question_update_from_form(form: FormData) -> QuestionUpdate:
+    values = _question_form_values(form)
+    return QuestionUpdate(
+        type=values["type"],
+        stem=values["stem"],
+        explanation=values["explanation"],
+        deck_id=values["deck_id"],
+        options=[OptionIn(**o) for o in values["options"]],
+        reset_progress=values["reset_progress"],
     )
 
 

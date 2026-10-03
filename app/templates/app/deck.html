@@ -40,6 +40,7 @@
         </button>
     </form>
     <a class="text-sm text-mute no-underline hover:text-ink" href="/app/decks/{{ detail.deck.id }}/edit">Edit deck</a>
+    <a class="text-sm text-mute no-underline hover:text-ink" href="/app/decks/{{ detail.deck.id }}/questions/new">Add question</a>
 </div>
 
 {% if detail.subdecks %}
@@ -75,8 +76,10 @@
 <h2 class="mb-2 mt-10 text-base font-semibold text-ink">Questions</h2>
 <ul class="list-none border-t border-line p-0">
     {% for q in detail.questions %}
-    <li class="border-b border-line py-2.5 text-sm text-ink">
-        {{ q.stem.split('\n')[0][:120] }}{% if q.stem|length > 120 %}…{% endif %}
+    <li class="border-b border-line">
+        <a class="block py-2.5 text-sm text-ink no-underline hover:text-accent" href="/app/questions/{{ q.id }}">
+            {{ q.stem.split('\n')[0][:120] }}{% if q.stem|length > 120 %}…{% endif %}
+        </a>
     </li>
     {% endfor %}
 </ul>
