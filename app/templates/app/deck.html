@@ -1,72 +1,84 @@
 {% extends "app/layout.html" %}
 {% block title %}{{ detail.deck.name }}{% endblock %}
 {% block content %}
-<p class="mb-2 text-mute"><a href="/app">Decks</a>
+<p class="mb-3 text-sm text-mute">
+    <a class="text-mute no-underline hover:text-ink" href="/app">Decks</a>
     {% for part in detail.deck.path %}
-    {% if not loop.last %} / {{ part }}{% endif %}
+    {% if not loop.last %}
+    <span class="text-line"> / </span><span>{{ part }}</span>
+    {% endif %}
     {% endfor %}
 </p>
-<h1 class="mb-2 text-3xl font-semibold">{{ detail.deck.name }}</h1>
+<h1 class="mb-1 text-[1.75rem] font-semibold leading-tight tracking-tight text-ink">{{ detail.deck.name }}</h1>
 {% if detail.deck.description %}
-<p class="mb-4">{{ detail.deck.description }}</p>
+<p class="mb-6 text-mute">{{ detail.deck.description }}</p>
+{% else %}
+<div class="mb-6"></div>
 {% endif %}
 
-<div class="mt-4 grid grid-cols-3 gap-3">
-    <div class="rounded-lg bg-code p-3 text-center">
-        <div class="text-xl font-bold">{{ detail.deck.due }}</div>
-        <div class="text-sm text-mute">due</div>
+<div class="flex flex-wrap items-baseline gap-x-6 gap-y-2 border-y border-line py-4">
+    <div>
+        <span class="text-[1.75rem] font-semibold tabular-nums {% if detail.deck.due > 0 %}text-due{% else %}text-ink{% endif %}">{{ detail.deck.due }}</span>
+        <span class="ml-1.5 text-sm text-mute">due</span>
     </div>
-    <div class="rounded-lg bg-code p-3 text-center">
-        <div class="text-xl font-bold">{{ detail.deck.new }}</div>
-        <div class="text-sm text-mute">new</div>
+    <div>
+        <span class="text-[1.75rem] font-semibold tabular-nums text-ink">{{ detail.deck.new }}</span>
+        <span class="ml-1.5 text-sm text-mute">new</span>
     </div>
-    <div class="rounded-lg bg-code p-3 text-center">
-        <div class="text-xl font-bold">{{ detail.deck.total }}</div>
-        <div class="text-sm text-mute">total</div>
+    <div>
+        <span class="text-[1.75rem] font-semibold tabular-nums text-ink">{{ detail.deck.total }}</span>
+        <span class="ml-1.5 text-sm text-mute">total</span>
     </div>
 </div>
 
-<form method="post" action="/app/decks/{{ detail.deck.id }}/sessions" class="mt-5">
+<form method="post" action="/app/decks/{{ detail.deck.id }}/sessions" class="mt-6">
     <button
-        class="inline-flex cursor-pointer items-center rounded-lg border-0 bg-accent px-4 py-2.5 font-semibold text-accent-fg disabled:cursor-not-allowed disabled:opacity-50"
+        class="inline-flex cursor-pointer items-center rounded border-0 bg-accent px-4 py-2.5 text-sm font-semibold text-accent-fg disabled:cursor-not-allowed disabled:opacity-40"
         type="submit"{% if detail.deck.due == 0 and detail.deck.new == 0 %} disabled{% endif %}>
         Start session
     </button>
 </form>
 
 {% if detail.subdecks %}
-<h2 class="mb-2 mt-7 text-lg font-semibold">Subdecks</h2>
-<ul class="mt-2 list-none rounded-xl border border-line bg-surface p-0">
+<h2 class="mb-2 mt-10 text-base font-semibold text-ink">Subdecks</h2>
+<ul class="list-none border-t border-line p-0">
     {% for s in detail.subdecks %}
-    <li class="border-b border-line px-5 py-2.5 last:border-b-0">
-        <a href="/app/decks/{{ s.id }}">{{ s.name }}</a>
+    <li class="border-b border-line">
+        <a class="block py-2.5 text-ink no-underline hover:text-accent" href="/app/decks/{{ s.id }}">{{ s.name }}</a>
     </li>
     {% endfor %}
 </ul>
 {% endif %}
 
-<h2 class="mb-2 mt-7 text-lg font-semibold">Performance</h2>
-<div class="mt-2 rounded-xl border border-line bg-surface px-6 py-5">
-    <p class="mb-2 text-mute">Calibration (correct / answered)</p>
-    <ul class="list-disc pl-5">
+<h2 class="mb-2 mt-10 text-base font-semibold text-ink">Performance</h2>
+<div class="border-t border-line pt-4">
+    <p class="mb-3 text-sm text-mute">Calibration (correct / answered)</p>
+    <ul class="space-y-1 p-0 text-sm">
         {% for key, row in performance.calibration.items() %}
-        <li>{{ key }}: {{ row.correct }}/{{ row.answered }}</li>
+        <li class="flex justify-between gap-4 border-b border-line py-2">
+            <span class="text-mute">{{ key|replace('_', ' ') }}</span>
+            <span class="tabular-nums text-ink">{{ row.correct }}/{{ row.answered }}</span>
+        </li>
         {% endfor %}
     </ul>
     {% if performance.readiness.predicted_recall is not none %}
-    <p class="mt-2">Predicted recall: {{ (performance.readiness.predicted_recall * 100)|round|int }}%</p>
+    <p class="mt-4 text-sm">Predicted recall
+        <span class="font-semibold tabular-nums">{{ (performance.readiness.predicted_recall * 100)|round|int }}%</span>
+    </p>
     {% endif %}
 </div>
 
 {% if detail.questions %}
-<h2 class="mb-2 mt-7 text-lg font-semibold">Questions</h2>
-<ul class="mt-2 list-disc rounded-xl border border-line bg-surface px-6 py-5 pl-8">
+<h2 class="mb-2 mt-10 text-base font-semibold text-ink">Questions</h2>
+<ul class="list-none border-t border-line p-0">
     {% for q in detail.questions %}
-    <li>{{ q.stem.split('\n')[0][:120] }}{% if q.stem|length > 120 %}…{% endif %}</li>
+    <li class="border-b border-line py-2.5 text-sm text-ink">
+        {{ q.stem.split('\n')[0][:120] }}{% if q.stem|length > 120 %}…{% endif %}
+    </li>
     {% endfor %}
 </ul>
 {% if detail.pages > 1 %}
-<p class="mt-2 text-mute">Page {{ detail.page }} of {{ detail.pages }}</p>
+<p class="mt-3 text-sm text-mute">Page {{ detail.page }} of {{ detail.pages }}</p>
 {% endif %}
 {% endif %}
 {% endblock %}
