@@ -200,7 +200,7 @@ def deck_detail(  # pylint: disable=too-many-locals
     archived_children: bool = False,
     per_page: int = QUESTIONS_PER_PAGE,
 ) -> dict[str, Any]:
-    """Deck settings, path, direct subdecks and a page of its own questions (with answers).
+    """Deck settings, path, direct subdecks and a page of its own questions (with answers), last answered first.
 
     Default: active (non-archived) subdecks and non-suspended questions.
     suspended=True: questions are only this deck's suspended cards.
@@ -224,12 +224,19 @@ def deck_detail(  # pylint: disable=too-many-locals
     total = db.execute(
         select(func.count(Question.id)).outerjoin(Card, card_join).where(Question.deck_id == deck.id, suspend_filter)
     ).scalar_one()
+    last_answered = (
+        select(Review.question_id, func.max(Review.reviewed_at).label("at"))
+        .where(Review.user_id == user.id)
+        .group_by(Review.question_id)
+        .subquery()
+    )
     questions = list(
         db.scalars(
             select(Question)
             .outerjoin(Card, card_join)
+            .outerjoin(last_answered, last_answered.c.question_id == Question.id)
             .where(Question.deck_id == deck.id, suspend_filter)
-            .order_by(Question.id)
+            .order_by(last_answered.c.at.desc().nulls_last(), Question.id)
             .offset((page - 1) * per_page)
             .limit(per_page)
         )

@@ -1,9 +1,11 @@
+from datetime import UTC, datetime
+
 import pytest
 from conftest import make_deck, make_questions
 
 from sqlalchemy.orm import Session
 
-from app.models import Deck, Question, User
+from app.models import Deck, Question, Review, User
 from app.schemas import DeckUpdate
 from app.services import Invalid, NotFound, content
 
@@ -48,3 +50,29 @@ def test_delete_cascades_to_subdecks_and_questions(db: Session, user: User) -> N
     content.delete_deck(db, user, root.id)
     assert db.query(Deck).count() == 0
     assert db.query(Question).count() == 0
+
+
+def test_deck_questions_sort_last_answered_first(db: Session, user: User, other: User) -> None:
+    deck = make_deck(db, user, "D")
+    never, old, recent = make_questions(db, user, deck, n=3)
+
+    def review(question: Question, day: int, who: User = user) -> None:
+        when = datetime(2026, 1, day, tzinfo=UTC)
+        db.add(
+            Review(
+                user_id=who.id,
+                question_id=question.id,
+                selected=[],
+                correct=True,
+                confidence="confident",
+                rating=3,
+                was_new=False,
+                reviewed_at=when,
+            )
+        )
+
+    review(old, 1)
+    review(recent, 2)
+    review(never, 3, who=other)  # someone else's answer doesn't count
+    db.flush()
+    assert [q["id"] for q in content.deck_detail(db, user, deck.id)["questions"]] == [recent.id, old.id, never.id]
