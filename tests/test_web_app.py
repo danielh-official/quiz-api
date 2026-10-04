@@ -184,7 +184,8 @@ def test_session_size_from_form(client: TestClient, db: Session, user: User) -> 
         question = next(q for qid, q in questions.items() if f'name="question_id" value="{qid}"' in page)
         selected = [o["id"] for o in question.options if o["correct"]]
         client.post(f"{session_path}/answers", data={"question_id": str(question.id), "selected": selected})
-    assert "Session finished" in client.get(session_path).text
+    finished = client.get(session_path).text
+    assert "Session finished" in finished and f'href="/app/decks/{deck.id}"' in finished and "Back to decks" not in finished
 
     junk = client.post(f"/app/decks/{deck.id}/sessions", data={"size": "lots"})
     assert junk.status_code == 303  # falls back to the deck default
