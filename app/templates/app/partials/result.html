@@ -18,7 +18,7 @@
             <kbd class="flex size-7 shrink-0 items-center justify-center rounded-md border font-mono text-[13px] {% if o.correct %}border-ok text-ok{% else %}border-line text-mute{% endif %}">{{ loop.index }}</kbd>
             <div class="min-w-0 pt-0.5">
                 <div class="md text-ink">{{ o.text | markdown(true) }}{% if o.correct %} <span class="font-mono text-xs text-ok">correct</span>{% endif %}</div>
-                {% if o.explanation %}<div class="md mt-1 text-sm text-mute">{{ o.explanation | markdown }}</div>{% endif %}
+                {% if o.get('explanation') %}<div class="md mt-1 text-sm text-mute">{{ o.explanation | markdown }}</div>{% endif %}
             </div>
         </div>
         {% endfor %}

@@ -73,7 +73,7 @@
                 <label class="flex flex-col gap-1.5">
                     <span class="text-sm text-mute">Explanation</span>
                     <textarea class="min-h-16 rounded border border-line bg-surface px-3 py-2 text-ink" name="option_explanation_{{ loop.index0 }}"
-                              maxlength="2000">{{ o.explanation or '' }}</textarea>
+                              maxlength="2000">{{ o.get('explanation') or '' }}</textarea>
                 </label>
             </div>
             {% endfor %}
@@ -87,7 +87,7 @@
 
     {% if mode == 'edit' %}
     <label class="flex cursor-pointer items-center gap-2 text-ink">
-        <input type="checkbox" name="reset_progress"{% if question.reset_progress %} checked{% endif %}>
+        <input type="checkbox" name="reset_progress"{% if question.get('reset_progress') %} checked{% endif %}>
         Reset scheduling progress for this question
     </label>
     {% endif %}

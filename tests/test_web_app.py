@@ -339,3 +339,19 @@ def test_safe_next_rejects_external(client: TestClient, monkeypatch: pytest.Monk
     response = client.get("/app/login", params={"next": "https://evil.example/"})
     assert response.status_code == 303
     assert response.headers["location"] == "/app"
+
+
+def test_options_without_explanations_render(client: TestClient, db: Session, user: User) -> None:
+    login_web(user)
+    deck = make_deck(db, user, "Bare", session_size=1)
+    bare = question_in("Bare").model_copy(update={"explanation": None})
+    bare.options = [o.model_copy(update={"explanation": None}) for o in bare.options]
+    (question,) = content.create_questions(db, user, deck.id, [bare])
+
+    assert client.get(f"/app/questions/{question.id}/edit").status_code == 200
+    session_path = client.post(f"/app/decks/{deck.id}/sessions").headers["location"]
+    correct = [o["id"] for o in question.options if o["correct"]]
+    result = client.post(
+        f"{session_path}/answers", data={"question_id": str(question.id), "selected": correct, "confidence": "confident"}
+    )
+    assert result.status_code == 200
