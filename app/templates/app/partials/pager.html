@@ -1,7 +1,7 @@
 {% if detail.pages > 1 %}
 <nav class="mt-3 flex items-baseline gap-4 text-sm text-mute" aria-label="Question pages">
-    {% if detail.page > 1 %}<a href="?page={{ detail.page - 1 }}" rel="prev">← Previous</a>{% endif %}
+    {% if detail.page > 1 %}<a href="?{% if detail.query %}q={{ detail.query|urlencode }}&amp;{% endif %}page={{ detail.page - 1 }}" rel="prev">← Previous</a>{% endif %}
     <span>Page {{ detail.page }} of {{ detail.pages }}</span>
-    {% if detail.page < detail.pages %}<a href="?page={{ detail.page + 1 }}" rel="next">Next →</a>{% endif %}
+    {% if detail.page < detail.pages %}<a href="?{% if detail.query %}q={{ detail.query|urlencode }}&amp;{% endif %}page={{ detail.page + 1 }}" rel="next">Next →</a>{% endif %}
 </nav>
 {% endif %}

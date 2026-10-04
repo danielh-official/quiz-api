@@ -83,8 +83,15 @@
     {% endif %}
 </div>
 
+{% if detail.questions or detail.query %}
+<div class="mb-2 mt-10 flex flex-wrap items-baseline justify-between gap-3">
+    <h2 class="text-base font-semibold text-ink">Questions</h2>
+    <form method="get" role="search">
+        <input class="rounded border border-line bg-surface px-3 py-1.5 text-sm text-ink" type="search" name="q" maxlength="200"
+               value="{{ detail.query }}" placeholder="Search questions" aria-label="Search questions">
+    </form>
+</div>
 {% if detail.questions %}
-<h2 class="mb-2 mt-10 text-base font-semibold text-ink">Questions</h2>
 <ul class="list-none border-t border-line p-0">
     {% for q in detail.questions %}
     <li class="border-b border-line">
@@ -102,5 +109,8 @@
     {% endfor %}
 </ul>
 {% include "app/partials/pager.html" %}
+{% else %}
+<p class="border-t border-line pt-6 text-mute">No questions match “{{ detail.query }}”.</p>
+{% endif %}
 {% endif %}
 {% endblock %}

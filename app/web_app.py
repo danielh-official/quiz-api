@@ -249,9 +249,16 @@ async def create_deck(request: Request, db: Db, user: WebUser) -> Response:
 
 
 @router.get("/decks/{deck_id}")
-def deck_detail(deck_id: int, request: Request, db: Db, user: WebUser, page: Annotated[int, Query(ge=1)] = 1) -> HTMLResponse:
+def deck_detail(  # pylint: disable=too-many-arguments,too-many-positional-arguments
+    deck_id: int,
+    request: Request,
+    db: Db,
+    user: WebUser,
+    page: Annotated[int, Query(ge=1)] = 1,
+    q: Annotated[str, Query(max_length=200)] = "",
+) -> HTMLResponse:
     request.state.user = user
-    detail = content.deck_detail(db, user, deck_id, page, per_page=WEB_QUESTIONS_PER_PAGE)
+    detail = content.deck_detail(db, user, deck_id, page, per_page=WEB_QUESTIONS_PER_PAGE, query=q)
     performance = stats.performance(db, user, deck_id=deck_id)
     return render("app/deck.html", request, detail=detail, performance=performance)
 

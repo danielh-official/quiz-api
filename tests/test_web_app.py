@@ -187,6 +187,22 @@ def test_deck_questions_paginate(client: TestClient, db: Session, user: User) ->
     assert client.get(f"/app/decks/{deck.id}?page=0").status_code == 422
 
 
+def test_deck_question_search(client: TestClient, db: Session, user: User) -> None:
+    login_web(user)
+    deck = make_deck(db, user, "Big")
+    make_questions(db, user, deck, n=11, prefix="Lambda")
+    make_questions(db, user, deck, n=1, prefix="Glacier")
+
+    found = client.get(f"/app/decks/{deck.id}", params={"q": "glacier0 option 3"}).text  # matches option text
+    assert "Glacier0" in found and "Lambda0" not in found and 'value="glacier0 option 3"' in found
+
+    paged = client.get(f"/app/decks/{deck.id}", params={"q": "lambda"}).text
+    assert "Page 1 of 2" in paged and 'href="?q=lambda&amp;page=2"' in paged
+
+    none = client.get(f"/app/decks/{deck.id}", params={"q": "nothing like this"}).text
+    assert "No questions match" in none and 'name="q"' in none
+
+
 def test_other_users_deck_is_404_html(client: TestClient, db: Session, user: User, other: User) -> None:
     login_web(user)
     deck = make_deck(db, other, "Secret")

@@ -199,12 +199,14 @@ def deck_detail(  # pylint: disable=too-many-locals
     suspended: bool = False,
     archived_children: bool = False,
     per_page: int = QUESTIONS_PER_PAGE,
+    query: str = "",
 ) -> dict[str, Any]:
     """Deck settings, path, direct subdecks and a page of its own questions (with answers), last answered first.
 
     Default: active (non-archived) subdecks and non-suspended questions.
     suspended=True: questions are only this deck's suspended cards.
     archived_children=True: subdecks are only directly archived children.
+    query: only questions whose stem, options or explanation contain it.
     """
     from app.services.stats import counts  # pylint: disable=import-outside-toplevel  # import cycle
 
@@ -217,12 +219,15 @@ def deck_detail(  # pylint: disable=too-many-locals
     subdecks = archived_kids if archived_children else active_children
 
     if suspended:
-        suspend_filter: ColumnElement[bool] = Card.suspended_at.is_not(None)
+        question_filter: ColumnElement[bool] = Card.suspended_at.is_not(None)
     else:
-        suspend_filter = or_(Card.id.is_(None), Card.suspended_at.is_(None))
+        question_filter = or_(Card.id.is_(None), Card.suspended_at.is_(None))
+    query = query.strip()
+    if query:
+        question_filter = question_filter & question_matches(query)
     card_join = (Card.question_id == Question.id) & (Card.user_id == user.id)
     total = db.execute(
-        select(func.count(Question.id)).outerjoin(Card, card_join).where(Question.deck_id == deck.id, suspend_filter)
+        select(func.count(Question.id)).outerjoin(Card, card_join).where(Question.deck_id == deck.id, question_filter)
     ).scalar_one()
     last_answered = (
         select(Review.question_id, func.max(Review.reviewed_at).label("at"))
@@ -235,7 +240,7 @@ def deck_detail(  # pylint: disable=too-many-locals
             select(Question)
             .outerjoin(Card, card_join)
             .outerjoin(last_answered, last_answered.c.question_id == Question.id)
-            .where(Question.deck_id == deck.id, suspend_filter)
+            .where(Question.deck_id == deck.id, question_filter)
             .order_by(last_answered.c.at.desc().nulls_last(), Question.id)
             .offset((page - 1) * per_page)
             .limit(per_page)
@@ -267,6 +272,7 @@ def deck_detail(  # pylint: disable=too-many-locals
         ],
         "page": page,
         "pages": max(1, -(-total // per_page)),
+        "query": query,
         "suspended": suspended,
         "archived_children": archived_children,
     }
@@ -407,6 +413,17 @@ def delete_question(db: Session, user: User, question_id: int) -> None:
     db.commit()
 
 
+def question_matches(query: str) -> ColumnElement[bool]:
+    """Case-insensitive substring match on a question's stem, option texts or explanation."""
+    pattern = "%" + query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
+    option_texts = cast(func.jsonb_path_query_array(Question.options, literal_column("'$[*].text'::jsonpath")), Text)
+    return or_(
+        Question.stem.ilike(pattern, escape="\\"),
+        option_texts.ilike(pattern, escape="\\"),
+        Question.explanation.ilike(pattern, escape="\\"),
+    )
+
+
 def search_questions(
     db: Session,
     user: User,
@@ -421,19 +438,10 @@ def search_questions(
     if archived not in ("active", "archived", "all"):
         raise Invalid("archived", 'Must be "active", "archived", or "all".')
     decks = user_decks(db, user)
-    pattern = "%" + query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
-    option_texts = cast(func.jsonb_path_query_array(Question.options, literal_column("'$[*].text'::jsonpath")), Text)
     stmt = (
         select(Question)
         .join(Deck)
-        .where(
-            Deck.user_id == user.id,
-            or_(
-                Question.stem.ilike(pattern, escape="\\"),
-                option_texts.ilike(pattern, escape="\\"),
-                Question.explanation.ilike(pattern, escape="\\"),
-            ),
-        )
+        .where(Deck.user_id == user.id, question_matches(query))
         .order_by(Question.id)
         .limit(SEARCH_LIMIT + 1)
     )
