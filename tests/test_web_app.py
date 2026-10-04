@@ -171,6 +171,22 @@ def test_wrong_pick_count_redisplays_question(client: TestClient, db: Session, u
     assert "Pick exactly" in bad.text
 
 
+def test_deck_questions_paginate(client: TestClient, db: Session, user: User) -> None:
+    login_web(user)
+    deck = make_deck(db, user, "Big")
+    make_questions(db, user, deck, n=12, prefix="Stem")
+
+    first = client.get(f"/app/decks/{deck.id}").text
+    assert "Page 1 of 2" in first and 'href="?page=2"' in first and "Previous" not in first
+    assert "Stem10" not in first
+
+    second = client.get(f"/app/decks/{deck.id}?page=2").text
+    assert "Page 2 of 2" in second and 'href="?page=1"' in second and "Next" not in second
+    assert "Stem10" in second and "Stem11" in second
+
+    assert client.get(f"/app/decks/{deck.id}?page=0").status_code == 422
+
+
 def test_other_users_deck_is_404_html(client: TestClient, db: Session, user: User, other: User) -> None:
     login_web(user)
     deck = make_deck(db, other, "Secret")

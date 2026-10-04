@@ -198,6 +198,7 @@ def deck_detail(  # pylint: disable=too-many-locals
     *,
     suspended: bool = False,
     archived_children: bool = False,
+    per_page: int = QUESTIONS_PER_PAGE,
 ) -> dict[str, Any]:
     """Deck settings, path, direct subdecks and a page of its own questions (with answers).
 
@@ -229,8 +230,8 @@ def deck_detail(  # pylint: disable=too-many-locals
             .outerjoin(Card, card_join)
             .where(Question.deck_id == deck.id, suspend_filter)
             .order_by(Question.id)
-            .offset((page - 1) * QUESTIONS_PER_PAGE)
-            .limit(QUESTIONS_PER_PAGE)
+            .offset((page - 1) * per_page)
+            .limit(per_page)
         )
     )
     answer_stats = question_answer_stats(db, user, [q.id for q in questions])
@@ -258,7 +259,7 @@ def deck_detail(  # pylint: disable=too-many-locals
             for q in questions
         ],
         "page": page,
-        "pages": max(1, -(-total // QUESTIONS_PER_PAGE)),
+        "pages": max(1, -(-total // per_page)),
         "suspended": suspended,
         "archived_children": archived_children,
     }

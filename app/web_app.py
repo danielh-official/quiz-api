@@ -50,6 +50,7 @@ router = APIRouter(prefix="/app", include_in_schema=False)
 OAUTH_STATE_COOKIE = "quiz_oauth_state"
 OAUTH_VERIFIER_COOKIE = "quiz_oauth_verifier"
 OPTION_LABELS = "ABCDEFGHIJ"
+WEB_QUESTIONS_PER_PAGE = 10
 
 
 def render(name: str, request: Request, *, status_code: int = 200, **ctx: Any) -> HTMLResponse:
@@ -248,9 +249,9 @@ async def create_deck(request: Request, db: Db, user: WebUser) -> Response:
 
 
 @router.get("/decks/{deck_id}")
-def deck_detail(deck_id: int, request: Request, db: Db, user: WebUser) -> HTMLResponse:
+def deck_detail(deck_id: int, request: Request, db: Db, user: WebUser, page: Annotated[int, Query(ge=1)] = 1) -> HTMLResponse:
     request.state.user = user
-    detail = content.deck_detail(db, user, deck_id)
+    detail = content.deck_detail(db, user, deck_id, page, per_page=WEB_QUESTIONS_PER_PAGE)
     performance = stats.performance(db, user, deck_id=deck_id)
     return render("app/deck.html", request, detail=detail, performance=performance)
 
@@ -263,9 +264,11 @@ def deck_archived_children(deck_id: int, request: Request, db: Db, user: WebUser
 
 
 @router.get("/decks/{deck_id}/suspended")
-def deck_suspended_cards(deck_id: int, request: Request, db: Db, user: WebUser) -> HTMLResponse:
+def deck_suspended_cards(
+    deck_id: int, request: Request, db: Db, user: WebUser, page: Annotated[int, Query(ge=1)] = 1
+) -> HTMLResponse:
     request.state.user = user
-    detail = content.deck_detail(db, user, deck_id, suspended=True)
+    detail = content.deck_detail(db, user, deck_id, page, suspended=True, per_page=WEB_QUESTIONS_PER_PAGE)
     return render("app/deck_suspended.html", request, detail=detail)
 
 
