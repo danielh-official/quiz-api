@@ -175,7 +175,8 @@ def test_session_size_from_form(client: TestClient, db: Session, user: User) -> 
     login_web(user)
     deck = make_deck(db, user, "AWS", session_size=20)
     questions = {q.id: q for q in make_questions(db, user, deck, n=3)}
-    assert 'name="size"' in client.get(f"/app/decks/{deck.id}").text and 'value="20"' in client.get(f"/app/decks/{deck.id}").text
+    form = client.get(f"/app/decks/{deck.id}").text
+    assert 'name="size"' in form and 'max="3"' in form and 'value="3"' in form  # capped at the deck's 3 questions
 
     session_path = client.post(f"/app/decks/{deck.id}/sessions", data={"size": "2"}).headers["location"]
     for _ in range(2):
@@ -187,6 +188,9 @@ def test_session_size_from_form(client: TestClient, db: Session, user: User) -> 
 
     junk = client.post(f"/app/decks/{deck.id}/sessions", data={"size": "lots"})
     assert junk.status_code == 303  # falls back to the deck default
+
+    too_many = client.post(f"/app/decks/{deck.id}/sessions", data={"size": "50"}).headers["location"]
+    assert "of 3" in client.get(too_many).text  # clamped to the deck's question count
 
 
 def test_answer_keeps_shown_option_order(client: TestClient, db: Session, user: User) -> None:

@@ -33,7 +33,7 @@
 <div class="mt-6 flex flex-wrap items-center gap-4">
     <form class="flex items-center gap-2" method="post" action="/app/decks/{{ detail.deck.id }}/sessions">
         <input class="w-20 rounded border border-line bg-surface px-3 py-2 text-sm text-ink tabular-nums" type="number" name="size"
-               min="1" max="500" required value="{{ detail.deck.session_size }}" aria-label="Questions in session">
+               min="1" max="{{ [detail.deck.total, 500]|min }}" required value="{{ [detail.deck.session_size, detail.deck.total]|min }}" aria-label="Questions in session">
         <button
             class="inline-flex cursor-pointer items-center rounded border-0 bg-accent px-4 py-2.5 text-sm font-semibold text-accent-fg disabled:cursor-not-allowed disabled:opacity-40"
             type="submit"{% if detail.deck.archived or (detail.deck.due == 0 and detail.deck.new == 0) %} disabled{% endif %}>

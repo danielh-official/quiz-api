@@ -149,11 +149,13 @@ def start_session(db: Session, user: User, deck_id: int, size: int | None = None
 
     deck = get_deck(db, user, deck_id)
     require_active_session_deck(db, user, deck.id)
-    session = StudySession(user_id=user.id, deck_id=deck.id, size=max(1, min(size or deck.session_size, 500)), answered=0)
-    db.add(session)
-    db.commit()
     decks = user_decks(db, user)
     available = counts(db, user, decks, active_only=True)[deck.id]
+    # Never more questions than the deck (with its active subdecks) holds.
+    size = max(1, min(size or deck.session_size, 500, available["total"]))
+    session = StudySession(user_id=user.id, deck_id=deck.id, size=size, answered=0)
+    db.add(session)
+    db.commit()
     return {
         "session_id": session.id,
         "size": session.size,
