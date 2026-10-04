@@ -190,7 +190,7 @@ def question_answer_stats(db: Session, user: User, question_ids: list[int]) -> d
     }
 
 
-def deck_detail(  # pylint: disable=too-many-locals
+def deck_detail(  # pylint: disable=too-many-locals,too-many-arguments
     db: Session,
     user: User,
     deck_id: int,
@@ -200,13 +200,15 @@ def deck_detail(  # pylint: disable=too-many-locals
     archived_children: bool = False,
     per_page: int = QUESTIONS_PER_PAGE,
     query: str = "",
+    recent_first: bool = False,
 ) -> dict[str, Any]:
-    """Deck settings, path, direct subdecks and a page of its own questions (with answers), last answered first.
+    """Deck settings, path, direct subdecks and a page of its own questions (with answers), by id.
 
     Default: active (non-archived) subdecks and non-suspended questions.
     suspended=True: questions are only this deck's suspended cards.
     archived_children=True: subdecks are only directly archived children.
     query: only questions whose stem, options or explanation contain it.
+    recent_first: last answered first, never answered last (pages can shift as questions get answered).
     """
     from app.services.stats import counts  # pylint: disable=import-outside-toplevel  # import cycle
 
@@ -241,7 +243,7 @@ def deck_detail(  # pylint: disable=too-many-locals
             .outerjoin(Card, card_join)
             .outerjoin(last_answered, last_answered.c.question_id == Question.id)
             .where(Question.deck_id == deck.id, question_filter)
-            .order_by(last_answered.c.at.desc().nulls_last(), Question.id)
+            .order_by(*([last_answered.c.at.desc().nulls_last()] if recent_first else []), Question.id)
             .offset((page - 1) * per_page)
             .limit(per_page)
         )

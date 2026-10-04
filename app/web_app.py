@@ -258,7 +258,7 @@ def deck_detail(  # pylint: disable=too-many-arguments,too-many-positional-argum
     q: Annotated[str, Query(max_length=200)] = "",
 ) -> HTMLResponse:
     request.state.user = user
-    detail = content.deck_detail(db, user, deck_id, page, per_page=WEB_QUESTIONS_PER_PAGE, query=q)
+    detail = content.deck_detail(db, user, deck_id, page, per_page=WEB_QUESTIONS_PER_PAGE, query=q, recent_first=True)
     performance = stats.performance(db, user, deck_id=deck_id)
     return render("app/deck.html", request, detail=detail, performance=performance)
 

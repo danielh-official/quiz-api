@@ -112,8 +112,7 @@ def get_deck(
     ] = False,
 ) -> dict[str, Any]:
     """Get a deck with its settings, path, direct subdecks and the questions stored directly in it
-    (answers and explanations included), last answered first, 50 per page. Default hides archived child decks and
-    suspended cards."""
+    (answers and explanations included), 50 per page. Default hides archived child decks and suspended cards."""
     with caller() as (db, user):
         return content.deck_detail(db, user, deck_id, page, suspended=suspended, archived_children=archived_children)
 

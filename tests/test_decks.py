@@ -75,4 +75,9 @@ def test_deck_questions_sort_last_answered_first(db: Session, user: User, other:
     review(recent, 2)
     review(never, 3, who=other)  # someone else's answer doesn't count
     db.flush()
-    assert [q["id"] for q in content.deck_detail(db, user, deck.id)["questions"]] == [recent.id, old.id, never.id]
+    assert [q["id"] for q in content.deck_detail(db, user, deck.id, recent_first=True)["questions"]] == [
+        recent.id,
+        old.id,
+        never.id,
+    ]
+    assert [q["id"] for q in content.deck_detail(db, user, deck.id)["questions"]] == [never.id, old.id, recent.id]
