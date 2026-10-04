@@ -315,8 +315,13 @@ def delete_deck(deck_id: int, db: Db, user: WebUser) -> RedirectResponse:
 
 
 @router.post("/decks/{deck_id}/sessions")
-def start_session(deck_id: int, db: Db, user: WebUser) -> RedirectResponse:
-    started = study.start_session(db, user, deck_id)
+async def start_session(deck_id: int, request: Request, db: Db, user: WebUser) -> RedirectResponse:
+    form = await request.form()
+    try:
+        size = _optional_int(form.get("size"))
+    except ValueError:
+        size = None  # deck default; the service clamps the rest to 1-500
+    started = study.start_session(db, user, deck_id, size)
     return RedirectResponse(f"/app/sessions/{started['session_id']}", status_code=303)
 
 

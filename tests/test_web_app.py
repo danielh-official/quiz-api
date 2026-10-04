@@ -171,6 +171,24 @@ def test_wrong_pick_count_redisplays_question(client: TestClient, db: Session, u
     assert "Pick exactly" in bad.text
 
 
+def test_session_size_from_form(client: TestClient, db: Session, user: User) -> None:
+    login_web(user)
+    deck = make_deck(db, user, "AWS", session_size=20)
+    questions = {q.id: q for q in make_questions(db, user, deck, n=3)}
+    assert 'name="size"' in client.get(f"/app/decks/{deck.id}").text and 'value="20"' in client.get(f"/app/decks/{deck.id}").text
+
+    session_path = client.post(f"/app/decks/{deck.id}/sessions", data={"size": "2"}).headers["location"]
+    for _ in range(2):
+        page = client.get(session_path).text
+        question = next(q for qid, q in questions.items() if f'name="question_id" value="{qid}"' in page)
+        selected = [o["id"] for o in question.options if o["correct"]]
+        client.post(f"{session_path}/answers", data={"question_id": str(question.id), "selected": selected})
+    assert "Session finished" in client.get(session_path).text
+
+    junk = client.post(f"/app/decks/{deck.id}/sessions", data={"size": "lots"})
+    assert junk.status_code == 303  # falls back to the deck default
+
+
 def test_answer_keeps_shown_option_order(client: TestClient, db: Session, user: User) -> None:
     login_web(user)
     deck = make_deck(db, user, "AWS", session_size=1)
