@@ -1,5 +1,5 @@
 <form class="flex flex-col gap-8"
-      hx-post="/app/sessions/{{ session_id }}/answers"
+      hx-post="/app/decks/{{ deck_id }}/sessions/{{ session_id }}/answers"
       hx-target="#study"
       hx-swap="innerHTML">
     {% with progress = session, number = session.answered + 1 %}{% include "app/partials/progress.html" %}{% endwith %}

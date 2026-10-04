@@ -322,7 +322,7 @@ async def start_session(deck_id: int, request: Request, db: Db, user: WebUser) -
     except ValueError:
         size = None  # deck default; the service clamps the rest to 1-500
     started = study.start_session(db, user, deck_id, size)
-    return RedirectResponse(f"/app/sessions/{started['session_id']}", status_code=303)
+    return RedirectResponse(f"/app/decks/{deck_id}/sessions/{started['session_id']}", status_code=303)
 
 
 @router.get("/decks/{deck_id}/questions/new")
@@ -475,16 +475,18 @@ async def update_card(question_id: int, request: Request, db: Db, user: WebUser)
     return RedirectResponse(f"/app/questions/{question_id}", status_code=303)
 
 
-@router.get("/sessions/{session_id}")
-def session_page(session_id: int, request: Request, db: Db, user: WebUser) -> HTMLResponse:
+@router.get("/decks/{deck_id}/sessions/{session_id}")
+def session_page(deck_id: int, session_id: int, request: Request, db: Db, user: WebUser) -> HTMLResponse:
     request.state.user = user
+    require_session_in_deck(db, user, deck_id, session_id)
     payload = study.next_question(db, user, session_id)
     if payload.get("finished"):
-        return render("app/session_finished.html", request, session_id=session_id, summary=payload["summary"])
+        return render("app/session_finished.html", request, session_id=session_id, deck_id=deck_id, summary=payload["summary"])
     return render(
         "app/session.html",
         request,
         session_id=session_id,
+        deck_id=deck_id,
         session=payload["session"],
         question=payload["question"],
         error=None,
@@ -492,19 +494,21 @@ def session_page(session_id: int, request: Request, db: Db, user: WebUser) -> HT
     )
 
 
-@router.get("/sessions/{session_id}/next")
-def session_next(session_id: int, request: Request, db: Db, user: WebUser) -> HTMLResponse:
+@router.get("/decks/{deck_id}/sessions/{session_id}/next")
+def session_next(deck_id: int, session_id: int, request: Request, db: Db, user: WebUser) -> HTMLResponse:
     """HTMX partial: next question or finished summary."""
     request.state.user = user
+    require_session_in_deck(db, user, deck_id, session_id)
     payload = study.next_question(db, user, session_id)
     if payload.get("finished"):
         template = "app/partials/finished.html" if is_htmx(request) else "app/session_finished.html"
-        return render(template, request, session_id=session_id, summary=payload["summary"])
+        return render(template, request, session_id=session_id, deck_id=deck_id, summary=payload["summary"])
     template = "app/partials/question.html" if is_htmx(request) else "app/session.html"
     return render(
         template,
         request,
         session_id=session_id,
+        deck_id=deck_id,
         session=payload["session"],
         question=payload["question"],
         error=None,
@@ -512,9 +516,12 @@ def session_next(session_id: int, request: Request, db: Db, user: WebUser) -> HT
     )
 
 
-@router.post("/sessions/{session_id}/answers")
-async def session_answer(session_id: int, request: Request, db: Db, user: WebUser) -> HTMLResponse:
+@router.post("/decks/{deck_id}/sessions/{session_id}/answers")
+async def session_answer(  # pylint: disable=too-many-locals
+    deck_id: int, session_id: int, request: Request, db: Db, user: WebUser
+) -> HTMLResponse:
     request.state.user = user
+    require_session_in_deck(db, user, deck_id, session_id)
     form: FormData = await request.form()
     question_id = int(str(form.get("question_id") or "0"))
     confidence = str(form.get("confidence") or "confident")
@@ -530,6 +537,7 @@ async def session_answer(session_id: int, request: Request, db: Db, user: WebUse
                 "app/partials/finished.html" if is_htmx(request) else "app/session_finished.html",
                 request,
                 session_id=session_id,
+                deck_id=deck_id,
                 summary=payload["summary"],
             )
         if isinstance(exc, Invalid):
@@ -546,6 +554,7 @@ async def session_answer(session_id: int, request: Request, db: Db, user: WebUse
             request,
             status_code=422,
             session_id=session_id,
+            deck_id=deck_id,
             session=payload["session"],
             question=payload["question"],
             error=message,
@@ -557,9 +566,15 @@ async def session_answer(session_id: int, request: Request, db: Db, user: WebUse
         template,
         request,
         session_id=session_id,
+        deck_id=deck_id,
         result=result,
         labeled_options=labeled_options(in_order(result["question"]["options"], order)),
     )
+
+
+def require_session_in_deck(db: Session, user: User, deck_id: int, session_id: int) -> None:
+    if study.get_session(db, user, session_id).deck_id != deck_id:
+        raise NotFound(f"Session {session_id} not found.")
 
 
 def deck_view(db: Session, user: User, deck: Deck) -> dict[str, Any]:

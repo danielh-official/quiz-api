@@ -112,7 +112,7 @@ def test_study_loop_over_html(client: TestClient, db: Session, user: User) -> No
     started = client.post(f"/app/decks/{deck.id}/sessions")
     assert started.status_code == 303
     session_path = started.headers["location"]
-    assert session_path.startswith("/app/sessions/")
+    assert session_path.startswith(f"/app/decks/{deck.id}/sessions/")
 
     page = client.get(session_path)
     assert page.status_code == 200
@@ -142,7 +142,7 @@ def test_study_htmx_partials(client: TestClient, db: Session, user: User) -> Non
     correct = [o["id"] for o in question.options if o["correct"]]
 
     result = client.post(
-        f"/app/sessions/{session_id}/answers",
+        f"/app/decks/{deck.id}/sessions/{session_id}/answers",
         data={"question_id": str(question.id), "selected": correct, "confidence": "educated_guess"},
         headers={"HX-Request": "true"},
     )
@@ -150,7 +150,7 @@ def test_study_htmx_partials(client: TestClient, db: Session, user: User) -> Non
     assert "<html" not in result.text.lower()
     assert "Correct" in result.text
 
-    nxt = client.get(f"/app/sessions/{session_id}/next", headers={"HX-Request": "true"})
+    nxt = client.get(f"/app/decks/{deck.id}/sessions/{session_id}/next", headers={"HX-Request": "true"})
     assert nxt.status_code == 200
     assert "<html" not in nxt.text.lower()
     assert "Session finished" in nxt.text
@@ -163,7 +163,7 @@ def test_wrong_pick_count_redisplays_question(client: TestClient, db: Session, u
     session_id = client.post(f"/app/decks/{deck.id}/sessions").headers["location"].rsplit("/", 1)[-1]
 
     bad = client.post(
-        f"/app/sessions/{session_id}/answers",
+        f"/app/decks/{deck.id}/sessions/{session_id}/answers",
         data={"question_id": str(question.id), "selected": question.options[0]["id"], "confidence": "confident"},
         headers={"HX-Request": "true"},
     )
@@ -191,6 +191,9 @@ def test_session_size_from_form(client: TestClient, db: Session, user: User) -> 
 
     too_many = client.post(f"/app/decks/{deck.id}/sessions", data={"size": "50"}).headers["location"]
     assert "of 3" in client.get(too_many).text  # clamped to the deck's question count
+
+    other = make_deck(db, user, "GCP")
+    assert client.get(session_path.replace(f"/decks/{deck.id}/", f"/decks/{other.id}/")).status_code == 404
 
 
 def test_answer_keeps_shown_option_order(client: TestClient, db: Session, user: User) -> None:

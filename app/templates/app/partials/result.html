@@ -36,8 +36,8 @@
     {% endif %}
 
     <a class="inline-flex w-fit cursor-pointer items-center gap-2.5 rounded-lg bg-accent px-5 py-3 font-semibold text-accent-fg no-underline"
-       href="/app/sessions/{{ session_id }}/next"
-       hx-get="/app/sessions/{{ session_id }}/next"
+       href="/app/decks/{{ deck_id }}/sessions/{{ session_id }}/next"
+       hx-get="/app/decks/{{ deck_id }}/sessions/{{ session_id }}/next"
        hx-target="#study"
        hx-swap="innerHTML"
        data-key="n"><kbd class="rounded border border-current px-1.5 font-mono text-xs uppercase max-sm:hidden">n</kbd>Next</a>
