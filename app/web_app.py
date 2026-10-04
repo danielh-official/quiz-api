@@ -514,6 +514,7 @@ async def session_answer(session_id: int, request: Request, db: Db, user: WebUse
     question_id = int(str(form.get("question_id") or "0"))
     confidence = str(form.get("confidence") or "confident")
     selected = [str(v) for v in form.getlist("selected")]
+    order = [str(v) for v in form.getlist("order")]  # the shuffled order the question was shown in
     try:
         answer = AnswerIn(question_id=question_id, selected=selected, confidence=cast(Confidence, confidence))
         result = study.submit_answer(db, user, session_id, answer)
@@ -532,6 +533,8 @@ async def session_answer(session_id: int, request: Request, db: Db, user: WebUse
             message = str(exc.errors()[0]["msg"])
         else:
             message = str(exc)
+        if payload["question"]["id"] == question_id:
+            payload["question"]["options"] = in_order(payload["question"]["options"], order)
         template = "app/partials/question.html" if is_htmx(request) else "app/session.html"
         return render(
             template,
@@ -546,13 +549,23 @@ async def session_answer(session_id: int, request: Request, db: Db, user: WebUse
 
     template = "app/partials/result.html" if is_htmx(request) else "app/session_result.html"
     return render(
-        template, request, session_id=session_id, result=result, labeled_options=labeled_options(result["question"]["options"])
+        template,
+        request,
+        session_id=session_id,
+        result=result,
+        labeled_options=labeled_options(in_order(result["question"]["options"], order)),
     )
 
 
 def deck_view(db: Session, user: User, deck: Deck) -> dict[str, Any]:
     """deck_dict plus its ancestor path (root first, deck last), for the header breadcrumb."""
     return {**content.deck_dict(deck), "crumbs": content.path_crumbs(content.user_decks(db, user), deck.id)}
+
+
+def in_order(options: list[dict[str, Any]], order: list[str]) -> list[dict[str, Any]]:
+    """Options sorted by their position in `order` (option ids); ones not listed keep their place at the end."""
+    rank = {option_id: i for i, option_id in enumerate(order)}
+    return sorted(options, key=lambda o: rank.get(str(o["id"]), len(rank)))
 
 
 def labeled_options(options: list[dict[str, Any]]) -> list[dict[str, Any]]:

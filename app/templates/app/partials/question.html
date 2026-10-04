@@ -4,6 +4,7 @@
       hx-swap="innerHTML">
     {% with progress = session, number = session.answered + 1 %}{% include "app/partials/progress.html" %}{% endwith %}
     <input type="hidden" name="question_id" value="{{ question.id }}">
+    {% for o in labeled_options %}<input type="hidden" name="order" value="{{ o.id }}">{% endfor %}
     {% if error %}
     <div class="border-l-[3px] border-l-bad bg-bad/10 px-3 py-2.5 text-sm text-bad">{{ error }}</div>
     {% endif %}

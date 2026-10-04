@@ -171,6 +171,31 @@ def test_wrong_pick_count_redisplays_question(client: TestClient, db: Session, u
     assert "Pick exactly" in bad.text
 
 
+def test_answer_keeps_shown_option_order(client: TestClient, db: Session, user: User) -> None:
+    login_web(user)
+    deck = make_deck(db, user, "AWS", session_size=1)
+    question = make_questions(db, user, deck, n=1, type="select_two")[0]
+    session_path = client.post(f"/app/decks/{deck.id}/sessions").headers["location"]
+    shown = [o["id"] for o in reversed(question.options)]
+    texts = [o["text"] for o in reversed(question.options)]
+
+    def positions(html: str) -> list[int]:
+        return [html.index(text) for text in texts]
+
+    bad = client.post(
+        f"{session_path}/answers",
+        data={"question_id": str(question.id), "selected": shown[0], "order": shown, "confidence": "confident"},
+    )
+    assert bad.status_code == 422 and positions(bad.text) == sorted(positions(bad.text))
+
+    correct = [o["id"] for o in question.options if o["correct"]]
+    result = client.post(
+        f"{session_path}/answers",
+        data={"question_id": str(question.id), "selected": correct, "order": shown, "confidence": "confident"},
+    )
+    assert result.status_code == 200 and positions(result.text) == sorted(positions(result.text))
+
+
 def test_deck_questions_paginate(client: TestClient, db: Session, user: User) -> None:
     login_web(user)
     deck = make_deck(db, user, "Big")
