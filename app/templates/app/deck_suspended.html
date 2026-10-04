@@ -1,13 +1,8 @@
 {% extends "app/layout.html" %}
+{% set path = detail.deck.crumbs %}
+{% set current = 'suspended' %}
 {% block title %}Suspended · {{ detail.deck.name }}{% endblock %}
 {% block content %}
-<p class="mb-3 text-sm text-mute">
-    <a class="text-mute no-underline hover:text-ink" href="/app">Decks</a>
-    {% for crumb in detail.deck.crumbs %}
-    <span class="text-line"> / </span><a class="text-mute no-underline hover:text-ink" href="/app/decks/{{ crumb.id }}">{{ crumb.name }}</a>
-    {% endfor %}
-    <span class="text-line"> / </span><span>Suspended</span>
-</p>
 <h1 class="mb-1 text-[1.75rem] font-semibold leading-tight tracking-tight text-ink">Suspended cards</h1>
 <p class="mb-8 text-mute">Suspended questions in {{ detail.deck.name }}. Open one to unsuspend it.</p>
 

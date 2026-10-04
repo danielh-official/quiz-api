@@ -1,14 +1,8 @@
 {% extends "app/layout.html" %}
+{% set path = detail.deck.crumbs[:-1] %}
+{% set current = detail.deck.name %}
 {% block title %}{{ detail.deck.name }}{% endblock %}
 {% block content %}
-<p class="mb-3 text-sm text-mute">
-    <a class="text-mute no-underline hover:text-ink" href="/app">Decks</a>
-    {% for crumb in detail.deck.crumbs %}
-    {% if not loop.last %}
-    <span class="text-line"> / </span><a class="text-mute no-underline hover:text-ink" href="/app/decks/{{ crumb.id }}">{{ crumb.name }}</a>
-    {% endif %}
-    {% endfor %}
-</p>
 <div class="mb-1 flex flex-wrap items-baseline gap-3">
     <h1 class="text-[1.75rem] font-semibold leading-tight tracking-tight text-ink">{{ detail.deck.name }}</h1>
     {% if detail.deck.archived %}

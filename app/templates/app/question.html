@@ -1,11 +1,8 @@
 {% extends "app/layout.html" %}
+{% set path = deck.crumbs %}
+{% set current = 'question' %}
 {% block title %}Question{% endblock %}
 {% block content %}
-<p class="mb-3 text-sm text-mute">
-    <a class="text-mute no-underline hover:text-ink" href="/app">Decks</a>
-    <span class="text-line"> / </span>
-    <a class="text-mute no-underline hover:text-ink" href="/app/decks/{{ deck.id }}">{{ deck.name }}</a>
-</p>
 <div class="mb-6 flex flex-wrap items-baseline justify-between gap-3">
     <h1 class="text-[1.75rem] font-semibold leading-tight tracking-tight text-ink">Question</h1>
     <div class="flex gap-4 text-sm">

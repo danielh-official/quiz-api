@@ -1,6 +1,5 @@
 {% extends "app/layout.html" %}
 {% block title %}Decks{% endblock %}
-{% block crumb %}<span class="text-mute">/</span>decks{% endblock %}
 {% block content %}
 {% set tops = decks | selectattr("depth", "equalto", 0) | list %}
 <div class="mb-6 flex flex-wrap items-end justify-between gap-4">

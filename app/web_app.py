@@ -29,7 +29,7 @@ from app.auth import (
     token_claims,
 )
 from app.db import get_db
-from app.models import Card, User
+from app.models import Card, Deck, User
 from app.schemas import (
     QUESTION_SHAPES,
     AnswerIn,
@@ -272,7 +272,7 @@ def deck_suspended_cards(deck_id: int, request: Request, db: Db, user: WebUser) 
 @router.get("/decks/{deck_id}/edit")
 def edit_deck_form(deck_id: int, request: Request, db: Db, user: WebUser) -> HTMLResponse:
     request.state.user = user
-    deck = content.deck_dict(content.get_deck(db, user, deck_id))
+    deck = deck_view(db, user, content.get_deck(db, user, deck_id))
     parents = [d for d in content.list_decks(db, user) if d["id"] != deck_id]
     return render("app/deck_form.html", request, mode="edit", deck=deck, parents=parents, error=None)
 
@@ -313,7 +313,7 @@ def start_session(deck_id: int, db: Db, user: WebUser) -> RedirectResponse:
 @router.get("/decks/{deck_id}/questions/new")
 def new_question_form(deck_id: int, request: Request, db: Db, user: WebUser) -> HTMLResponse:
     request.state.user = user
-    deck = content.deck_dict(content.require_active_deck(db, user, deck_id))
+    deck = deck_view(db, user, content.require_active_deck(db, user, deck_id))
     qtype = _question_type(request.query_params.get("type"))
     return render(
         "app/question_form.html",
@@ -334,7 +334,7 @@ async def create_question(deck_id: int, request: Request, db: Db, user: WebUser)
         data = _question_in_from_form(form)
         created = content.create_questions(db, user, deck_id, [data])[0]
     except (Invalid, NotFound, ValidationError, ValueError) as exc:
-        deck = content.deck_dict(content.get_deck(db, user, deck_id))
+        deck = deck_view(db, user, content.get_deck(db, user, deck_id))
         return render(
             "app/question_form.html",
             request,
@@ -352,7 +352,7 @@ async def create_question(deck_id: int, request: Request, db: Db, user: WebUser)
 def question_detail(question_id: int, request: Request, db: Db, user: WebUser) -> HTMLResponse:
     request.state.user = user
     question = content.get_question(db, user, question_id)
-    deck = content.deck_dict(content.get_deck(db, user, question.deck_id))
+    deck = deck_view(db, user, content.get_deck(db, user, question.deck_id))
     card = db.scalar(select(Card).where(Card.user_id == user.id, Card.question_id == question.id))
     card_view = {
         "note": card.note if card else None,
@@ -376,7 +376,7 @@ def question_detail(question_id: int, request: Request, db: Db, user: WebUser) -
 def edit_question_form(question_id: int, request: Request, db: Db, user: WebUser) -> HTMLResponse:
     request.state.user = user
     question = content.get_question(db, user, question_id)
-    deck = content.deck_dict(content.get_deck(db, user, question.deck_id))
+    deck = deck_view(db, user, content.get_deck(db, user, question.deck_id))
     qtype = _question_type(request.query_params.get("type"), default=question.type)
     described = content.describe(question)
     if qtype != question.type:
@@ -401,7 +401,7 @@ async def update_question(question_id: int, request: Request, db: Db, user: WebU
         content.update_question(db, user, question_id, data)
     except (Invalid, NotFound, ValidationError, ValueError) as exc:
         question = content.get_question(db, user, question_id)
-        deck = content.deck_dict(content.get_deck(db, user, question.deck_id))
+        deck = deck_view(db, user, content.get_deck(db, user, question.deck_id))
         return render(
             "app/question_form.html",
             request,
@@ -439,7 +439,7 @@ async def update_card(question_id: int, request: Request, db: Db, user: WebUser)
         )
     except (Invalid, NotFound, ValidationError) as exc:
         question = content.get_question(db, user, question_id)
-        deck = content.deck_dict(content.get_deck(db, user, question.deck_id))
+        deck = deck_view(db, user, content.get_deck(db, user, question.deck_id))
         card = db.scalar(select(Card).where(Card.user_id == user.id, Card.question_id == question.id))
         return render(
             "app/question.html",
@@ -538,6 +538,11 @@ async def session_answer(session_id: int, request: Request, db: Db, user: WebUse
     return render(
         template, request, session_id=session_id, result=result, labeled_options=labeled_options(result["question"]["options"])
     )
+
+
+def deck_view(db: Session, user: User, deck: Deck) -> dict[str, Any]:
+    """deck_dict plus its ancestor path (root first, deck last), for the header breadcrumb."""
+    return {**content.deck_dict(deck), "crumbs": content.path_crumbs(content.user_decks(db, user), deck.id)}
 
 
 def labeled_options(options: list[dict[str, Any]]) -> list[dict[str, Any]]:

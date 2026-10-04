@@ -1,10 +1,7 @@
 {% extends "app/layout.html" %}
+{% set current = 'archived' %}
 {% block title %}Archived decks{% endblock %}
 {% block content %}
-<p class="mb-3 text-sm text-mute">
-    <a class="text-mute no-underline hover:text-ink" href="/app">Decks</a>
-    <span class="text-line"> / </span><span>Archived</span>
-</p>
 <h1 class="mb-1 text-[1.75rem] font-semibold leading-tight tracking-tight text-ink">Archived decks</h1>
 <p class="mb-8 text-mute">Directly archived decks. Open one to edit and unarchive it.</p>
 

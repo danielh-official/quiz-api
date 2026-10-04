@@ -1,15 +1,7 @@
 {% extends "app/layout.html" %}
+{% if mode == 'edit' %}{% set path = deck.crumbs + [{'name': 'question', 'href': '/app/questions/' ~ question.id}] %}{% set current = 'edit' %}{% else %}{% set path = deck.crumbs %}{% set current = 'new question' %}{% endif %}
 {% block title %}{% if mode == 'create' %}New question{% else %}Edit question{% endif %}{% endblock %}
 {% block content %}
-<p class="mb-3 text-sm text-mute">
-    <a class="text-mute no-underline hover:text-ink" href="/app">Decks</a>
-    <span class="text-line"> / </span>
-    <a class="text-mute no-underline hover:text-ink" href="/app/decks/{{ deck.id }}">{{ deck.name }}</a>
-    {% if mode == 'edit' %}
-    <span class="text-line"> / </span>
-    <a class="text-mute no-underline hover:text-ink" href="/app/questions/{{ question.id }}">Question</a>
-    {% endif %}
-</p>
 <h1 class="mb-6 text-[1.75rem] font-semibold leading-tight tracking-tight text-ink">
     {% if mode == 'create' %}New question{% else %}Edit question{% endif %}
 </h1>
