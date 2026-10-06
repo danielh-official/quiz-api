@@ -11,9 +11,13 @@ matter more than speed.
 
 ## Connecting
 
+Quiz API is self-hosted: there is no shared public instance. The user must fork the repo and deploy their own
+copy (see the repo README), then point the plugin at it by setting `QUIZ_API_URL` to `<APP_URL>/mcp`. Never
+assume or suggest anyone else's instance.
+
 The server lives at `<APP_URL>/mcp` (streamable HTTP, OAuth with GitHub sign-in; only allowlisted GitHub users get in).
 
-- Claude Code with the quiz-api plugin: the server is already configured. Run `/mcp`, pick quiz-api and sign in.
+- Claude Code with the quiz-api plugin: the server reads its URL from `QUIZ_API_URL` (set it to `<APP_URL>/mcp` before starting `claude`). Run `/mcp`, pick quiz-api and sign in.
 - Claude Code without the plugin: `claude mcp add --transport http quiz-api <APP_URL>/mcp`, then `/mcp` to sign in.
 - Claude.ai / Claude Desktop: Customize → Connectors → "+" → Add custom connector → `<APP_URL>/mcp`
   (Team/Enterprise: an owner adds it first under Organization settings → Connectors). Needs a public URL.

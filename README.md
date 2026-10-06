@@ -194,13 +194,13 @@ claude plugin marketplace add danielh-official/agent-plugins
 claude plugin install quiz-api@danielh-official-plugins
 ```
 
-The plugin points at the deployed server, `https://quiz-api.danielhaven.com/mcp`. Keep it in sync with `APP_URL`:
-change the URL in `plugins/quiz-api/.mcp.json` and bump `version` in `plugin.json` so installs pick it up. Validate with
+**The plugin has no default server.** Quiz API is self-hosted: fork this repo, [deploy your own instance](#deploy), then
+set `QUIZ_API_URL` to your instance's MCP URL (`https://<your-domain>/mcp`) before starting your client, e.g.
+`export QUIZ_API_URL=https://<your-domain>/mcp`. Without it the plugin's MCP server won't connect. Validate with
 `claude plugin validate plugins/quiz-api`.
 
-The URL is `${QUIZ_API_URL:-<production>}`, so setting `QUIZ_API_URL` points the same plugin at another server. The
-repo's `.envrc` sets it to `http://localhost:8000/mcp`: with [direnv](https://direnv.net) (`direnv allow` once),
-`claude` run inside this repo talks to your local, mocked server and everywhere else to production.
+For local development the repo's `.envrc` sets `QUIZ_API_URL` to `http://localhost:8000/mcp`: with [direnv](https://direnv.net) (`direnv allow` once),
+`claude` run inside this repo talks to your local, mocked server.
 
 For Claude.ai or ChatGPT, zip the skill folder (`cd plugins/quiz-api/skills && zip -r quiz-api.zip quiz-api`)
 and upload it under Skills.
