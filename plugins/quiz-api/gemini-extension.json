@@ -1,0 +1,10 @@
+{
+  "name": "quiz-api",
+  "version": "0.3.1",
+  "description": "Study and write spaced-repetition multiple-choice quizzes with Quiz API: connects its MCP server and teaches the study loop.",
+  "mcpServers": {
+    "quiz-api": {
+      "httpUrl": "https://quiz-api.danielhaven.com/mcp"
+    }
+  }
+}

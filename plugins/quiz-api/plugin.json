@@ -1,0 +1,23 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "quiz-api",
+  "version": "0.3.1",
+  "description": "Study and write spaced-repetition multiple-choice quizzes with Quiz API: connects its MCP server and teaches the study loop.",
+  "author": {
+    "name": "Daniel (Haven) Hotyanov",
+    "url": "https://github.com/danielh-official"
+  },
+  "homepage": "https://github.com/danielh-official/quiz-api/tree/main/plugins/quiz-api",
+  "repository": "https://github.com/danielh-official/quiz-api",
+  "keywords": ["quiz", "spaced-repetition", "fsrs", "flashcards", "mcp"],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Quiz API",
+        "shortDescription": "Study and write spaced-repetition quizzes.",
+        "category": "Productivity",
+        "defaultPrompt": ["Quiz me on my due questions."]
+      }
+    }
+  }
+}
