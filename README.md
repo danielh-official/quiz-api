@@ -178,7 +178,7 @@ Meanwhile, deploy to another host: the database lives elsewhere, so nothing is l
   ChatGPT Plugins → "+" → create a developer-mode app with `<APP_URL>/mcp` and OAuth.
 
 The home page shows the same steps, plus the plugin install commands when `PLUGIN_MARKETPLACE` is set (e.g.
-`danielh-official/quiz-api`); otherwise it shows only `claude mcp add`.
+`danielh-official/agent-plugins`); otherwise it shows only `claude mcp add`.
 
 Claude Code's prompt suggestions (the greyed-out next message) can give answers away. Study from a folder whose
 `.claude/settings.json` has `{ "promptSuggestionEnabled": false }`.
@@ -186,12 +186,12 @@ Claude Code's prompt suggestions (the greyed-out next message) can give answers 
 ### Claude Code plugin
 
 `plugins/quiz-api/` bundles the MCP server config (`.mcp.json`) and the `quiz-api` skill, which covers the study
-loop, writing good questions and reviewing progress. `.claude-plugin/marketplace.json` makes this repo a plugin
-marketplace.
+loop, writing good questions and reviewing progress. It's listed in the `danielh-official-plugins` marketplace
+(`danielh-official/agent-plugins`), which points back at this directory.
 
 ```bash
-claude plugin marketplace add danielh-official/quiz-api   # or . from a checkout
-claude plugin install quiz-api@quiz-api
+claude plugin marketplace add danielh-official/agent-plugins
+claude plugin install quiz-api@danielh-official-plugins
 ```
 
 The plugin points at the deployed server, `https://quiz-api.danielhaven.com/mcp`. Keep it in sync with `APP_URL`:
