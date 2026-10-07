@@ -260,6 +260,8 @@ def deck_detail(  # pylint: disable=too-many-arguments,too-many-positional-argum
     request.state.user = user
     detail = content.deck_detail(db, user, deck_id, page, per_page=WEB_QUESTIONS_PER_PAGE, query=q, recent_first=True)
     performance = stats.performance(db, user, deck_id=deck_id)
+    activity = stats.activity(db, user, content.user_decks(db, user))
+    detail["subdecks"] = [{**s, **activity[s["id"]]} for s in detail["subdecks"]]
     return render("app/deck.html", request, detail=detail, performance=performance)
 
 
