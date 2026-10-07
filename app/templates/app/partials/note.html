@@ -1,0 +1,19 @@
+<form class="flex flex-col gap-2"
+      method="post"
+      action="/app/decks/{{ deck_id }}/sessions/{{ session_id }}/note"
+      hx-post="/app/decks/{{ deck_id }}/sessions/{{ session_id }}/note"
+      hx-target="this"
+      hx-swap="outerHTML">
+    <input type="hidden" name="question_id" value="{{ question_id }}">
+    <label class="flex flex-col gap-1.5">
+        <span class="font-mono text-xs text-mute">Your note</span>
+        <textarea class="min-h-20 rounded border border-line bg-surface px-3 py-2 text-ink" name="note" maxlength="10000"
+                  placeholder="Why you picked it, what tripped you up…">{{ note or '' }}</textarea>
+    </label>
+    <div class="flex items-center gap-3">
+        <button class="inline-flex w-fit cursor-pointer items-center rounded border border-line bg-surface px-4 py-2 text-sm font-medium text-ink hover:border-accent hover:text-accent"
+                type="submit">Save note</button>
+        {% if saved is defined and saved %}<span class="text-sm text-ok">Saved</span>{% endif %}
+        {% if error is defined and error %}<span class="text-sm text-bad">{{ error }}</span>{% endif %}
+    </div>
+</form>
