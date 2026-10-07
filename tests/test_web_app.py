@@ -103,6 +103,24 @@ def test_markdown_renders_on_question_detail(client: TestClient, db: Session, us
     assert "&lt;script&gt;" in xss.text
 
 
+def test_markdown_tables_render(client: TestClient, db: Session, user: User) -> None:
+    login_web(user)
+    deck = make_deck(db, user, "Finance")
+    question = content.create_questions(db, user, deck.id, [question_in("stem")])[0]
+    stem = (
+        "A company's $200,000 annual budget is split as follows:\n\n"
+        "| Category | Share |\n|---|--:|\n| Salaries | 40% |\n| Rent | 35% |\n| Marketing | 15% |\n| Other | 10% |\n\n"
+        "How much more is spent on salaries than on marketing?"
+    )
+    content.update_question(db, user, question.id, QuestionUpdate(stem=stem))
+
+    page = client.get(f"/app/questions/{question.id}")
+    assert page.status_code == 200
+    assert "<table>" in page.text
+    assert "<th>Category</th>" in page.text
+    assert '<td style="text-align:right">15%</td>' in page.text
+
+
 def test_study_loop_over_html(client: TestClient, db: Session, user: User) -> None:
     login_web(user)
     deck = make_deck(db, user, "AWS", session_size=1)
