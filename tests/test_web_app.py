@@ -466,3 +466,19 @@ def test_options_without_explanations_render(client: TestClient, db: Session, us
         f"{session_path}/answers", data={"question_id": str(question.id), "selected": correct, "confidence": "confident"}
     )
     assert result.status_code == 200
+
+
+def test_deck_detail_subdeck_stats(client: TestClient, db: Session, user: User) -> None:
+    login_web(user)
+    parent = make_deck(db, user, "Parent")
+    child = make_deck(db, user, "Child", parent_id=parent.id, new_per_day=1)
+    make_questions(db, user, child, n=3)
+
+    page = client.get(f"/app/decks/{parent.id}").text
+    for header in ("Due", "New", "Total", "Load · 7 days", "Retention"):
+        assert f">{header}</th>" in page
+    row = page.split(f'href="/app/decks/{child.id}">Child</a>', 1)[1].split("</tr>", 1)[0]
+    cells = [cell.rsplit(">", 1)[1].strip() for cell in row.split("</td>")[1:-1]]
+    assert cells[:3] == ["0", "1", "3"]  # due, new, total
+    assert 'aria-label="Due over the next 7 days: 0, 0, 0, 0, 0, 0, 0"' in row
+    assert cells[-1] == "—"  # no reviews yet
