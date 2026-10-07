@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app import auth as auth_module
 from app.main import app
-from app.models import User
+from app.models import Review, User
 from app.schemas import CardUpdate, DeckUpdate, QuestionUpdate
 from app.services import content
 from app.web_app import web_claims
@@ -213,6 +213,28 @@ def test_wrong_pick_count_redisplays_question(client: TestClient, db: Session, u
     )
     assert bad.status_code == 422
     assert "Pick exactly" in bad.text
+
+
+def test_pre_answer_note_saved_and_kept_on_error(client: TestClient, db: Session, user: User) -> None:
+    login_web(user)
+    deck = make_deck(db, user, "AWS", session_size=1)
+    question = make_questions(db, user, deck, n=1, type="select_two")[0]
+    session_path = client.post(f"/app/decks/{deck.id}/sessions").headers["location"]
+    assert 'name="pre_answer_note"' in client.get(session_path).text
+
+    note = "Torn between <b>A</b> and C"
+    bad = client.post(
+        f"{session_path}/answers",
+        data={"question_id": str(question.id), "selected": question.options[0]["id"], "pre_answer_note": note},
+    )
+    assert bad.status_code == 422 and "Torn between &lt;b&gt;A&lt;/b&gt; and C</textarea>" in bad.text
+
+    correct = [o["id"] for o in question.options if o["correct"]]
+    result = client.post(
+        f"{session_path}/answers", data={"question_id": str(question.id), "selected": correct, "pre_answer_note": note}
+    )
+    assert "Your pre-answer notes" in result.text and "Torn between &lt;b&gt;A&lt;/b&gt; and C" in result.text
+    assert db.query(Review).one().pre_answer_note == note
 
 
 def test_session_size_from_form(client: TestClient, db: Session, user: User) -> None:

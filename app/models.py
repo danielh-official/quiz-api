@@ -132,6 +132,7 @@ class Review(Base):
     correct: Mapped[bool]
     confidence: Mapped[str] = mapped_column(String(16))
     rating: Mapped[int] = mapped_column(SmallInteger)
+    pre_answer_note: Mapped[str | None]  # what the user wrote before seeing the answer, kept with this attempt
     was_new: Mapped[bool]
     reviewed_at: Mapped[datetime]
 

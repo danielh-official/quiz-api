@@ -24,6 +24,12 @@
         </label>
         {% endfor %}
     </fieldset>
+    <label class="flex flex-col gap-1.5">
+        <span class="font-mono text-xs text-mute">Pre-answer notes · optional, saved with this answer</span>
+        <textarea class="min-h-20 rounded-lg border border-line bg-surface px-3 py-2 text-ink focus-visible:outline-2 focus-visible:outline-accent"
+                  name="pre_answer_note" maxlength="10000"
+                  placeholder="What you're thinking before you see the answer">{{ pre_answer_note | default('') }}</textarea>
+    </label>
     <fieldset class="border-0 p-0">
         <legend class="mb-3 font-mono text-xs text-mute">Then how sure you are · submits on press</legend>
         <div class="grid gap-2 sm:grid-cols-3">

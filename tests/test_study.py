@@ -33,6 +33,18 @@ def test_answer_creates_card_and_review(db: Session, user: User) -> None:
     assert db.query(Review).one().was_new
 
 
+def test_pre_answer_note_saved_with_the_attempt(db: Session, user: User) -> None:
+    deck = make_deck(db, user)
+    q, other = make_questions(db, user, deck, 2)
+    session_id = start(db, user, deck)
+    first = answer(db, user, session_id, q, pre_answer_note="  Ruled out B.  ")
+    second = answer(db, user, session_id, other)
+
+    assert first["pre_answer_note"] == "Ruled out B." and second["pre_answer_note"] is None
+    assert [r.pre_answer_note for r in db.query(Review).order_by(Review.id)] == ["Ruled out B.", None]
+    assert all(c.note is None for c in db.query(Card))
+
+
 def test_confident_wrong_on_reviewed_card_is_a_lapse(db: Session, user: User) -> None:
     deck = make_deck(db, user)
     [q] = make_questions(db, user, deck)

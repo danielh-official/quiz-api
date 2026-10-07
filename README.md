@@ -220,7 +220,7 @@ Every route needs `Authorization: Bearer <token>`, except `/up`, `/`, `/robots.t
 | PUT | `/questions/{id}/card` | `note`, `suspended` |
 | POST | `/decks/{id}/sessions` | Start a session, optional `size`; returns the latest session summaries |
 | GET | `/sessions/{id}/next` | Next question without answers, or the summary when done |
-| POST | `/sessions/{id}/answers` | `question_id`, `selected` (option ids), `confidence` |
+| POST | `/sessions/{id}/answers` | `question_id`, `selected` (option ids), `confidence`, optional `pre_answer_note` |
 | PATCH | `/sessions/{id}` | `summary`: the running free-form summary, replaced on each call |
 | GET, POST | `/exams` | List (`?upcoming=` = incomplete + future/undated start); create |
 | GET, PATCH, DELETE | `/exams/{id}` | PATCH: `name`, `starts_at`, `completed`, `deck_ids` |
