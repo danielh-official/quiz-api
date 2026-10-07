@@ -527,8 +527,14 @@ async def session_answer(  # pylint: disable=too-many-locals
     confidence = str(form.get("confidence") or "confident")
     selected = [str(v) for v in form.getlist("selected")]
     order = [str(v) for v in form.getlist("order")]  # the shuffled order the question was shown in
+    pre_answer_note = str(form.get("pre_answer_note") or "")
     try:
-        answer = AnswerIn(question_id=question_id, selected=selected, confidence=cast(Confidence, confidence))
+        answer = AnswerIn(
+            question_id=question_id,
+            selected=selected,
+            confidence=cast(Confidence, confidence),
+            pre_answer_note=pre_answer_note,
+        )
         result = study.submit_answer(db, user, session_id, answer)
     except (Invalid, NotFound, ValidationError) as exc:
         payload = study.next_question(db, user, session_id)
@@ -558,6 +564,7 @@ async def session_answer(  # pylint: disable=too-many-locals
             session=payload["session"],
             question=payload["question"],
             error=message,
+            pre_answer_note=pre_answer_note if payload["question"]["id"] == question_id else "",
             labeled_options=labeled_options(payload["question"]["options"]),
         )
 
