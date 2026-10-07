@@ -574,6 +574,42 @@ async def session_answer(  # pylint: disable=too-many-locals
     )
 
 
+@router.post("/decks/{deck_id}/sessions/{session_id}/note")
+async def session_note(deck_id: int, session_id: int, request: Request, db: Db, user: WebUser) -> Response:
+    """Saves the private note from the answer screen. HTMX swaps the form in place; without it, on to the next question."""
+    request.state.user = user
+    require_session_in_deck(db, user, deck_id, session_id)
+    form = await request.form()
+    question_id = int(str(form.get("question_id") or "0"))
+    note = str(form.get("note") or "")
+    try:
+        saved = content.update_card(db, user, question_id, CardUpdate(note=note))
+    except (Invalid, ValidationError) as exc:
+        if not is_htmx(request):
+            raise
+        return render(
+            "app/partials/note.html",
+            request,
+            status_code=422,
+            deck_id=deck_id,
+            session_id=session_id,
+            question_id=question_id,
+            note=note,
+            error=_form_error(exc),
+        )
+    if not is_htmx(request):
+        return RedirectResponse(f"/app/decks/{deck_id}/sessions/{session_id}", status_code=303)
+    return render(
+        "app/partials/note.html",
+        request,
+        deck_id=deck_id,
+        session_id=session_id,
+        question_id=question_id,
+        note=saved["note"],
+        saved=True,
+    )
+
+
 def require_session_in_deck(db: Session, user: User, deck_id: int, session_id: int) -> None:
     if study.get_session(db, user, session_id).deck_id != deck_id:
         raise NotFound(f"Session {session_id} not found.")

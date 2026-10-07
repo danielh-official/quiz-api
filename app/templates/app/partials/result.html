@@ -31,9 +31,7 @@
     </div>
     {% endif %}
 
-    {% if result.note %}
-    <p class="text-sm text-mute">Note: {{ result.note }}</p>
-    {% endif %}
+    {% with question_id = result.question.id, note = result.note %}{% include "app/partials/note.html" %}{% endwith %}
 
     <a class="inline-flex w-fit cursor-pointer items-center gap-2.5 rounded-lg bg-accent px-5 py-3 font-semibold text-accent-fg no-underline"
        href="/app/decks/{{ deck_id }}/sessions/{{ session_id }}/next"

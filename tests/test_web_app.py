@@ -468,6 +468,41 @@ def test_options_without_explanations_render(client: TestClient, db: Session, us
     assert result.status_code == 200
 
 
+def test_note_after_answer(client: TestClient, db: Session, user: User) -> None:
+    login_web(user)
+    deck = make_deck(db, user, "AWS", session_size=2)
+    question = make_questions(db, user, deck, n=2)[0]
+    session_path = client.post(f"/app/decks/{deck.id}/sessions").headers["location"]
+    correct = [o["id"] for o in question.options if o["correct"]]
+    result = client.post(
+        f"{session_path}/answers",
+        data={"question_id": str(question.id), "selected": correct, "confidence": "confident"},
+        headers={"HX-Request": "true"},
+    )
+    assert 'name="note"' in result.text and "Save note" in result.text
+
+    saved = client.post(
+        f"{session_path}/note",
+        data={"question_id": str(question.id), "note": " Mixed up S3 and EFS "},
+        headers={"HX-Request": "true"},
+    )
+    assert saved.status_code == 200 and "Saved" in saved.text and ">Mixed up S3 and EFS</textarea>" in saved.text
+    assert client.get(f"/app/questions/{question.id}").text.count("Mixed up S3 and EFS") == 1
+
+    plain = client.post(f"{session_path}/note", data={"question_id": str(question.id), "note": ""})
+    assert plain.status_code == 303 and plain.headers["location"] == session_path
+    assert "Mixed up S3 and EFS" not in client.get(f"/app/questions/{question.id}").text
+
+    too_long = client.post(
+        f"{session_path}/note", data={"question_id": str(question.id), "note": "x" * 10001}, headers={"HX-Request": "true"}
+    )
+    assert too_long.status_code == 422 and "at most 10000" in too_long.text
+
+    other = make_deck(db, user, "GCP")
+    wrong_deck = session_path.replace(f"/decks/{deck.id}/", f"/decks/{other.id}/")
+    assert client.post(f"{wrong_deck}/note", data={"question_id": str(question.id), "note": "x"}).status_code == 404
+
+
 def test_deck_detail_subdeck_stats(client: TestClient, db: Session, user: User) -> None:
     login_web(user)
     parent = make_deck(db, user, "Parent")
