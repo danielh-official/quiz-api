@@ -90,6 +90,9 @@ class AnswerIn(BaseModel):
     question_id: int
     selected: list[str] = Field(min_length=1, max_length=5, description="Option ids the user picked.")
     confidence: Confidence
+    pre_answer_note: str | None = Field(
+        default=None, max_length=10000, description="The user's thinking before seeing the answer, saved with this attempt."
+    )
 
 
 class SettingsUpdate(BaseModel):

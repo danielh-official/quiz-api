@@ -104,6 +104,7 @@ def test_full_session_without_answer_leakage(monkeypatch: pytest.MonkeyPatch) ->
                     "question_id": nxt["question"]["id"],
                     "selected": [nxt["question"]["options"][0]["id"]],
                     "confidence": "educated_guess",
+                    "pre_answer_note": "Leaning on durability.",
                 },
             )
         ).data
@@ -112,7 +113,7 @@ def test_full_session_without_answer_leakage(monkeypatch: pytest.MonkeyPatch) ->
 
     leaked, nxt, result, done = run(monkeypatch, steps)
     assert leaked == [] and "explanation" not in nxt["question"]
-    assert "explanation" in result["question"]
+    assert "explanation" in result["question"] and result["pre_answer_note"] == "Leaning on durability."
     assert done["finished"] and done["summary"]["answered"] == 1
 
 

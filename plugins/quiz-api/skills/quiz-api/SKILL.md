@@ -87,7 +87,8 @@ Call `update-settings` with no arguments. If the timezone is still `UTC`, ask th
    ```
 3. Ask for their pick(s) **and** their confidence before revealing anything. If they don't say, ask:
    "Confident, educated guess, or complete guess?"
-4. `submit-answer` with the option **ids** (map their letters back) and the confidence.
+4. `submit-answer` with the option **ids** (map their letters back) and the confidence. If they explained their
+   thinking before the reveal, pass it as `pre_answer_note` so it stays with this attempt.
 5. Show whether they were right, the correct option(s), and the explanations. If it was a misconception, say so
    plainly and dig into why their reasoning felt right. Offer to save their takeaway with `update-card` (`note`).
 6. `update-session` with the **whole** summary so far, rewritten to include this answer — every time, so nothing

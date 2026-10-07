@@ -249,6 +249,7 @@ def submit_answer(db: Session, user: User, session_id: int, answer: AnswerIn) ->
     now = datetime.now(UTC)
     correct = set(selected) == {o["id"] for o in question.options if o["correct"]}
     rating = rating_for(correct, answer.confidence)
+    pre_answer_note = (answer.pre_answer_note or "").strip() or None
     card = card_for(db, user, question)
     was_new = card.last_reviewed_at is None
     reviewed, _ = scheduler(user).review_card(memory(card), rating, now)
@@ -266,6 +267,7 @@ def submit_answer(db: Session, user: User, session_id: int, answer: AnswerIn) ->
             correct=correct,
             confidence=answer.confidence,
             rating=int(rating),
+            pre_answer_note=pre_answer_note,
             was_new=was_new,
             reviewed_at=now,
         )
@@ -277,6 +279,7 @@ def submit_answer(db: Session, user: User, session_id: int, answer: AnswerIn) ->
         "rating": rating.name.lower(),
         "question": describe(question),
         "note": card.note,
+        "pre_answer_note": pre_answer_note,
         "next_review_at": reviewed.due.isoformat(),
         "session": {"id": session.id, "answered": session.answered, "size": session.size},
     }
