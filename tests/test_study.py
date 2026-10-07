@@ -37,13 +37,7 @@ def test_pre_answer_note_saved_with_the_attempt(db: Session, user: User) -> None
     deck = make_deck(db, user)
     q, other = make_questions(db, user, deck, 2)
     session_id = start(db, user, deck)
-    right = [o["id"] for o in q.options if o["correct"]]
-    first = study.submit_answer(
-        db,
-        user,
-        session_id,
-        AnswerIn(question_id=q.id, selected=right, confidence="confident", pre_answer_note="  Ruled out B.  "),
-    )
+    first = answer(db, user, session_id, q, pre_answer_note="  Ruled out B.  ")
     second = answer(db, user, session_id, other)
 
     assert first["pre_answer_note"] == "Ruled out B." and second["pre_answer_note"] is None
