@@ -81,10 +81,17 @@ def make_questions(
     return content.create_questions(db, user, deck.id, [question_in(f"{prefix}{i}", type) for i in range(n)])
 
 
-def answer(
-    db: Session, user: User, session_id: int, question: Question, right: bool = True, confidence: Confidence = "confident"
+def answer(  # pylint: disable=too-many-arguments
+    db: Session,
+    user: User,
+    session_id: int,
+    question: Question,
+    right: bool = True,
+    confidence: Confidence = "confident",
+    pre_answer_note: str | None = None,
 ) -> dict[str, Any]:
     wanted = [o for o in question.options if o["correct"] == right]
     pick = 1 if question.type == "single" else 2
     selected = [o["id"] for o in wanted[:pick]]
-    return study.submit_answer(db, user, session_id, AnswerIn(question_id=question.id, selected=selected, confidence=confidence))
+    data = AnswerIn(question_id=question.id, selected=selected, confidence=confidence, pre_answer_note=pre_answer_note)
+    return study.submit_answer(db, user, session_id, data)
