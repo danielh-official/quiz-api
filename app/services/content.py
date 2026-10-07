@@ -202,7 +202,7 @@ def deck_detail(  # pylint: disable=too-many-locals,too-many-arguments
     query: str = "",
     recent_first: bool = False,
 ) -> dict[str, Any]:
-    """Deck settings, path, direct subdecks and a page of its own questions (with answers), by id.
+    """Deck settings, path, direct subdecks (with due / new / total) and a page of its own questions (with answers), by id.
 
     Default: active (non-archived) subdecks and non-suspended questions.
     suspended=True: questions are only this deck's suspended cards.
@@ -214,6 +214,7 @@ def deck_detail(  # pylint: disable=too-many-locals,too-many-arguments
 
     deck = get_deck(db, user, deck_id)
     decks = user_decks(db, user)
+    per_deck = counts(db, user, decks, active_only=True)
     page = max(page, 1)
     children = children_of(decks).get(deck.id, [])
     active_children = [d for d in children if d.archived_at is None]
@@ -260,11 +261,11 @@ def deck_detail(  # pylint: disable=too-many-locals,too-many-arguments
             **deck_dict(deck),
             "path": path_names(decks, deck.id),
             "crumbs": path_crumbs(decks, deck.id),
-            **counts(db, user, decks, active_only=True)[deck.id],
+            **per_deck[deck.id],
             "archived_children_count": len(archived_kids),
             "suspended_count": suspended_count,
         },
-        "subdecks": [deck_dict(d) for d in subdecks],
+        "subdecks": [{**deck_dict(d), **per_deck[d.id]} for d in subdecks],
         "questions": [
             {
                 **describe(q),

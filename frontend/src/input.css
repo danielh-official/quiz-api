@@ -105,4 +105,17 @@
   .md blockquote {
     @apply border-l-[3px] border-line pl-3 text-mute;
   }
+
+  .md table {
+    @apply my-[0.6em] block max-w-full overflow-x-auto border-collapse font-sans text-base;
+  }
+
+  .md th,
+  .md td {
+    @apply border border-line px-3 py-1.5 text-left;
+  }
+
+  .md th {
+    @apply bg-code font-semibold;
+  }
 }

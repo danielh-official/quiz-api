@@ -58,13 +58,41 @@
 
 {% if detail.subdecks %}
 <h2 class="mb-2 mt-10 text-base font-semibold text-ink">Subdecks</h2>
-<ul class="list-none border-t border-line p-0">
-    {% for s in detail.subdecks %}
-    <li class="border-b border-line">
-        <a class="block py-2.5 text-ink no-underline hover:text-accent" href="/app/decks/{{ s.id }}">{{ s.name }}</a>
-    </li>
-    {% endfor %}
-</ul>
+<div class="overflow-x-auto rounded-lg border border-line">
+    <table class="w-full min-w-[660px] border-collapse text-sm">
+        <thead>
+            <tr class="bg-surface text-left font-mono text-xs text-mute">
+                <th class="px-4 py-2.5 font-medium">Deck</th>
+                <th class="w-16 px-4 py-2.5 text-right font-medium">Due</th>
+                <th class="w-16 px-4 py-2.5 text-right font-medium">New</th>
+                <th class="w-16 px-4 py-2.5 text-right font-medium">Total</th>
+                <th class="w-36 px-4 py-2.5 font-medium">Load · 7 days</th>
+                <th class="w-24 px-4 py-2.5 text-right font-medium">Retention</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for s in detail.subdecks %}
+            {% set peak = s.load | max %}
+            <tr class="border-t border-line hover:bg-surface">
+                <td class="p-0">
+                    <a class="block px-4 py-3 text-ink no-underline" href="/app/decks/{{ s.id }}">{{ s.name }}</a>
+                </td>
+                <td class="px-4 py-3 text-right font-mono tabular-nums {% if s.due > 0 %}font-bold text-due{% else %}text-mute{% endif %}">{{ s.due }}</td>
+                <td class="px-4 py-3 text-right font-mono tabular-nums text-mute">{{ s.new }}</td>
+                <td class="px-4 py-3 text-right font-mono tabular-nums text-mute">{{ s.total }}</td>
+                <td class="px-4 py-3">
+                    <div class="flex h-[18px] items-end gap-[3px]" role="img" aria-label="Due over the next 7 days: {{ s.load | join(', ') }}" title="{{ s.load | join(' · ') }}">
+                        {% for n in s.load %}
+                        <span class="w-2 rounded-[1px] {% if n %}bg-accent/70{% else %}bg-line{% endif %}" style="height: {{ ((n / peak * 100) if peak else 0) | round(1) }}%; min-height: 2px"></span>
+                        {% endfor %}
+                    </div>
+                </td>
+                <td class="px-4 py-3 text-right font-mono tabular-nums text-mute">{% if s.retention is not none %}{{ (s.retention * 100) | round | int }}%{% else %}—{% endif %}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 {% endif %}
 
 <h2 class="mb-2 mt-10 text-base font-semibold text-ink">Performance</h2>

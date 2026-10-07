@@ -81,3 +81,14 @@ def test_deck_questions_sort_last_answered_first(db: Session, user: User, other:
         never.id,
     ]
     assert [q["id"] for q in content.deck_detail(db, user, deck.id)["questions"]] == [never.id, old.id, recent.id]
+
+
+def test_deck_detail_subdecks_carry_counts(db: Session, user: User) -> None:
+    parent = make_deck(db, user, "Parent")
+    child = make_deck(db, user, "Child", parent_id=parent.id, new_per_day=1)
+    grandchild = make_deck(db, user, "Grandchild", parent_id=child.id)
+    make_questions(db, user, child, n=2)
+    make_questions(db, user, grandchild, n=1)
+
+    (sub,) = content.deck_detail(db, user, parent.id)["subdecks"]
+    assert (sub["name"], sub["due"], sub["new"], sub["total"]) == ("Child", 0, 1, 3)

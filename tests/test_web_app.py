@@ -64,6 +64,7 @@ def test_decks_and_detail(client: TestClient, db: Session, user: User) -> None:
     assert decks.status_code == 200
     assert "AWS" in decks.text and "S3" in decks.text
     assert ">New</th>" in decks.text and ">2</td>" in decks.text
+    assert ">Total</th>" in decks.text
 
     detail = client.get(f"/app/decks/{parent.id}")
     assert detail.status_code == 200
@@ -78,6 +79,15 @@ def test_decks_and_detail(client: TestClient, db: Session, user: User) -> None:
     assert "Single" in child_detail.text
     assert "0/0" in child_detail.text
     assert "Never" in child_detail.text
+
+
+def test_decks_index_shows_total(client: TestClient, db: Session, user: User) -> None:
+    login_web(user)
+    deck = make_deck(db, user, "Capped", new_per_day=1)
+    make_questions(db, user, deck, n=3)
+
+    row = client.get("/app").text.split("Capped", 1)[1].split("</tr>", 1)[0]
+    assert [cell.rsplit(">", 1)[1] for cell in row.split("</td>")[1:4]] == ["0", "1", "3"]  # due, new, total
 
 
 def test_markdown_renders_on_question_detail(client: TestClient, db: Session, user: User) -> None:
@@ -101,6 +111,24 @@ def test_markdown_renders_on_question_detail(client: TestClient, db: Session, us
     assert "<strong>S3</strong>" in xss.text
     assert "<script>alert(1)</script>" not in xss.text
     assert "&lt;script&gt;" in xss.text
+
+
+def test_markdown_tables_render(client: TestClient, db: Session, user: User) -> None:
+    login_web(user)
+    deck = make_deck(db, user, "Finance")
+    question = content.create_questions(db, user, deck.id, [question_in("stem")])[0]
+    stem = (
+        "A company's $200,000 annual budget is split as follows:\n\n"
+        "| Category | Share |\n|---|--:|\n| Salaries | 40% |\n| Rent | 35% |\n| Marketing | 15% |\n| Other | 10% |\n\n"
+        "How much more is spent on salaries than on marketing?"
+    )
+    content.update_question(db, user, question.id, QuestionUpdate(stem=stem))
+
+    page = client.get(f"/app/questions/{question.id}")
+    assert page.status_code == 200
+    assert "<table>" in page.text
+    assert "<th>Category</th>" in page.text
+    assert '<td style="text-align:right">15%</td>' in page.text
 
 
 def test_study_loop_over_html(client: TestClient, db: Session, user: User) -> None:
@@ -473,3 +501,19 @@ def test_note_after_answer(client: TestClient, db: Session, user: User) -> None:
     other = make_deck(db, user, "GCP")
     wrong_deck = session_path.replace(f"/decks/{deck.id}/", f"/decks/{other.id}/")
     assert client.post(f"{wrong_deck}/note", data={"question_id": str(question.id), "note": "x"}).status_code == 404
+
+
+def test_deck_detail_subdeck_stats(client: TestClient, db: Session, user: User) -> None:
+    login_web(user)
+    parent = make_deck(db, user, "Parent")
+    child = make_deck(db, user, "Child", parent_id=parent.id, new_per_day=1)
+    make_questions(db, user, child, n=3)
+
+    page = client.get(f"/app/decks/{parent.id}").text
+    for header in ("Due", "New", "Total", "Load · 7 days", "Retention"):
+        assert f">{header}</th>" in page
+    row = page.split(f'href="/app/decks/{child.id}">Child</a>', 1)[1].split("</tr>", 1)[0]
+    cells = [cell.rsplit(">", 1)[1].strip() for cell in row.split("</td>")[1:-1]]
+    assert cells[:3] == ["0", "1", "3"]  # due, new, total
+    assert 'aria-label="Due over the next 7 days: 0, 0, 0, 0, 0, 0, 0"' in row
+    assert cells[-1] == "—"  # no reviews yet
