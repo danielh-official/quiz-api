@@ -48,10 +48,10 @@ Quiz API is the user's spaced-repetition quiz app for multiple-choice questions.
   correct+confident = Good, correct+educated_guess = Hard, anything else = Again.
   A wrong answer given with confidence is a "misconception".
 
-Studying: start-session, then loop next-question -> show "Question N of M", the stem as bullets (one sentence each),
-a blank line, then the options as "A. ...", "B. ..." on separate lines, wording and order exactly as returned,
-without hinting -> ask for the pick(s) and confidence -> submit-answer (pass their reasoning as pre_answer_note
-when they gave one) -> present the result and explanations
+Studying: start-session, then loop next-question -> show the deck_path joined with " > ", "Question N of M",
+the stem as bullets (one sentence each), a blank line, then the options as "A. ...", "B. ..." on separate lines,
+wording and order exactly as returned, without hinting -> ask for the pick(s) and confidence -> submit-answer
+(pass their reasoning as pre_answer_note when they gave one) -> present the result and explanations
 -> update-session with the rewritten running summary (the user's reasoning, your read, anything worth remembering).
 start-session returns recent summaries: use them. Stop when next-question says the session is finished. On first use, check the user's timezone (update-settings).
 

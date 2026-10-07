@@ -222,7 +222,10 @@ def next_question(db: Session, user: User, session_id: int) -> dict[str, Any]:
             return {
                 "finished": False,
                 "session": {"id": session.id, "answered": session.answered, "size": session.size},
-                "question": describe(question, with_answers=False, shuffle=True),
+                "question": {
+                    **describe(question, with_answers=False, shuffle=True),
+                    "deck_path": path_names(decks, question.deck_id),
+                },
             }
     if session.finished_at is None:
         session.finished_at = datetime.now(UTC)
@@ -230,13 +233,14 @@ def next_question(db: Session, user: User, session_id: int) -> dict[str, Any]:
     return {"finished": True, "summary": summary(db, session)}
 
 
-def submit_answer(db: Session, user: User, session_id: int, answer: AnswerIn) -> dict[str, Any]:
+def submit_answer(db: Session, user: User, session_id: int, answer: AnswerIn) -> dict[str, Any]:  # pylint: disable=too-many-locals
     session = get_session(db, user, session_id)
     require_active_session_deck(db, user, session.deck_id)
     question = get_question(db, user, answer.question_id)
     if session.finished_at is not None or session.answered >= session.size:
         raise Invalid("session", "This session is already finished.")
-    if question.deck_id not in subtree_ids(user_decks(db, user), session.deck_id, active_only=True):
+    decks = user_decks(db, user)
+    if question.deck_id not in subtree_ids(decks, session.deck_id, active_only=True):
         raise Invalid("question_id", "This question is not part of the session.")
 
     selected = list(dict.fromkeys(answer.selected))
@@ -277,7 +281,7 @@ def submit_answer(db: Session, user: User, session_id: int, answer: AnswerIn) ->
         "correct": correct,
         "misconception": not correct and answer.confidence == "confident",
         "rating": rating.name.lower(),
-        "question": describe(question),
+        "question": {**describe(question), "deck_path": path_names(decks, question.deck_id)},
         "note": card.note,
         "pre_answer_note": pre_answer_note,
         "next_review_at": reviewed.due.isoformat(),

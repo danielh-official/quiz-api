@@ -2,6 +2,7 @@
       hx-post="/app/decks/{{ deck_id }}/sessions/{{ session_id }}/answers"
       hx-target="#study"
       hx-swap="innerHTML">
+    <h2 class="font-mono text-sm text-mute">{{ question.deck_path | join(" > ") }}</h2>
     {% with progress = session, number = session.answered + 1 %}{% include "app/partials/progress.html" %}{% endwith %}
     <input type="hidden" name="question_id" value="{{ question.id }}">
     {% for o in labeled_options %}<input type="hidden" name="order" value="{{ o.id }}">{% endfor %}

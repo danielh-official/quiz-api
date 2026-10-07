@@ -65,12 +65,14 @@ Call `update-settings` with no arguments. If the timezone is still `UTC`, ask th
    already landed.
 2. `next-question` → show the question in the format below. Keep the wording of the stem and the options
    **exactly as returned**, and the options in that order. Never hint, rephrase, or reveal which is right.
+   - A deck line: the question's `deck_path` joined with ` > ` (e.g. `AWS > Databases > RDS`), root deck first.
    - A heading line: `Question <answered + 1> of <size>` (from `session`).
    - The stem as a bulleted list, **one sentence per bullet**. Keep code blocks, tables and lists in the stem intact.
    - A blank line, then each option on its own line as `A. <text>`, `B. <text>`…, with a blank line between options.
    - For `select_two`, end with "Pick two."
 
    ```
+   AWS > Databases > RDS
    Question 1 of 6
 
    - A company runs Amazon RDS for MySQL as a Single-AZ DB instance.

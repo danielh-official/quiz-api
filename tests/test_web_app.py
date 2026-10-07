@@ -162,6 +162,22 @@ def test_study_loop_over_html(client: TestClient, db: Session, user: User) -> No
     assert "answered" in finished.text
 
 
+def test_study_shows_deck_path(client: TestClient, db: Session, user: User) -> None:
+    login_web(user)
+    root = make_deck(db, user, "Math", session_size=1)
+    calculus = make_deck(db, user, "Calculus", parent_id=root.id)
+    leaf = make_deck(db, user, "Differential", parent_id=calculus.id)
+    question = make_questions(db, user, leaf, n=1)[0]
+    session_path = client.post(f"/app/decks/{root.id}/sessions").headers["location"]
+
+    assert "Math &gt; Calculus &gt; Differential" in client.get(session_path).text
+    correct = [o["id"] for o in question.options if o["correct"]]
+    result = client.post(
+        f"{session_path}/answers", data={"question_id": str(question.id), "selected": correct, "confidence": "confident"}
+    )
+    assert "Math &gt; Calculus &gt; Differential" in result.text
+
+
 def test_study_htmx_partials(client: TestClient, db: Session, user: User) -> None:
     login_web(user)
     deck = make_deck(db, user, "AWS", session_size=1)
