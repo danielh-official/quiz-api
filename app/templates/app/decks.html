@@ -15,12 +15,13 @@
 
 {% if decks %}
 <div class="overflow-x-auto rounded-lg border border-line">
-    <table class="w-full min-w-[600px] border-collapse text-sm">
+    <table class="w-full min-w-[660px] border-collapse text-sm">
         <thead>
             <tr class="bg-surface text-left font-mono text-xs text-mute">
                 <th class="px-4 py-2.5 font-medium">Deck</th>
                 <th class="w-16 px-4 py-2.5 text-right font-medium">Due</th>
                 <th class="w-16 px-4 py-2.5 text-right font-medium">New</th>
+                <th class="w-16 px-4 py-2.5 text-right font-medium">Total</th>
                 <th class="w-36 px-4 py-2.5 font-medium">Load · 7 days</th>
                 <th class="w-24 px-4 py-2.5 text-right font-medium">Retention</th>
             </tr>
@@ -36,6 +37,7 @@
                 </td>
                 <td class="px-4 py-3 text-right font-mono tabular-nums {% if d.due > 0 %}font-bold text-due{% else %}text-mute{% endif %}">{{ d.due }}</td>
                 <td class="px-4 py-3 text-right font-mono tabular-nums text-mute">{{ d.new }}</td>
+                <td class="px-4 py-3 text-right font-mono tabular-nums text-mute">{{ d.total }}</td>
                 <td class="px-4 py-3">
                     <div class="flex h-[18px] items-end gap-[3px]" role="img" aria-label="Due over the next 7 days: {{ d.load | join(', ') }}" title="{{ d.load | join(' · ') }}">
                         {% for n in d.load %}

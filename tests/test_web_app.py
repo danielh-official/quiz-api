@@ -64,6 +64,7 @@ def test_decks_and_detail(client: TestClient, db: Session, user: User) -> None:
     assert decks.status_code == 200
     assert "AWS" in decks.text and "S3" in decks.text
     assert ">New</th>" in decks.text and ">2</td>" in decks.text
+    assert ">Total</th>" in decks.text
 
     detail = client.get(f"/app/decks/{parent.id}")
     assert detail.status_code == 200
@@ -78,6 +79,15 @@ def test_decks_and_detail(client: TestClient, db: Session, user: User) -> None:
     assert "Single" in child_detail.text
     assert "0/0" in child_detail.text
     assert "Never" in child_detail.text
+
+
+def test_decks_index_shows_total(client: TestClient, db: Session, user: User) -> None:
+    login_web(user)
+    deck = make_deck(db, user, "Capped", new_per_day=1)
+    make_questions(db, user, deck, n=3)
+
+    row = client.get("/app").text.split("Capped", 1)[1].split("</tr>", 1)[0]
+    assert [cell.rsplit(">", 1)[1] for cell in row.split("</td>")[1:4]] == ["0", "1", "3"]  # due, new, total
 
 
 def test_markdown_renders_on_question_detail(client: TestClient, db: Session, user: User) -> None:
