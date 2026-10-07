@@ -731,8 +731,8 @@ def _question_update_from_form(form: FormData) -> QuestionUpdate:
     )
 
 
-_MD = MarkdownIt("commonmark", {"breaks": True, "html": False}).enable("strikethrough")
-# CommonMark + strikethrough; keep in sync with what markdown-it emits.
+_MD = MarkdownIt("commonmark", {"breaks": True, "html": False}).enable(["strikethrough", "table"])
+# CommonMark + strikethrough + GFM tables; keep in sync with what markdown-it emits.
 _MD_TAGS = {
     "a",
     "blockquote",
@@ -760,6 +760,11 @@ _MD_TAGS = {
     "tr",
     "ul",
 }
+# Table column alignment arrives as style="text-align:..."; nh3 drops every other property.
+_MD_ATTRIBUTES = dict(nh3.ALLOWED_ATTRIBUTES)  # pylint: disable=no-member  # nh3 is a native module
+for _cell in ("th", "td"):
+    _MD_ATTRIBUTES[_cell] = _MD_ATTRIBUTES[_cell] | {"style"}
+_MD_STYLES = {"text-align"}
 
 
 def _markdown(value: str | None, inline: bool = False) -> Markup:
@@ -767,7 +772,13 @@ def _markdown(value: str | None, inline: bool = False) -> Markup:
     if not value:
         return Markup("")
     html = _MD.renderInline(value) if inline else _MD.render(value)
-    return Markup(nh3.clean(html, tags=_MD_TAGS))  # pylint: disable=no-member  # nh3 is a native module
+    clean = nh3.clean(  # pylint: disable=no-member  # nh3 is a native module
+        html,
+        tags=_MD_TAGS,
+        attributes=_MD_ATTRIBUTES,
+        filter_style_properties=_MD_STYLES,
+    )
+    return Markup(clean)
 
 
 _CONFIDENCE_LABELS = {
