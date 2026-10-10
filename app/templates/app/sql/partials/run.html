@@ -1,0 +1,11 @@
+{% from "app/sql/_macros.html" import case_result %}
+{% if error %}
+<p class="text-sm text-bad" role="alert">{{ error }}</p>
+{% else %}
+<div class="flex flex-col gap-3">
+    <p class="font-semibold {% if run.passed == run.total %}text-ok{% else %}text-bad{% endif %}">
+        {{ run.passed }} of {{ run.total }} test case{{ "s" if run.total != 1 }} passed{% if run.passed == run.total %}. Ready to submit.{% endif %}
+    </p>
+    {% for r in run.results %}{{ case_result(r, "Case " ~ loop.index) }}{% endfor %}
+</div>
+{% endif %}

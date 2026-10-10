@@ -15,6 +15,7 @@ from app.mcp import error_message, mcp
 from app.services import Forbidden, Invalid, NotFound
 from app.web import router as web_router
 from app.web_app import WebAuthRequired, render, router as web_app_router
+from app.web_sql import router as web_sql_router
 
 # Serves /mcp plus the OAuth endpoints (/authorize, /token, /register, /auth/callback, /.well-known/*).
 mcp_app = mcp.http_app(path="/mcp", stateless_http=True)
@@ -36,6 +37,7 @@ app = FastAPI(
 app.include_router(api_router)
 app.include_router(web_router)
 app.include_router(web_app_router)
+app.include_router(web_sql_router)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 

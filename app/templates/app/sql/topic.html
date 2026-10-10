@@ -1,0 +1,25 @@
+{% extends "app/layout.html" %}
+{% set current = detail.topic.name %}
+{% block title %}{{ detail.topic.name }} · SQL{% endblock %}
+{% block content %}
+<h1 class="mb-1 text-[1.75rem] font-semibold leading-tight tracking-tight text-ink">{{ detail.topic.name }}</h1>
+{% if detail.topic.description %}<p class="mb-6 text-mute">{{ detail.topic.description }}</p>{% else %}<div class="mb-6"></div>{% endif %}
+
+{% if detail.problems %}
+<ul class="divide-y divide-line border-y border-line">
+    {% for p in detail.problems %}
+    <li>
+        <a class="flex flex-wrap items-center justify-between gap-3 py-3 text-ink no-underline hover:text-accent" href="/app/sql/{{ detail.topic.slug }}/{{ p.slug }}">
+            <span class="font-medium">{{ p.title }}</span>
+            <span class="flex flex-wrap gap-1.5">{% from "app/sql/_macros.html" import dialect_chips %}{{ dialect_chips(p.solved_dialects) }}</span>
+        </a>
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<div class="border-t border-line pt-6 text-mute">
+    <p class="mb-2">No problems in this topic yet.</p>
+    <p>Ask your AI (with the quiz-api tools) to <code class="rounded bg-code px-1 py-0.5 font-mono text-[0.9em]">create-sql-problem</code> in topic <code class="rounded bg-code px-1 py-0.5 font-mono text-[0.9em]">{{ detail.topic.slug }}</code>, or POST to <code class="rounded bg-code px-1 py-0.5 font-mono text-[0.9em]">/sql/topics/{{ detail.topic.slug }}/problems</code>.</p>
+</div>
+{% endif %}
+{% endblock %}

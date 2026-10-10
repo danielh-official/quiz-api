@@ -1,0 +1,53 @@
+{# A result or input table: columns, rows, and how many more rows were cut ("…"). #}
+{% macro data_table(columns, rows, more=0, caption=none) %}
+<div class="overflow-x-auto rounded-lg border border-line">
+    <table class="w-full border-collapse font-mono text-[13px]">
+        {% if caption %}<caption class="border-b border-line bg-surface px-3 py-2 text-left text-xs text-mute">{{ caption }}</caption>{% endif %}
+        <thead>
+            <tr class="bg-surface text-left text-xs text-mute">
+                {% for c in columns %}<th class="px-3 py-2 font-medium">{{ c }}</th>{% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+            <tr class="border-t border-line">
+                {% for v in row %}<td class="whitespace-nowrap px-3 py-1.5 tabular-nums {% if v is none %}text-mute{% else %}text-ink{% endif %}">{{ "NULL" if v is none else v }}</td>{% endfor %}
+            </tr>
+            {% else %}
+            <tr class="border-t border-line"><td class="px-3 py-1.5 text-mute" colspan="{{ [columns | length, 1] | max }}">(no rows)</td></tr>
+            {% endfor %}
+            {% if more %}
+            <tr class="border-t border-line"><td class="px-3 py-1.5 text-mute" colspan="{{ [columns | length, 1] | max }}">… {{ more }} more row{{ "s" if more != 1 }}</td></tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+{% endmacro %}
+
+{% macro input_tables(tables) %}
+<div class="flex flex-col gap-3">
+    {% for t in tables %}{{ data_table(t.columns, t.rows, t.more, caption=t.name) }}{% endfor %}
+</div>
+{% endmacro %}
+
+{% macro dialect_chips(dialects) %}
+{% for d in dialects %}<span class="rounded-full bg-ok/10 px-2 py-0.5 font-mono text-xs text-ok">{{ d | dialect_label }}</span>{% endfor %}
+{% endmacro %}
+
+{# One judged case: pass/fail, the reason, and expected vs got when shown. #}
+{% macro case_result(r, label) %}
+<div class="rounded-lg border border-line">
+    <div class="flex flex-wrap items-baseline justify-between gap-2 rounded-t-lg px-4 py-2.5 {% if r.passed %}bg-ok/10 text-ok{% else %}bg-bad/10 text-bad{% endif %}">
+        <p class="font-semibold">{{ label }} · {{ "Passed" if r.passed else "Failed" }}</p>
+        {% if r.reason and not (r.got and r.got.error) %}<p class="text-sm">{{ r.reason }}</p>{% endif %}
+    </div>
+    {% if r.got and r.got.error %}
+    <pre class="overflow-x-auto whitespace-pre-wrap px-4 py-3 font-mono text-[13px] text-bad">{{ r.got.error }}</pre>
+    {% elif r.expected and not r.passed %}
+    <div class="grid gap-4 p-4 sm:grid-cols-2">
+        <div><p class="mb-1.5 font-mono text-xs text-mute">Expected</p>{{ data_table(r.expected.columns, r.expected.rows, r.expected.more) }}</div>
+        <div><p class="mb-1.5 font-mono text-xs text-mute">Your output</p>{{ data_table(r.got.columns, r.got.rows, r.got.more) }}</div>
+    </div>
+    {% endif %}
+</div>
+{% endmacro %}

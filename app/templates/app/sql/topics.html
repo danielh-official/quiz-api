@@ -1,0 +1,41 @@
+{% extends "app/layout.html" %}
+{% set current = "sql" %}
+{% block title %}SQL practice{% endblock %}
+{% block content %}
+<div class="mb-6">
+    <h1 class="mb-1 text-[1.4rem] font-semibold leading-tight text-ink">SQL practice</h1>
+    <p class="text-sm text-mute">Write a query, run it against the test cases, then submit. Solved is tracked per dialect.</p>
+</div>
+
+{% if topics %}
+<div class="overflow-x-auto rounded-lg border border-line">
+    <table class="w-full border-collapse text-sm">
+        <thead>
+            <tr class="bg-surface text-left font-mono text-xs text-mute">
+                <th class="px-4 py-2.5 font-medium">Topic</th>
+                <th class="w-24 px-4 py-2.5 text-right font-medium">Problems</th>
+                <th class="w-24 px-4 py-2.5 text-right font-medium">Solved</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for t in topics %}
+            <tr class="border-t border-line hover:bg-surface">
+                <td class="p-0"><a class="block px-4 py-3 font-semibold text-ink no-underline" href="/app/sql/{{ t.slug }}">{{ t.name }}</a></td>
+                <td class="px-4 py-3 text-right font-mono tabular-nums text-mute">{{ t.problems }}</td>
+                <td class="px-4 py-3 text-right font-mono tabular-nums {% if t.problems and t.solved == t.problems %}text-ok{% else %}text-mute{% endif %}">{{ t.solved }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<p class="border-t border-line pt-6 text-mute">No topics yet. Add one below, then ask your AI to write problems for it.</p>
+{% endif %}
+
+<form class="mt-8 flex flex-wrap items-center gap-2" method="post" action="/app/sql">
+    <input class="w-64 rounded border border-line bg-surface px-3 py-2 text-sm text-ink" name="name" value="{{ topic_name }}" required maxlength="255"
+           placeholder="Joins, Window functions…" aria-label="New topic name">
+    <button class="cursor-pointer rounded border-0 bg-accent px-4 py-2.5 text-sm font-semibold text-accent-fg" type="submit">New topic</button>
+    {% if error %}<p class="w-full text-sm text-bad" role="alert">{{ error }}</p>{% endif %}
+</form>
+{% endblock %}

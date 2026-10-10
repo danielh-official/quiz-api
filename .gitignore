@@ -6,6 +6,7 @@ __pycache__/
 .env.aws
 frontend/node_modules/
 app/static/app.css
+app/static/editor.js
 infra/.terraform/
 infra/terraform.tfstate*
 infra/.terraform.tfstate.lock.info

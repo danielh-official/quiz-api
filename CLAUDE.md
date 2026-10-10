@@ -15,7 +15,7 @@ uv run --with mypy mypy app tests                 # strict mode, config in pypro
 uv run --with pylint pylint app tests migrations  # max line length 130
 uv run --with ruff ruff format app tests migrations  # line length 130; CI checks with --check
 cd frontend && pnpm install && pnpm watch         # Tailwind → app/static/app.css (gitignored; also built in Docker)
-cd frontend && pnpm build                         # one-shot before pytest if watch wasn't running
+cd frontend && pnpm build                         # CSS + SQL editor bundle (app/static/editor.js); before pytest
 uv run alembic revision --autogenerate -m "..."   # after changing app/models.py
 deploy/aws.sh                                     # terraform apply infra/ + ship local code; settings in .env.aws
 ```
@@ -49,8 +49,9 @@ Pushes to `main` deploy to AWS Lambda through `.github/workflows/deploy.yml` aft
   both out (README "Avoiding suspension"). Tests turn `MOCK` off in conftest; mock tests turn it back on.
 - **Web (`app/web.py`, `app/web_app.py`, `app/templates/`)**: static Jinja home plus `robots.txt` (no sign-in on `/`).
   Authenticated study UI at `/app` (Jinja + HTMX + Tailwind) with pre-registered PKCE client `web-app` and an HTTP-only
-  access cookie. Tailwind lives in `frontend/` (v4 CLI + pnpm). `app/static/app.css` is gitignored; Docker's `css`
-  stage builds it into the image (Node is build-only, not on Lambda). Locally use `pnpm watch` / `pnpm build`.
+  access cookie. Tailwind lives in `frontend/` (v4 CLI + pnpm), as does the CodeMirror SQL editor (esbuild).
+  `app/static/app.css` and `editor.js` are gitignored; Docker's `css` stage builds them into the image (Node is
+  build-only, not on Lambda). Locally use `pnpm watch` / `pnpm build`.
   The home page, README and this file describe the same setup; change them together. Swagger's *Authorize* on `/docs`
   uses the separate `swagger-ui` client.
 - **Study (`app/services/study.py`)**: FSRS with no learning steps, so every interval is whole days. The rating
@@ -58,6 +59,10 @@ Pushes to `main` deploy to AWS Lambda through `.github/workflows/deploy.yml` aft
   new-question limits follow Anki v3 rules down the nested deck tree (`new_remaining`, `admits`).
 - **Decks nest**: study, search and stats on a deck include its subtree (`content.subtree_ids`). `content`,
   `study` and `stats` import each other, and the back-edges are lazy imports (pylint `cyclic-import` is disabled).
+- **SQL practice (`app/services/sql.py`, `sql_runner.py`)**: separate from decks/FSRS. Flat topics > problems >
+  test cases (input rows only; expected output = the reference query's result) > submissions, solved per dialect.
+  `sql_runner` runs untrusted SQL in a fresh in-memory db per case: SQLite natively (authorizer denies ATTACH and
+  PRAGMA), other dialects via sqlglot into DuckDB with external access off. Web UI under `/app/sql`.
 - **Questions** store options as JSON with stable ids. `single` = 4 options, 1 correct; `select_two` = 5 options,
   2 correct (`schemas.QUESTION_SHAPES`). On update, passing an option's `id` back keeps it.
 

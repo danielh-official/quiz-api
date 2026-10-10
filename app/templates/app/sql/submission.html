@@ -1,0 +1,35 @@
+{% extends "app/layout.html" %}
+{% from "app/sql/_macros.html" import case_result, input_tables %}
+{% set current = "submission" %}
+{% block title %}Submission · {{ submission.problem.title }}{% endblock %}
+{% block content %}
+{% set back = "/app/sql/" ~ submission.topic.slug ~ "/" ~ submission.problem.slug %}
+<div class="mb-6 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 rounded-lg px-4 py-3 {% if submission.solved %}bg-ok/10 text-ok{% else %}bg-bad/10 text-bad{% endif %}">
+    <p class="text-lg font-semibold">{{ "Solved" if submission.solved else "Not yet" }} · {{ submission.passed }} of {{ submission.total }} passed</p>
+    <p class="font-mono text-xs text-mute">{{ submission.dialect | dialect_label }} · <time datetime="{{ submission.created_at }}" data-local-date>{{ submission.created_at[:10] }}</time></p>
+</div>
+
+<pre class="mb-8 overflow-x-auto rounded-lg border border-line bg-surface px-4 py-3 font-mono text-[13px] text-ink">{{ submission.query }}</pre>
+
+<div class="flex flex-col gap-4">
+    {% for r in submission.results %}
+    <div class="flex flex-col gap-3">
+        {{ case_result(r, "Case " ~ r.number ~ (" (hidden)" if r.hidden else "") ~ (" (deleted)" if r.deleted else "")) }}
+        {% if r.input and not r.passed %}
+        <details{% if r.can_add %} open{% endif %} class="rounded-lg border border-line">
+            <summary class="cursor-pointer px-4 py-2.5 text-sm text-mute">Input for case {{ r.number }}</summary>
+            <div class="border-t border-line p-4">{{ input_tables(r.input) }}</div>
+        </details>
+        {% endif %}
+        {% if r.can_add %}
+        <form method="post" action="{{ back }}/test-cases/{{ r.case_id }}/show">
+            <button class="cursor-pointer rounded border-0 bg-accent px-4 py-2.5 text-sm font-semibold text-accent-fg" type="submit">Add to my test cases</button>
+            <span class="ml-2 text-sm text-mute">Run tests will check it from now on.</span>
+        </form>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+
+<a class="mt-8 inline-block text-sm no-underline hover:underline" href="{{ back }}">Back to the problem</a>
+{% endblock %}
