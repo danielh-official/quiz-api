@@ -27,14 +27,15 @@ so production can't end up open by accident.
 
 - http://localhost:8000/ is the home page: how to connect an AI and run your own copy.
 - http://localhost:8000/app is the browser study UI (Jinja + HTMX + Tailwind). Locally with mocked auth it is the `dev` user.
+  http://localhost:8000/app/sql is SQL practice: topics, problems with a SQL editor, test runs and submissions.
 - http://localhost:8000/docs has the OpenAPI docs, where *Authorize* signs you in to try the REST API.
 
-`/app` styles are Tailwind. `app/static/app.css` is gitignored and built in the Docker image (Node only at
-build time). Locally:
+`/app` styles are Tailwind; the SQL editor is CodeMirror bundled by esbuild. `app/static/app.css` and
+`app/static/editor.js` are gitignored and built in the Docker image (Node only at build time). Locally:
 
 ```bash
 cd frontend && pnpm install && pnpm watch   # rebuilds app/static/app.css as you edit
-# or: pnpm build                           # one-shot, e.g. before pytest
+# or: pnpm build                           # one-shot CSS + editor bundle, e.g. before pytest
 ```
 
 ### GitHub sign-in (production)
