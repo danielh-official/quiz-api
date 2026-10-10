@@ -326,6 +326,13 @@ def submission_summary(submission: SqlSubmission) -> dict[str, Any]:
     }
 
 
+def latest_submission(db: Session, user: User, topic_slug: str, problem_slug: str) -> SqlSubmission | None:
+    _, problem = get_problem(db, user, topic_slug, problem_slug)
+    return db.scalar(
+        select(SqlSubmission).where(SqlSubmission.problem_id == problem.id).order_by(SqlSubmission.id.desc()).limit(1)
+    )
+
+
 def get_submission(db: Session, user: User, topic_slug: str, problem_slug: str, submission_id: int) -> dict[str, Any]:
     """The submission with each case's outcome. Hidden cases show their data only for the first one that failed,
     and only while it is still hidden; it can then be revealed with set_test_case_hidden(hidden=False)."""
