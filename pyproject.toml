@@ -8,6 +8,7 @@ authors = [
 requires-python = ">=3.13"
 dependencies = [
     "alembic>=1.20.0",
+    "duckdb>=1.4",
     "fastapi>=0.141.1",
     "fastmcp>=4.0.9",
     "fsrs>=6.3.2",
@@ -19,6 +20,7 @@ dependencies = [
     "psycopg[binary]>=3.3.6",
     "py-key-value-aio[postgresql]>=0.4.6",
     "sqlalchemy>=2",
+    "sqlglot>=30",
     "uvicorn[standard]>=0.53.0",
 ]
 

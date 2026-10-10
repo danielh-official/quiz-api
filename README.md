@@ -225,11 +225,25 @@ Every route needs `Authorization: Bearer <token>`, except `/up`, `/`, `/robots.t
 | GET, POST | `/exams` | List (`?upcoming=` = incomplete + future/undated start); create |
 | GET, PATCH, DELETE | `/exams/{id}` | PATCH: `name`, `starts_at`, `completed`, `deck_ids` |
 | GET | `/stats?deck_id=&exam_date=&exam_id=` | Calibration, misconceptions, leeches, notes, readiness |
+| GET, POST | `/sql/topics` | SQL practice topics (flat) with problem/solved counts; create |
+| GET, DELETE | `/sql/topics/{topic}` | GET lists problems with the dialects each is solved in |
+| POST | `/sql/topics/{topic}/problems` | `title`, `description`, `tables`, `reference_query`, `test_cases` |
+| GET, PATCH, DELETE | `/sql/topics/{topic}/problems/{problem}` | GET hides hidden cases and the reference query |
+| POST | `.../problems/{problem}/test-cases` | Rows per table; PATCH/DELETE `.../test-cases/{id}` (`hidden`) |
+| POST | `.../problems/{problem}/run` | `query`, `dialect`: visible cases only, not saved |
+| POST, GET | `.../problems/{problem}/submissions[/{id}]` | Every case, saved; shows the first failing hidden case |
 
 MCP tools: list-decks, get-deck, search-questions, get-performance, create-deck, update-deck,
 create-questions, update-question, start-session, next-question, submit-answer, update-session,
-update-card, update-settings, list-exams, get-exam, create-exam, update-exam, delete-exam.
-Deck/question deletes are REST-only; `delete-exam` is allowed on MCP.
+update-card, update-settings, list-exams, get-exam, create-exam, update-exam, delete-exam,
+list-sql-topics, create-sql-topic, get-sql-topic, create-sql-problem, get-sql-problem, update-sql-problem,
+add-sql-test-case, update-sql-test-case, run-sql, submit-sql, get-sql-submission.
+Deck/question and SQL deletes are REST-only; `delete-exam` is allowed on MCP.
+
+**SQL practice** is separate from decks (no spaced repetition). Dialects: `sqlite` (default, runs in Python's
+`sqlite3`), `mysql`, `mariadb`, `tsql`, `postgres` (translated by sqlglot and run in DuckDB, so some behavior such as
+integer division follows DuckDB). Each test case runs in a fresh in-memory database with no file or network access,
+a 2s limit and a 1000-row cap. Expected output comes from the problem's reference query.
 
 **Exams** track an upcoming test: name, optional `starts_at`, linked decks (parent includes subdecks). Readiness
 stays computed via `/stats` or `get-performance` (`exam_id` preferred). Mark done with `completed: true`.
