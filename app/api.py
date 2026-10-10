@@ -19,8 +19,14 @@ from app.schemas import (
     SessionCreate,
     SessionUpdate,
     SettingsUpdate,
+    SqlAttempt,
+    SqlProblemCreate,
+    SqlProblemUpdate,
+    SqlTestCaseIn,
+    SqlTestCaseUpdate,
+    SqlTopicCreate,
 )
-from app.services import content, exams, stats, study
+from app.services import content, exams, sql, stats, study
 
 ArchiveFilter = Literal["active", "archived", "all"]
 
@@ -177,3 +183,83 @@ def get_stats(
     exam_id: int | None = None,
 ) -> Json:
     return stats.performance(db, user, deck_id, exam_date, exam_id)
+
+
+@router.get("/sql/topics")
+def list_sql_topics(db: Db, user: Me) -> list[Json]:
+    return sql.list_topics(db, user)
+
+
+@router.post("/sql/topics", status_code=201)
+def create_sql_topic(data: SqlTopicCreate, db: Db, user: Me) -> Json:
+    return sql.topic_dict(sql.create_topic(db, user, data))
+
+
+@router.get("/sql/topics/{topic}")
+def get_sql_topic(topic: str, db: Db, user: Me) -> Json:
+    return sql.topic_detail(db, user, topic)
+
+
+@router.delete("/sql/topics/{topic}", status_code=204)
+def delete_sql_topic(topic: str, db: Db, user: Me) -> Response:
+    sql.delete_topic(db, user, topic)
+    return Response(status_code=204)
+
+
+@router.post("/sql/topics/{topic}/problems", status_code=201)
+def create_sql_problem(topic: str, data: SqlProblemCreate, db: Db, user: Me) -> Json:
+    problem = sql.create_problem(db, user, topic, data)
+    return sql.problem_detail(db, user, topic, problem.slug)
+
+
+@router.get("/sql/topics/{topic}/problems/{problem}")
+def get_sql_problem(topic: str, problem: str, db: Db, user: Me) -> Json:
+    return sql.problem_detail(db, user, topic, problem)
+
+
+@router.patch("/sql/topics/{topic}/problems/{problem}")
+def update_sql_problem(topic: str, problem: str, data: SqlProblemUpdate, db: Db, user: Me) -> Json:
+    sql.update_problem(db, user, topic, problem, data)
+    return sql.problem_detail(db, user, topic, problem)
+
+
+@router.delete("/sql/topics/{topic}/problems/{problem}", status_code=204)
+def delete_sql_problem(topic: str, problem: str, db: Db, user: Me) -> Response:
+    sql.delete_problem(db, user, topic, problem)
+    return Response(status_code=204)
+
+
+@router.post("/sql/topics/{topic}/problems/{problem}/test-cases", status_code=201)
+def add_sql_test_case(topic: str, problem: str, data: SqlTestCaseIn, db: Db, user: Me) -> Json:
+    case = sql.add_test_case(db, user, topic, problem, data)
+    return sql.case_view(sql.get_problem(db, user, topic, problem)[1], case)
+
+
+@router.patch("/sql/topics/{topic}/problems/{problem}/test-cases/{case_id}")
+def update_sql_test_case(  # pylint: disable=too-many-arguments,too-many-positional-arguments
+    topic: str, problem: str, case_id: int, data: SqlTestCaseUpdate, db: Db, user: Me
+) -> Json:
+    case = sql.set_test_case_hidden(db, user, topic, problem, case_id, data.hidden)
+    return sql.case_view(sql.get_problem(db, user, topic, problem)[1], case)
+
+
+@router.delete("/sql/topics/{topic}/problems/{problem}/test-cases/{case_id}", status_code=204)
+def delete_sql_test_case(topic: str, problem: str, case_id: int, db: Db, user: Me) -> Response:
+    sql.delete_test_case(db, user, topic, problem, case_id)
+    return Response(status_code=204)
+
+
+@router.post("/sql/topics/{topic}/problems/{problem}/run")
+def run_sql_tests(topic: str, problem: str, attempt: SqlAttempt, db: Db, user: Me) -> Json:
+    return sql.run_tests(db, user, topic, problem, attempt)
+
+
+@router.post("/sql/topics/{topic}/problems/{problem}/submissions", status_code=201)
+def submit_sql(topic: str, problem: str, attempt: SqlAttempt, db: Db, user: Me) -> Json:
+    submission = sql.submit(db, user, topic, problem, attempt)
+    return sql.get_submission(db, user, topic, problem, submission.id)
+
+
+@router.get("/sql/topics/{topic}/problems/{problem}/submissions/{submission_id}")
+def get_sql_submission(topic: str, problem: str, submission_id: int, db: Db, user: Me) -> Json:
+    return sql.get_submission(db, user, topic, problem, submission_id)

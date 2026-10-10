@@ -1,7 +1,7 @@
 from collections.abc import Iterator
 
 import pytest
-from conftest import question_in
+from conftest import question_in, sql_problem_in
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
@@ -130,3 +130,24 @@ def test_exam_rest_crud_and_stats(client: TestClient) -> None:
     assert "readiness" in report
     assert client.delete(f"/exams/{exam['id']}").status_code == 204
     assert client.get(f"/exams/{exam['id']}").status_code == 404
+
+
+def test_sql_practice_routes(client: TestClient) -> None:
+    login_as()
+    assert client.post("/sql/topics", json={"name": "Aggregates"}).status_code == 201
+    problem = client.post("/sql/topics/aggregates/problems", json=sql_problem_in().model_dump(exclude_none=True))
+    assert problem.status_code == 201, problem.text
+    base = "/sql/topics/aggregates/problems/second-highest-salary"
+    assert client.get(base).json()["hidden_test_cases"] == 1
+    ran = client.post(f"{base}/run", json={"query": "SELECT 90 AS salary", "dialect": "postgres"}).json()
+    assert ran["passed"] == 1
+    submitted = client.post(f"{base}/submissions", json={"query": "SELECT 90 AS salary"})
+    assert submitted.status_code == 201 and submitted.json()["passed"] == 1
+    case_id = submitted.json()["results"][1]["case_id"]
+    assert client.patch(f"{base}/test-cases/{case_id}", json={"hidden": False}).json()["hidden"] is False
+    assert client.get(f"{base}/submissions/{submitted.json()['id']}").json()["results"][1]["can_add"] is False
+    assert client.post(f"{base}/run", json={"query": "SELECT 1", "dialect": "oracle"}).status_code == 422
+    assert client.delete(f"{base}/test-cases/{case_id}").status_code == 204
+    assert client.delete(base).status_code == 204
+    assert client.delete("/sql/topics/aggregates").status_code == 204
+    assert client.get("/sql/topics").json() == []
