@@ -161,3 +161,59 @@ class DeckExam(Base):
 
     exam: Mapped["Exam"] = relationship("Exam", back_populates="deck_exams")
     deck: Mapped["Deck"] = relationship("Deck", back_populates="deck_exams", lazy="joined")
+
+
+class SqlTopic(Base):
+    """A flat group of SQL practice problems (no nesting, unlike decks)."""
+
+    __tablename__ = "sql_topics"
+    __table_args__ = (UniqueConstraint("user_id", "slug"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(fk("users.id"), index=True)
+    slug: Mapped[str] = mapped_column(String(80))
+    name: Mapped[str] = mapped_column(String(255))
+    description: Mapped[str | None]
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+
+class SqlProblem(Base):
+    __tablename__ = "sql_problems"
+    __table_args__ = (UniqueConstraint("topic_id", "slug"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    topic_id: Mapped[int] = mapped_column(fk("sql_topics.id"), index=True)
+    slug: Mapped[str] = mapped_column(String(80))
+    title: Mapped[str] = mapped_column(String(255))
+    description: Mapped[str]  # Markdown: what the query should return
+    # [{name, columns: [{name, type}]}]; types are engine-neutral (schemas.SqlColumnType).
+    tables: Mapped[list[dict[str, Any]]] = mapped_column(JSONB)
+    reference_query: Mapped[str]
+    reference_dialect: Mapped[str] = mapped_column(String(16), server_default="sqlite")
+    order_matters: Mapped[bool] = mapped_column(server_default="false")
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
+
+
+class SqlTestCase(Base):
+    __tablename__ = "sql_test_cases"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    problem_id: Mapped[int] = mapped_column(fk("sql_problems.id"), index=True)
+    data: Mapped[dict[str, list[list[Any]]]] = mapped_column(JSONB)  # {table: [row, ...]}, rows in column order
+    hidden: Mapped[bool] = mapped_column(server_default="false")  # only run on submit, until a failure reveals it
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+
+class SqlSubmission(Base):
+    __tablename__ = "sql_submissions"
+    __table_args__ = (Index("ix_sql_submissions_problem_created", "problem_id", "created_at"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    problem_id: Mapped[int] = mapped_column(fk("sql_problems.id"))
+    dialect: Mapped[str] = mapped_column(String(16))
+    query: Mapped[str]
+    passed: Mapped[int] = mapped_column(Integer)
+    total: Mapped[int] = mapped_column(Integer)
+    results: Mapped[list[dict[str, Any]]] = mapped_column(JSONB)  # per test case: id, passed, error, rows (truncated)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())

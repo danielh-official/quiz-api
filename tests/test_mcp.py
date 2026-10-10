@@ -5,7 +5,7 @@ from typing import Any
 
 import pytest
 
-from conftest import question_in
+from conftest import question_in, sql_problem_in
 from fastapi.testclient import TestClient
 from fastmcp import Client, FastMCP
 from fastmcp.exceptions import ToolError
@@ -20,6 +20,8 @@ TOOLS = {
     "create-questions", "update-question", "start-session", "next-question", "submit-answer",
     "update-session", "update-card", "update-settings",
     "list-exams", "get-exam", "create-exam", "update-exam", "delete-exam",
+    "list-sql-topics", "create-sql-topic", "get-sql-topic", "create-sql-problem", "get-sql-problem",
+    "update-sql-problem", "add-sql-test-case", "update-sql-test-case", "run-sql", "submit-sql", "get-sql-submission",
 }  # fmt: skip
 
 
@@ -235,3 +237,43 @@ def test_swagger_and_web_clients_registered(monkeypatch: pytest.MonkeyPatch) -> 
         pytest.fail("Expected the web-app client to be registered with redirect URIs")
     assert [str(u) for u in swagger.redirect_uris] == [f"{config.APP_URL}/docs/oauth2-redirect"]
     assert [str(u) for u in web.redirect_uris] == [f"{config.APP_URL}/app/oauth/callback"]
+
+
+def test_sql_practice_flow(monkeypatch: pytest.MonkeyPatch) -> None:
+    naive = "SELECT salary FROM employees ORDER BY salary DESC LIMIT 1 OFFSET 1"
+    good = (
+        "SELECT salary FROM (SELECT DISTINCT salary FROM employees) s ORDER BY salary DESC OFFSET 1 ROWS FETCH NEXT 1 ROWS ONLY"
+    )
+
+    async def steps(client: Client[Any]) -> dict[str, Any]:
+        await client.call_tool("create-sql-topic", {"name": "Aggregates"})
+        problem_in = sql_problem_in().model_dump(exclude_none=True)
+        problem = (await client.call_tool("create-sql-problem", {"topic": "aggregates", "problem": problem_in})).data
+        slug = problem["problem"]["slug"]
+        ran = (await client.call_tool("run-sql", {"topic": "aggregates", "problem": slug, "query": naive})).data
+        failed = (await client.call_tool("submit-sql", {"topic": "aggregates", "problem": slug, "query": naive})).data
+        hidden = failed["submission"]["results"][1]
+        await client.call_tool(
+            "update-sql-test-case", {"topic": "aggregates", "problem": slug, "case_id": hidden["case_id"], "hidden": False}
+        )
+        rerun = (await client.call_tool("run-sql", {"topic": "aggregates", "problem": slug, "query": naive})).data
+        args = {"topic": "aggregates", "problem": slug, "query": good, "dialect": "tsql"}
+        solved = (await client.call_tool("submit-sql", args)).data
+        topic = (await client.call_tool("get-sql-topic", {"topic": "aggregates"})).data
+        return {"problem": problem, "ran": ran, "hidden": hidden, "rerun": rerun, "solved": solved, "topic": topic}
+
+    out = run(monkeypatch, steps)
+    assert "reference_query" not in out["problem"]["problem"]
+    assert out["ran"]["passed"] == out["ran"]["total"] == 1
+    assert out["hidden"]["passed"] is False and out["hidden"]["can_add"] is True
+    assert (out["rerun"]["passed"], out["rerun"]["total"]) == (1, 2)
+    assert out["solved"]["submission"]["solved"] is True, out["solved"]
+    assert out["topic"]["problems"][0]["solved_dialects"] == ["tsql"]
+
+
+def test_sql_tool_errors_are_tool_errors(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def steps(client: Client[Any]) -> None:
+        await client.call_tool("get-sql-problem", {"topic": "nope", "problem": "nope"})
+
+    with pytest.raises(ToolError, match="Topic 'nope' not found"):
+        run(monkeypatch, steps)

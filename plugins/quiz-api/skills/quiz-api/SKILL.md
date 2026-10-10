@@ -128,7 +128,25 @@ wrong. `by_deck` splits it per linked deck (or subdeck). Combine it with calibra
 recall with many confident misses means the scheduler hasn't caught up yet), name the weakest areas, and say how
 many days of study are left and how many unseen questions that means per day.
 
+## SQL practice
+
+A separate module from decks, with no spaced repetition. Topics are a flat list (`list-sql-topics`,
+`create-sql-topic`, `get-sql-topic`); each holds problems.
+
+- **Dialects**: `sqlite` (default), `mysql`, `mariadb`, `tsql` (SQL Server), `postgres`. SQLite runs natively; the
+  others are translated to DuckDB, so syntax follows the dialect but some behavior (integer division,
+  case-insensitive collation) follows DuckDB. Progress is "solved" per problem per dialect.
+- **Practicing**: `get-sql-problem` shows the description, tables, the example and visible test cases. Never show
+  hidden cases or the reference query. Check the user's query with `run-sql` (visible cases only, nothing saved),
+  then `submit-sql` (every case, saved). After a failed submit, `get-sql-submission` shows the first failing hidden
+  case; `update-sql-test-case(hidden=false)` adds it to the cases `run-sql` checks.
+- **Writing problems**: `create-sql-problem` takes engine-neutral tables (`integer`, `number`, `text`, `date`,
+  `timestamp`, `boolean`), a `reference_query` (expected output comes from it, in `reference_dialect`), `order_matters`
+  when the problem asks for a sort, and test cases as rows per table. The first visible case is the example; add a
+  few hidden ones for edge cases (ties, NULLs, empty tables). Results are compared by column count and rows, not
+  column names. Edit with `update-sql-problem`; add cases with `add-sql-test-case`.
+
 ## Limits
 
-There are no delete tools for decks or questions — those deletes are REST-only. `delete-exam` is the
+There are no delete tools for decks, questions or SQL topics, problems and test cases — those deletes are REST-only. `delete-exam` is the
 exception: it removes the exam and its deck links only.

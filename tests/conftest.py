@@ -13,9 +13,18 @@ from alembic.config import Config
 from sqlalchemy.orm import Session, sessionmaker
 
 from app import auth as auth_module, config, db as db_module, mcp as mcp_module
-from app.models import Deck, Question, User
-from app.schemas import AnswerIn, Confidence, DeckCreate, OptionIn, QuestionIn, QuestionType
-from app.services import content, study
+from app.models import Deck, Question, SqlProblem, User
+from app.schemas import (
+    AnswerIn,
+    Confidence,
+    DeckCreate,
+    OptionIn,
+    QuestionIn,
+    QuestionType,
+    SqlProblemCreate,
+    SqlTopicCreate,
+)
+from app.services import NotFound, content, sql, study
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -88,3 +97,45 @@ def answer(
     pick = 1 if question.type == "single" else 2
     selected = [o["id"] for o in wanted[:pick]]
     return study.submit_answer(db, user, session_id, AnswerIn(question_id=question.id, selected=selected, confidence=confidence))
+
+
+EMPLOYEES = [
+    {
+        "name": "employees",
+        "columns": [
+            {"name": "id", "type": "integer"},
+            {"name": "name", "type": "text"},
+            {"name": "salary", "type": "number"},
+            {"name": "hired", "type": "date"},
+        ],
+    }
+]
+
+
+def sql_problem_in(**fields: Any) -> SqlProblemCreate:
+    """Second-highest distinct salary; the hidden case has a tie at the top, which a plain OFFSET 1 gets wrong."""
+    values: dict[str, Any] = {
+        "title": "Second highest salary",
+        "description": "Return the **second highest** distinct salary as `salary`.",
+        "tables": EMPLOYEES,
+        "reference_query": "SELECT MAX(salary) AS salary FROM employees WHERE salary < (SELECT MAX(salary) FROM employees)",
+        "test_cases": [
+            {"data": {"employees": [[1, "Ann", 100, "2020-01-05"], [2, "Bob", 90, "2021-03-01"], [3, "Cy", 80, "2019-07-07"]]}},
+            {
+                "data": {
+                    "employees": [[1, "Ann", 100, "2020-01-05"], [2, "Bob", 100, "2021-03-01"], [3, "Cy", 80, "2019-07-07"]]
+                },
+                "hidden": True,
+            },
+        ],
+    }
+    return SqlProblemCreate.model_validate({**values, **fields})
+
+
+def make_sql_problem(db: Session, user: User, topic: str = "Aggregates", **fields: Any) -> SqlProblem:
+    slug = sql.slugify(topic)
+    try:
+        sql.get_topic(db, user, slug)
+    except NotFound:
+        sql.create_topic(db, user, SqlTopicCreate(name=topic))
+    return sql.create_problem(db, user, slug, sql_problem_in(**fields))

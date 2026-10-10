@@ -29,8 +29,14 @@ from app.schemas import (
     QuestionUpdate,
     SessionUpdate,
     SettingsUpdate,
+    SqlAttempt,
+    SqlDialect,
+    SqlProblemCreate,
+    SqlProblemUpdate,
+    SqlTestCaseIn,
+    SqlTopicCreate,
 )
-from app.services import Forbidden, Invalid, NotFound, content, exams, stats, study
+from app.services import Forbidden, Invalid, NotFound, content, exams, sql, stats, study
 from app.services.content import ArchiveFilter
 
 INSTRUCTIONS = """\
@@ -61,6 +67,16 @@ Exams: named exams with optional starts_at, optional completed_at, and linked de
 subdecks; do not link both a parent and a child). list-exams (upcoming=true filters incomplete future/undated),
 get-exam, create-exam, update-exam (completed=true/false; clear_starts_at clears the time), delete-exam.
 For readiness, get-performance with exam_id (uses the exam's decks and starts_at; exam_date still overrides).
+
+SQL practice is separate from decks (no FSRS): flat topics hold problems; the user writes a query, checks it with
+run-sql (visible test cases), then submit-sql (all cases, saved). Dialects: sqlite (default), mysql, mariadb, tsql
+(SQL Server), postgres. SQLite runs natively; the others are translated to DuckDB, so syntax follows the dialect but
+some behavior (integer division, case-insensitive collation) follows DuckDB. A problem is solved per dialect.
+Writing problems: create-sql-topic, then create-sql-problem with engine-neutral tables (integer, number, text, date,
+timestamp, boolean), a reference_query (expected output comes from it), and test cases as rows per table; the first
+visible case is the example, hidden ones only run on submit. Don't show hidden cases or the reference query to the
+user while they practice. After a failed submit, get-sql-submission shows the first failing hidden case;
+update-sql-test-case(hidden=false) adds it to the user's visible cases.
 """
 
 mcp = FastMCP("Quiz API", instructions=INSTRUCTIONS, auth=auth)
@@ -353,3 +369,108 @@ def delete_exam(exam_id: int) -> dict[str, Any]:
     with caller() as (db, user):
         exams.delete_exam(db, user, exam_id)
         return {"ok": True}
+
+
+@mcp.tool(name="list-sql-topics", annotations=READ)
+def list_sql_topics() -> dict[str, Any]:
+    """List SQL practice topics with their problem and solved counts."""
+    with caller() as (db, user):
+        return {"topics": sql.list_topics(db, user)}
+
+
+@mcp.tool(name="create-sql-topic", annotations=WRITE)
+def create_sql_topic(
+    name: str,
+    slug: Annotated[str | None, Field(description="URL name (lowercase-with-dashes); derived from name if omitted.")] = None,
+    description: str | None = None,
+) -> dict[str, Any]:
+    """Create a SQL practice topic (e.g. Joins, Window functions). Topics are a flat list."""
+    with caller() as (db, user):
+        return {
+            "topic": sql.topic_dict(sql.create_topic(db, user, SqlTopicCreate(name=name, slug=slug, description=description)))
+        }
+
+
+@mcp.tool(name="get-sql-topic", annotations=READ)
+def get_sql_topic(topic: Annotated[str, Field(description="Topic slug.")]) -> dict[str, Any]:
+    """A topic and its problems, each with the dialects it has been solved in."""
+    with caller() as (db, user):
+        return sql.topic_detail(db, user, topic)
+
+
+@mcp.tool(name="create-sql-problem", annotations=WRITE)
+def create_sql_problem(topic: Annotated[str, Field(description="Topic slug.")], problem: SqlProblemCreate) -> dict[str, Any]:
+    """Add a SQL problem to a topic. The reference query must run on every test case (in reference_dialect), or
+    nothing is created."""
+    with caller() as (db, user):
+        created = sql.create_problem(db, user, topic, problem)
+        return {"problem": sql.problem_detail(db, user, topic, created.slug)}
+
+
+@mcp.tool(name="get-sql-problem", annotations=READ)
+def get_sql_problem(topic: str, problem: Annotated[str, Field(description="Problem slug.")]) -> dict[str, Any]:
+    """A problem: description, tables, the example, visible test cases with expected output, the number of hidden
+    cases, dialects solved in, and recent submissions."""
+    with caller() as (db, user):
+        return {"problem": sql.problem_detail(db, user, topic, problem)}
+
+
+@mcp.tool(name="update-sql-problem", annotations=IDEMPOTENT)
+def update_sql_problem(  # pylint: disable=too-many-arguments,too-many-positional-arguments
+    topic: str,
+    problem: str,
+    title: str | None = None,
+    description: str | None = None,
+    reference_query: str | None = None,
+    reference_dialect: SqlDialect | None = None,
+    order_matters: bool | None = None,
+) -> dict[str, Any]:
+    """Edit a problem. Omitted fields stay unchanged; tables can't change (add a new problem instead)."""
+    with caller() as (db, user):
+        given = {
+            "title": title,
+            "description": description,
+            "reference_query": reference_query,
+            "reference_dialect": reference_dialect,
+            "order_matters": order_matters,
+        }
+        sql.update_problem(db, user, topic, problem, SqlProblemUpdate(**{k: v for k, v in given.items() if v is not None}))
+        return {"problem": sql.problem_detail(db, user, topic, problem)}
+
+
+@mcp.tool(name="add-sql-test-case", annotations=WRITE)
+def add_sql_test_case(topic: str, problem: str, test_case: SqlTestCaseIn) -> dict[str, Any]:
+    """Add a test case (rows per table). The reference query must answer it."""
+    with caller() as (db, user):
+        case = sql.add_test_case(db, user, topic, problem, test_case)
+        return {"test_case": sql.case_view(sql.get_problem(db, user, topic, problem)[1], case)}
+
+
+@mcp.tool(name="update-sql-test-case", annotations=IDEMPOTENT)
+def update_sql_test_case(topic: str, problem: str, case_id: int, hidden: bool) -> dict[str, Any]:
+    """Hide or show a test case. hidden=false adds a case a submit failed on to the cases run-sql checks."""
+    with caller() as (db, user):
+        case = sql.set_test_case_hidden(db, user, topic, problem, case_id, hidden)
+        return {"test_case": sql.case_view(sql.get_problem(db, user, topic, problem)[1], case)}
+
+
+@mcp.tool(name="run-sql", annotations=READ)
+def run_sql(topic: str, problem: str, query: str, dialect: SqlDialect = "sqlite") -> dict[str, Any]:
+    """Check the user's query against the visible test cases. Nothing is saved."""
+    with caller() as (db, user):
+        return sql.run_tests(db, user, topic, problem, SqlAttempt(query=query, dialect=dialect))
+
+
+@mcp.tool(name="submit-sql", annotations=WRITE)
+def submit_sql(topic: str, problem: str, query: str, dialect: SqlDialect = "sqlite") -> dict[str, Any]:
+    """Run the user's query against every test case, hidden ones included, and save the submission."""
+    with caller() as (db, user):
+        submission = sql.submit(db, user, topic, problem, SqlAttempt(query=query, dialect=dialect))
+        return {"submission": sql.get_submission(db, user, topic, problem, submission.id)}
+
+
+@mcp.tool(name="get-sql-submission", annotations=READ)
+def get_sql_submission(topic: str, problem: str, submission_id: int) -> dict[str, Any]:
+    """A saved submission with each case's outcome; the first failing hidden case shows its data."""
+    with caller() as (db, user):
+        return {"submission": sql.get_submission(db, user, topic, problem, submission_id)}

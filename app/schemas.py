@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Literal, Self
+from typing import Any, Literal, Self
 from zoneinfo import available_timezones
 
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -152,3 +152,74 @@ class ExamUpdate(BaseModel):
         if "deck_ids" in self.model_fields_set and self.deck_ids is None:
             raise ValueError("deck_ids cannot be null; omit the field or pass a list.")
         return self
+
+
+SqlDialect = Literal["sqlite", "mysql", "mariadb", "tsql", "postgres"]
+SqlColumnType = Literal["integer", "number", "text", "date", "timestamp", "boolean"]
+SQL_IDENTIFIER = r"^[A-Za-z_][A-Za-z0-9_]*$"
+SLUG = r"^[a-z0-9]+(?:-[a-z0-9]+)*$"
+
+
+class SqlColumn(BaseModel):
+    name: str = Field(max_length=63, pattern=SQL_IDENTIFIER)
+    type: SqlColumnType
+
+
+class SqlTable(BaseModel):
+    name: str = Field(max_length=63, pattern=SQL_IDENTIFIER)
+    columns: list[SqlColumn] = Field(min_length=1, max_length=20)
+
+
+class SqlTestCaseIn(BaseModel):
+    data: dict[str, list[list[Any]]] = Field(
+        description="Rows per table, each row a list of values in column order. Dates as 'YYYY-MM-DD', timestamps as "
+        "'YYYY-MM-DD HH:MM:SS'. Tables left out are empty."
+    )
+    hidden: bool = Field(default=False, description="Hidden cases only run on submit, until a failed submit reveals one.")
+
+
+class SqlTestCaseUpdate(BaseModel):
+    hidden: bool = Field(description="False shows the case on the problem page and runs it with Run tests.")
+
+
+class SqlTopicCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
+    slug: str | None = Field(default=None, max_length=80, pattern=SLUG, description="URL name; derived from name if omitted.")
+    description: str | None = Field(default=None, max_length=5000)
+
+
+class SqlProblemCreate(BaseModel):
+    title: str = Field(min_length=1, max_length=255)
+    slug: str | None = Field(default=None, max_length=80, pattern=SLUG, description="URL name; derived from title if omitted.")
+    description: str = Field(min_length=1, max_length=20000, description="Markdown: what the query should return.")
+    tables: list[SqlTable] = Field(min_length=1, max_length=10)
+    reference_query: str = Field(min_length=1, max_length=20000, description="A correct answer; expected output comes from it.")
+    reference_dialect: SqlDialect = "sqlite"
+    order_matters: bool = Field(default=False, description="Compare rows in order (the problem asks for a sort).")
+    test_cases: list[SqlTestCaseIn] = Field(min_length=1, max_length=20, description="The first visible case is the example.")
+
+    @model_validator(mode="after")
+    def unique_table_names(self) -> Self:
+        names = [t.name.lower() for t in self.tables]
+        if len(set(names)) != len(names):
+            raise ValueError("Table names must be distinct.")
+        for table in self.tables:
+            columns = [c.name.lower() for c in table.columns]
+            if len(set(columns)) != len(columns):
+                raise ValueError(f"Column names in {table.name} must be distinct.")
+        return self
+
+
+class SqlProblemUpdate(BaseModel):
+    """Partial update. Tables can't change: existing test cases are shaped by them."""
+
+    title: str | None = Field(default=None, min_length=1, max_length=255)
+    description: str | None = Field(default=None, min_length=1, max_length=20000)
+    reference_query: str | None = Field(default=None, min_length=1, max_length=20000)
+    reference_dialect: SqlDialect | None = None
+    order_matters: bool | None = None
+
+
+class SqlAttempt(BaseModel):
+    query: str = Field(min_length=1, max_length=20000)
+    dialect: SqlDialect = "sqlite"
