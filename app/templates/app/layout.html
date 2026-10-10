@@ -32,6 +32,11 @@
             </nav>
             <div class="flex shrink-0 items-center gap-4 text-mute">
                 {% if user %}
+                <nav aria-label="Sections" class="flex gap-3">
+                    {% set in_sql = request.url.path.startswith("/app/sql") %}
+                    <a class="no-underline {% if in_sql %}text-mute hover:text-ink{% else %}text-ink{% endif %}" href="/app"{% if not in_sql %} aria-current="true"{% endif %}>decks</a>
+                    <a class="no-underline {% if in_sql %}text-ink{% else %}text-mute hover:text-ink{% endif %}" href="/app/sql"{% if in_sql %} aria-current="true"{% endif %}>sql</a>
+                </nav>
                 <span>{{ user.login }}</span>
                 <form method="post" action="/app/logout" class="inline">
                     <button class="cursor-pointer border-0 bg-transparent p-0 font-mono text-mute hover:text-ink" type="submit">log out</button>

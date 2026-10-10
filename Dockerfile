@@ -25,7 +25,7 @@ COPY --from=public.ecr.aws/awsguru/aws-lambda-adapter:1.1.0 /lambda-adapter /opt
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev
 COPY app app
-COPY --from=css /build/app/static/app.css app/static/app.css
+COPY --from=css /build/app/static/app.css /build/app/static/editor.js app/static/
 COPY migrations migrations
 COPY alembic.ini .
 RUN useradd --create-home quiz
