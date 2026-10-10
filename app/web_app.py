@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import secrets
+from collections import Counter
 from typing import Annotated, Any, cast
 from urllib.parse import urlencode
 
@@ -205,7 +206,9 @@ def decks_index(request: Request, db: Db, user: WebUser) -> HTMLResponse:
     request.state.user = user
     decks = content.list_decks(db, user)
     activity = stats.activity(db, user, content.user_decks(db, user))
-    return render("app/decks.html", request, decks=[{**d, **activity[d["id"]]} for d in decks])
+    subdecks = Counter(d["parent_id"] for d in decks)
+    roots = [{**d, **activity[d["id"]], "subdecks": subdecks[d["id"]]} for d in decks if d["depth"] == 0]
+    return render("app/decks.html", request, decks=roots)
 
 
 @router.get("/archived")
