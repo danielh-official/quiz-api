@@ -62,7 +62,8 @@ def test_decks_and_detail(client: TestClient, db: Session, user: User) -> None:
 
     decks = client.get("/app")
     assert decks.status_code == 200
-    assert "AWS" in decks.text and "S3" in decks.text
+    assert "AWS" in decks.text and "S3" not in decks.text  # subdecks live on the parent's page
+    assert "1 subdeck ›" in decks.text
     assert ">New</th>" in decks.text and ">2</td>" in decks.text
     assert ">Total</th>" in decks.text
 
