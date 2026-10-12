@@ -20,11 +20,5 @@
     "codemirror": "6.0.2",
     "esbuild": "0.28.2",
     "tailwindcss": "4.3.3"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "@parcel/watcher",
-      "esbuild"
-    ]
   }
 }

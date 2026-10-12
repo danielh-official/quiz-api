@@ -1,7 +1,7 @@
 FROM node:22-bookworm-slim AS css
 WORKDIR /build
 RUN corepack enable && corepack prepare pnpm@10.15.1 --activate
-COPY frontend/package.json frontend/pnpm-lock.yaml frontend/
+COPY frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml frontend/
 RUN cd frontend && pnpm install --frozen-lockfile
 COPY frontend/ frontend/
 COPY app/templates app/templates/
