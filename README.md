@@ -34,7 +34,7 @@ so production can't end up open by accident.
 `app/static/editor.js` are gitignored and built in the Docker image (Node only at build time). Locally:
 
 ```bash
-cd frontend && pnpm install && pnpm watch   # rebuilds app/static/app.css as you edit
+cd frontend && pnpm install && pnpm watch   # rebuilds app/static/app.css and editor.js as you edit
 # or: pnpm build                           # one-shot CSS + editor bundle, e.g. before pytest
 ```
 

@@ -14,7 +14,7 @@ uv run pytest tests/test_limits.py -k parent      # one file / matching tests
 uv run --with mypy mypy app tests                 # strict mode, config in pyproject.toml
 uv run --with pylint pylint app tests migrations  # max line length 130
 uv run --with ruff ruff format app tests migrations  # line length 130; CI checks with --check
-cd frontend && pnpm install && pnpm watch         # Tailwind → app/static/app.css (gitignored; also built in Docker)
+cd frontend && pnpm install && pnpm watch         # Tailwind + SQL editor → app/static/ (gitignored; also built in Docker)
 cd frontend && pnpm build                         # CSS + SQL editor bundle (app/static/editor.js); before pytest
 uv run alembic revision --autogenerate -m "..."   # after changing app/models.py
 deploy/aws.sh                                     # terraform apply infra/ + ship local code; settings in .env.aws

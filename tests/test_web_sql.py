@@ -48,6 +48,7 @@ def test_run_returns_results_partial(client: TestClient, db: Session, user: User
     make_sql_problem(db, user)
     ok = client.post(f"{BASE}/run", data={"query": NAIVE, "dialect": "mysql"}, headers={"HX-Request": "true"})
     assert "1 of 1 test case passed. Ready to submit." in ok.text and "<html" not in ok.text
+    assert "Your output" in ok.text and ">90<" in ok.text  # a passing case still shows the query's result
     bad = client.post(f"{BASE}/run", data={"query": "SELEC 1", "dialect": "sqlite"})
     assert "0 of 1 test case passed" in bad.text and "syntax error" in bad.text
     empty = client.post(f"{BASE}/run", data={"query": "", "dialect": "sqlite"})

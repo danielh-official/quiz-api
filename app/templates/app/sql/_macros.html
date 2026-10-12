@@ -48,6 +48,11 @@
         <div><p class="mb-1.5 font-mono text-xs text-mute">Expected</p>{{ data_table(r.expected.columns, r.expected.rows, r.expected.more) }}</div>
         <div><p class="mb-1.5 font-mono text-xs text-mute">Your output</p>{{ data_table(r.got.columns, r.got.rows, r.got.more) }}</div>
     </div>
+    {% elif r.got and not r.hidden %}
+    <details open class="px-4 py-3">
+        <summary class="cursor-pointer font-mono text-xs text-mute">Your output</summary>
+        <div class="mt-1.5">{{ data_table(r.got.columns, r.got.rows, r.got.more) }}</div>
+    </details>
     {% endif %}
 </div>
 {% endmacro %}

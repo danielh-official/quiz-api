@@ -6,7 +6,9 @@
   "scripts": {
     "build": "tailwindcss -i ./src/input.css -o ../app/static/app.css --minify && pnpm build:editor",
     "build:editor": "esbuild src/editor.js --bundle --minify --format=esm --target=es2020 --outfile=../app/static/editor.js",
-    "watch": "tailwindcss -i ./src/input.css -o ../app/static/app.css --watch"
+    "watch": "pnpm run --parallel \"/^watch:/\"",
+    "watch:css": "tailwindcss -i ./src/input.css -o ../app/static/app.css --watch",
+    "watch:editor": "esbuild src/editor.js --bundle --format=esm --target=es2020 --outfile=../app/static/editor.js --watch=forever"
   },
   "devDependencies": {
     "@codemirror/lang-sql": "6.10.0",
