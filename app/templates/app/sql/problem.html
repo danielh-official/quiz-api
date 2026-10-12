@@ -1,89 +1,126 @@
 {% extends "app/layout.html" %}
 {% from "app/sql/_macros.html" import data_table, input_tables, dialect_chips %}
 {% set current = detail.title %}
+{% set wide = true %}
 {% block title %}{{ detail.title }} · SQL{% endblock %}
 {% block content %}
-<div class="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2">
-    <h1 class="text-[1.75rem] font-semibold leading-tight tracking-tight text-ink">{{ detail.title }}</h1>
-    <div class="flex flex-wrap gap-1.5">{{ dialect_chips(detail.solved_dialects) }}</div>
-</div>
-
-<div class="md mb-8 font-serif text-lg leading-relaxed text-ink">{{ detail.description | markdown }}</div>
-
-<h2 class="mb-2 text-base font-semibold text-ink">Tables</h2>
-<ul class="mb-8 flex flex-col gap-1 font-mono text-[13px]">
-    {% for t in detail.tables %}
-    <li><span class="font-bold text-ink">{{ t.name }}</span> <span class="text-mute">({% for c in t.columns %}{{ c.name }} <span class="text-due">{{ c.type }}</span>{{ ", " if not loop.last }}{% endfor %})</span></li>
-    {% endfor %}
-</ul>
-
-{% if detail.example %}
-<h2 class="mb-2 text-base font-semibold text-ink">Example</h2>
-<div class="mb-8 grid gap-4 sm:grid-cols-2">
-    <div><p class="mb-1.5 font-mono text-xs text-mute">Input</p>{{ input_tables(detail.example.input) }}</div>
-    <div>
-        <p class="mb-1.5 font-mono text-xs text-mute">Expected output{% if detail.order_matters %} · in this order{% endif %}</p>
-        {{ data_table(detail.example.expected.columns, detail.example.expected.rows, detail.example.expected.more) }}
-    </div>
-</div>
-{% endif %}
-
-<form id="sql-form" method="post" action="/app/sql/{{ detail.topic.slug }}/{{ detail.slug }}/submit" class="flex flex-col gap-3">
-    <div class="flex flex-wrap items-center justify-between gap-3">
-        <label class="flex items-center gap-2 text-sm text-mute">
-            Dialect
-            <select name="dialect" class="rounded border border-line bg-surface px-2 py-1.5 text-ink">
-                {% for d in dialects %}<option value="{{ d.id }}"{% if d.id == dialect %} selected{% endif %}>{{ d.label }}</option>{% endfor %}
-            </select>
-        </label>
-        <p class="font-mono text-xs text-mute">⌘/Ctrl + Enter runs the tests</p>
-    </div>
-    <textarea name="query" data-sql-editor data-schema="{{ schema }}" aria-label="Your SQL query" spellcheck="false"
-              class="min-h-72 w-full rounded-lg border border-line bg-surface p-3 font-mono text-sm text-ink"
-              placeholder="SELECT …">{{ query }}</textarea>
-    <div class="flex flex-wrap items-center gap-3">
-        <button data-run type="button" class="cursor-pointer rounded border border-line bg-surface px-4 py-2.5 text-sm font-semibold text-ink"
-                hx-post="/app/sql/{{ detail.topic.slug }}/{{ detail.slug }}/run" hx-include="#sql-form" hx-target="#run-results" hx-indicator="#running">
-            Run tests
-        </button>
-        <button type="submit" class="cursor-pointer rounded border-0 bg-accent px-4 py-2.5 text-sm font-semibold text-accent-fg">Submit</button>
-        <span id="running" class="htmx-indicator font-mono text-xs text-mute">running…</span>
-    </div>
-</form>
-
-<div id="run-results" class="mt-6" aria-live="polite"></div>
-
-<h2 id="test-cases" class="mb-2 mt-10 text-base font-semibold text-ink">Test cases</h2>
-<p class="mb-3 text-sm text-mute">
-    {% set n = detail.test_cases | length %}
-    Run tests checks {{ n }} case{{ "s" if n != 1 }}.
-    {% if detail.hidden_test_cases %}Submit also runs {{ detail.hidden_test_cases }} hidden case{{ "s" if detail.hidden_test_cases != 1 }}.{% endif %}
-</p>
-<div class="flex flex-col gap-2">
-    {% for c in detail.test_cases %}
-    <details class="rounded-lg border border-line">
-        <summary class="cursor-pointer px-4 py-2.5 text-sm font-medium text-ink">Case {{ loop.index }}</summary>
-        <div class="grid gap-4 border-t border-line p-4 sm:grid-cols-2">
-            <div><p class="mb-1.5 font-mono text-xs text-mute">Input</p>{{ input_tables(c.input) }}</div>
-            <div><p class="mb-1.5 font-mono text-xs text-mute">Expected output</p>{{ data_table(c.expected.columns, c.expected.rows, c.expected.more) }}</div>
+{% set tab = "cursor-pointer border-0 border-b-2 border-transparent bg-transparent px-1 pb-2 text-sm font-medium text-mute hover:text-ink aria-selected:border-accent aria-selected:text-ink" %}
+{# LeetCode-style split: problem, results and submissions on the left, the editor on the right. Stacks on small screens. #}
+<div class="grid gap-4 lg:h-[calc(100dvh-7.5rem)] lg:grid-cols-2">
+    <section class="flex min-h-0 flex-col rounded-lg border border-line">
+        <div role="tablist" aria-label="Problem" class="flex gap-5 overflow-x-auto whitespace-nowrap border-b border-line px-4 pt-3">
+            <button type="button" role="tab" data-tab="description" aria-selected="true" class="{{ tab }}">Description</button>
+            <button type="button" role="tab" data-tab="cases" aria-selected="false" class="{{ tab }}">Test cases</button>
+            <button type="button" role="tab" data-tab="results" aria-selected="false" class="{{ tab }}">Results</button>
+            <button type="button" role="tab" data-tab="submissions" aria-selected="false" class="{{ tab }}">Submissions{% if detail.submissions %} <span class="font-mono text-xs">{{ detail.submissions | length }}</span>{% endif %}</button>
         </div>
-    </details>
-    {% endfor %}
+        <div class="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
+            <div role="tabpanel" data-panel="description">
+                <div class="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2">
+                    <h1 class="text-[1.75rem] font-semibold leading-tight tracking-tight text-ink">{{ detail.title }}</h1>
+                    <div class="flex flex-wrap gap-1.5">{{ dialect_chips(detail.solved_dialects) }}</div>
+                </div>
+
+                <div class="md mb-8 font-serif text-lg leading-relaxed text-ink">{{ detail.description | markdown }}</div>
+
+                <h2 class="mb-2 text-base font-semibold text-ink">Tables</h2>
+                <ul class="mb-8 flex flex-col gap-1 font-mono text-[13px]">
+                    {% for t in detail.tables %}
+                    <li><span class="font-bold text-ink">{{ t.name }}</span> <span class="text-mute">({% for c in t.columns %}{{ c.name }} <span class="text-due">{{ c.type }}</span>{{ ", " if not loop.last }}{% endfor %})</span></li>
+                    {% endfor %}
+                </ul>
+
+                {% if detail.example %}
+                <h2 class="mb-2 text-base font-semibold text-ink">Example</h2>
+                <div class="mb-8 grid gap-4 sm:grid-cols-2">
+                    <div><p class="mb-1.5 font-mono text-xs text-mute">Input</p>{{ input_tables(detail.example.input) }}</div>
+                    <div>
+                        <p class="mb-1.5 font-mono text-xs text-mute">Expected output{% if detail.order_matters %} · in this order{% endif %}</p>
+                        {{ data_table(detail.example.expected.columns, detail.example.expected.rows, detail.example.expected.more) }}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <div role="tabpanel" data-panel="cases" id="test-cases" hidden>
+                <p class="mb-3 text-sm text-mute">
+                    {% set n = detail.test_cases | length %}
+                    Run tests checks {{ n }} case{{ "s" if n != 1 }}.
+                    {% if detail.hidden_test_cases %}Submit also runs {{ detail.hidden_test_cases }} hidden case{{ "s" if detail.hidden_test_cases != 1 }}.{% endif %}
+                </p>
+                <div class="flex flex-col gap-2">
+                    {% for c in detail.test_cases %}
+                    <details class="rounded-lg border border-line">
+                        <summary class="cursor-pointer px-4 py-2.5 text-sm font-medium text-ink">Case {{ loop.index }}</summary>
+                        <div class="grid gap-4 border-t border-line p-4 sm:grid-cols-2">
+                            <div><p class="mb-1.5 font-mono text-xs text-mute">Input</p>{{ input_tables(c.input) }}</div>
+                            <div><p class="mb-1.5 font-mono text-xs text-mute">Expected output</p>{{ data_table(c.expected.columns, c.expected.rows, c.expected.more) }}</div>
+                        </div>
+                    </details>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div role="tabpanel" data-panel="results" hidden>
+                <div id="run-results" aria-live="polite"><p class="text-sm text-mute">Run tests to see your output here.</p></div>
+            </div>
+
+            <div role="tabpanel" data-panel="submissions" hidden>
+                {% if detail.submissions %}
+                <ul class="divide-y divide-line border-y border-line text-sm">
+                    {% for s in detail.submissions %}
+                    <li>
+                        <a class="flex items-center justify-between gap-3 py-2.5 text-ink no-underline hover:text-accent" href="/app/sql/{{ detail.topic.slug }}/{{ detail.slug }}/submissions/{{ s.id }}">
+                            <span>{{ s.dialect | dialect_label }} · <time datetime="{{ s.created_at }}" data-local-date>{{ s.created_at[:10] }}</time></span>
+                            <span class="font-mono tabular-nums {% if s.solved %}text-ok{% else %}text-bad{% endif %}">{{ s.passed }}/{{ s.total }}</span>
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-sm text-mute">No submissions yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+
+    <form id="sql-form" method="post" action="/app/sql/{{ detail.topic.slug }}/{{ detail.slug }}/submit" class="flex min-h-0 flex-col gap-3">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <label class="flex items-center gap-2 text-sm text-mute">
+                Dialect
+                <select name="dialect" class="rounded border border-line bg-surface px-2 py-1.5 text-ink">
+                    {% for d in dialects %}<option value="{{ d.id }}"{% if d.id == dialect %} selected{% endif %}>{{ d.label }}</option>{% endfor %}
+                </select>
+            </label>
+            <p class="font-mono text-xs text-mute">⌘/Ctrl + Enter runs the tests</p>
+        </div>
+        <div class="flex min-h-72 flex-1 flex-col lg:min-h-0">
+            <textarea name="query" data-sql-editor data-schema="{{ schema }}" aria-label="Your SQL query" spellcheck="false"
+                      class="w-full flex-1 rounded-lg border border-line bg-surface p-3 font-mono text-sm text-ink"
+                      placeholder="SELECT …">{{ query }}</textarea>
+        </div>
+        <div class="flex flex-wrap items-center justify-end gap-3">
+            <span id="running" class="htmx-indicator font-mono text-xs text-mute">running…</span>
+            <button data-run type="button" class="cursor-pointer rounded border border-line bg-surface px-4 py-2.5 text-sm font-semibold text-ink"
+                    hx-post="/app/sql/{{ detail.topic.slug }}/{{ detail.slug }}/run" hx-include="#sql-form" hx-target="#run-results" hx-indicator="#running">
+                Run tests
+            </button>
+            <button type="submit" class="cursor-pointer rounded border-0 bg-accent px-4 py-2.5 text-sm font-semibold text-accent-fg">Submit</button>
+        </div>
+    </form>
 </div>
 
-{% if detail.submissions %}
-<h2 class="mb-2 mt-10 text-base font-semibold text-ink">Submissions</h2>
-<ul class="divide-y divide-line border-y border-line text-sm">
-    {% for s in detail.submissions %}
-    <li>
-        <a class="flex items-center justify-between gap-3 py-2.5 text-ink no-underline hover:text-accent" href="/app/sql/{{ detail.topic.slug }}/{{ detail.slug }}/submissions/{{ s.id }}">
-            <span>{{ s.dialect | dialect_label }} · <time datetime="{{ s.created_at }}" data-local-date>{{ s.created_at[:10] }}</time></span>
-            <span class="font-mono tabular-nums {% if s.solved %}text-ok{% else %}text-bad{% endif %}">{{ s.passed }}/{{ s.total }}</span>
-        </a>
-    </li>
-    {% endfor %}
-</ul>
-{% endif %}
-
+<script>
+    (() => {
+        const tabs = document.querySelectorAll("[data-tab]");
+        const show = (name) => {
+            tabs.forEach((t) => t.setAttribute("aria-selected", String(t.dataset.tab === name)));
+            document.querySelectorAll("[data-panel]").forEach((p) => { p.hidden = p.dataset.panel !== name; });
+        };
+        tabs.forEach((t) => t.addEventListener("click", () => show(t.dataset.tab)));
+        document.body.addEventListener("htmx:beforeRequest", (e) => { if (e.detail.target.id === "run-results") show("results"); });
+        if (location.hash === "#test-cases") show("cases");
+    })();
+</script>
 <script type="module" src="/static/editor.js"></script>
 {% endblock %}
