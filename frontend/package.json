@@ -2,7 +2,7 @@
   "name": "quiz-api-frontend",
   "version": "1.0.0",
   "private": true,
-  "packageManager": "pnpm@10.15.1",
+  "packageManager": "pnpm@12.11.2",
   "scripts": {
     "build": "tailwindcss -i ./src/input.css -o ../app/static/app.css --minify && pnpm build:editor",
     "build:editor": "esbuild src/editor.js --bundle --minify --format=esm --target=es2020 --outfile=../app/static/editor.js",
