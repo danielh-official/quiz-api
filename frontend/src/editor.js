@@ -19,7 +19,7 @@ const theme = EditorView.theme({
     fontSize: "14px",
   },
   "&.cm-focused": { outline: "2px solid var(--color-accent)", outlineOffset: "1px" },
-  ".cm-scroller": { fontFamily: "var(--font-mono)", lineHeight: "1.6", minHeight: "10rem" },
+  ".cm-scroller": { fontFamily: "var(--font-mono)", lineHeight: "1.6", minHeight: "18rem" },
   ".cm-content": { caretColor: "var(--color-ink)", padding: "0.5rem 0" },
   ".cm-gutters": {
     backgroundColor: "var(--color-surface)",
