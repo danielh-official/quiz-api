@@ -19,7 +19,7 @@ const theme = EditorView.theme({
     fontSize: "14px",
   },
   "&.cm-focused": { outline: "2px solid var(--color-accent)", outlineOffset: "1px" },
-  ".cm-scroller": { fontFamily: "var(--font-mono)", lineHeight: "1.6", minHeight: "18rem" },
+  ".cm-scroller": { fontFamily: "var(--font-mono)", lineHeight: "1.6", minHeight: "18rem", overflow: "auto" },
   ".cm-content": { caretColor: "var(--color-ink)", padding: "0.5rem 0" },
   ".cm-gutters": {
     backgroundColor: "var(--color-surface)",
@@ -71,6 +71,8 @@ for (const textarea of document.querySelectorAll("textarea[data-sql-editor]")) {
     ],
   });
   textarea.hidden = true;
+  view.dom.style.flex = "1 1 0"; // fill the editor pane (a flex column) and scroll inside it
+  view.dom.style.minHeight = "0";
   textarea.after(view.dom);
   select.addEventListener("change", () => view.dispatch({ effects: language.reconfigure(languageFor(select.value)) }));
 }
