@@ -126,7 +126,7 @@ def update_card(question_id: int, data: CardUpdate, db: Db, user: Me) -> Json:
 
 @router.post("/decks/{deck_id}/sessions", status_code=201)
 def start_session(deck_id: int, db: Db, user: Me, data: SessionCreate | None = None) -> Json:
-    return study.start_session(db, user, deck_id, data.size if data else None)
+    return study.start_session(db, user, deck_id, data.size if data else None, data.mode if data else "mixed")
 
 
 @router.get("/sessions/{session_id}/next")

@@ -219,7 +219,7 @@ Every route needs `Authorization: Bearer <token>`, except `/up`, `/`, `/robots.t
 | GET | `/questions/search?q=&deck_id=` | |
 | GET, PATCH, DELETE | `/questions/{id}` | PATCH: pass option `id`s back to keep them; `reset_progress` |
 | PUT | `/questions/{id}/card` | `note`, `suspended` |
-| POST | `/decks/{id}/sessions` | Start a session, optional `size`; returns the latest session summaries |
+| POST | `/decks/{id}/sessions` | Start a session, optional `size` and `mode` (`mixed` default, `new` = unseen only, `due` = reviews only); returns the latest session summaries |
 | GET | `/sessions/{id}/next` | Next question without answers, or the summary when done |
 | POST | `/sessions/{id}/answers` | `question_id`, `selected` (option ids), `confidence`, optional `pre_answer_note` |
 | PATCH | `/sessions/{id}` | `summary`: the running free-form summary, replaced on each call |

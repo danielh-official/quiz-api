@@ -27,6 +27,7 @@ from app.schemas import (
     QuestionIn,
     QuestionType,
     QuestionUpdate,
+    SessionMode,
     SessionUpdate,
     SettingsUpdate,
     SqlAttempt,
@@ -59,6 +60,7 @@ the stem as bullets (one sentence each), a blank line, then the options as "A. .
 wording and order exactly as returned, without hinting -> ask for the pick(s) and confidence -> submit-answer
 (pass their reasoning as pre_answer_note when they gave one) -> present the result and explanations
 -> update-session with the rewritten running summary (the user's reasoning, your read, anything worth remembering).
+start-session takes mode: "mixed" (default: due first, then new), "new" (only unseen questions) or "due" (only reviews).
 start-session returns recent summaries: use them. Stop when next-question says the session is finished. On first use, check the user's timezone (update-settings).
 
 Writing questions: search-questions first to avoid duplicates; test understanding, not trivia; plausible
@@ -239,12 +241,17 @@ def update_question(
 def start_session(
     deck_id: int,
     size: Annotated[int | None, Field(ge=1, le=500, description="Max questions; defaults to the deck's setting.")] = None,
+    mode: Annotated[
+        SessionMode,
+        Field(description="mixed (default): due first, then new. new: only never-seen questions. due: only reviews."),
+    ] = "mixed",
 ) -> dict[str, Any]:
     """Start a study session on a deck (with subdecks): due questions first, then new ones within the daily
-    limits. Also returns the latest session summaries (any deck): read them before the first question.
+    limits. Pass mode "new" to skip reviews and see only unseen questions, or "due" for reviews only.
+    Also returns the latest session summaries (any deck): read them before the first question.
     Follow with next-question."""
     with caller() as (db, user):
-        return study.start_session(db, user, deck_id, size)
+        return study.start_session(db, user, deck_id, size, mode)
 
 
 @mcp.tool(name="next-question", annotations=WRITE)

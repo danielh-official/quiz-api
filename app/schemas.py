@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 
 QuestionType = Literal["single", "select_two"]
 Confidence = Literal["confident", "educated_guess", "complete_guess"]
+SessionMode = Literal["mixed", "new", "due"]
 
 # (option count, correct count) per question type
 QUESTION_SHAPES: dict[str, tuple[int, int]] = {"single": (4, 1), "select_two": (5, 2)}
@@ -76,6 +77,10 @@ class CardUpdate(BaseModel):
 
 class SessionCreate(BaseModel):
     size: int | None = Field(default=None, ge=1, le=500)
+    mode: SessionMode = Field(
+        default="mixed",
+        description="mixed: due questions first, then new ones. new: only never-seen questions. due: only reviews.",
+    )
 
 
 class SessionUpdate(BaseModel):

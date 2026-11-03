@@ -60,7 +60,9 @@ Call `update-settings` with no arguments. If the timezone is still `UTC`, ask th
 
 ## Studying
 
-1. Pick a deck (`list-decks` shows due/new counts), then `start-session` with its `deck_id`. Read its
+1. Pick a deck (`list-decks` shows due/new counts), then `start-session` with its `deck_id`. Pass `mode: "new"` to
+   see only unseen questions (skips reviews) or `mode: "due"` for reviews only; the default `mixed` serves due
+   first, then new. Read its
    `recent_summaries` before the first question and use them: revisit weak spots, and don't repeat advice that
    already landed.
 2. `next-question` → show the question in the format below. Keep the wording of the stem and the options
