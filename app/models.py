@@ -112,6 +112,7 @@ class StudySession(Base):
     user_id: Mapped[int] = mapped_column(fk("users.id"), index=True)
     deck_id: Mapped[int] = mapped_column(fk("decks.id"))
     size: Mapped[int] = mapped_column(SmallInteger)
+    mode: Mapped[str] = mapped_column(server_default="mixed")  # mixed | new | due: what next-question may serve
     answered: Mapped[int] = mapped_column(SmallInteger, server_default="0")
     summary: Mapped[str | None]  # running notes the AI rewrites after every answer, for the next session
     finished_at: Mapped[datetime | None]

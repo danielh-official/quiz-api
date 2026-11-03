@@ -9,7 +9,7 @@ from sqlalchemy import ColumnElement, Select, exists, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.models import Card, Deck, Question, Review, StudySession, User
-from app.schemas import QUESTION_SHAPES, AnswerIn, Confidence, SessionUpdate
+from app.schemas import QUESTION_SHAPES, AnswerIn, Confidence, SessionMode, SessionUpdate
 from app.services import Invalid, NotFound
 from app.services.content import (
     card_for,
@@ -144,21 +144,23 @@ def require_active_session_deck(db: Session, user: User, deck_id: int) -> None:
         raise Invalid("deck_id", "Deck is archived.")
 
 
-def start_session(db: Session, user: User, deck_id: int, size: int | None = None) -> dict[str, Any]:
+def start_session(db: Session, user: User, deck_id: int, size: int | None = None, mode: SessionMode = "mixed") -> dict[str, Any]:
     from app.services.stats import counts  # pylint: disable=import-outside-toplevel  # import cycle
 
     deck = get_deck(db, user, deck_id)
     require_active_session_deck(db, user, deck.id)
     decks = user_decks(db, user)
     available = counts(db, user, decks, active_only=True)[deck.id]
-    # Never more questions than the deck (with its active subdecks) holds.
-    size = max(1, min(size or deck.session_size, 500, available["total"]))
-    session = StudySession(user_id=user.id, deck_id=deck.id, size=size, answered=0)
+    # Never more questions than the deck (with its active subdecks) holds, or than the mode can serve.
+    cap = {"mixed": available["total"], "new": available["new"], "due": available["due"]}[mode]
+    size = max(1, min(size or deck.session_size, 500, cap))
+    session = StudySession(user_id=user.id, deck_id=deck.id, size=size, mode=mode, answered=0)
     db.add(session)
     db.commit()
     return {
         "session_id": session.id,
         "size": session.size,
+        "mode": session.mode,
         "available": {"due": available["due"], "new": available["new"]},
         "recent_summaries": recent_summaries(db, user, decks),
     }
@@ -217,7 +219,9 @@ def next_question(db: Session, user: User, session_id: int) -> dict[str, Any]:
         now = datetime.now(UTC)
         decks = user_decks(db, user)
         scope = subtree_ids(decks, session.deck_id, active_only=True)
-        question = next_due(db, user, scope, now) or next_new(db, user, decks, session.deck_id, now)
+        question = (next_due(db, user, scope, now) if session.mode != "new" else None) or (
+            next_new(db, user, decks, session.deck_id, now) if session.mode != "due" else None
+        )
         if question:
             return {
                 "finished": False,

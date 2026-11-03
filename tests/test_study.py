@@ -219,3 +219,25 @@ def test_session_summary_replaced_and_returned_by_later_sessions(db: Session, us
     assert study.start_session(db, user, deck.id)["recent_summaries"] == []
     with pytest.raises(NotFound):
         study.update_session(db, other, first, SessionUpdate(summary="x"))
+
+
+def test_new_mode_skips_due_and_due_mode_skips_new(db: Session, user: User) -> None:
+    deck = make_deck(db, user)
+    new, reviewed = make_questions(db, user, deck, 2)
+    make_due(db, user, reviewed, stability=5)
+
+    only_new = study.start_session(db, user, deck.id, mode="new")
+    assert only_new["mode"] == "new" and only_new["size"] == 1  # capped at what the mode can serve
+    assert study.next_question(db, user, only_new["session_id"])["question"]["id"] == new.id
+    answer(db, user, only_new["session_id"], new)
+    assert study.next_question(db, user, only_new["session_id"])["finished"]  # the due card is never offered
+
+    only_due = study.start_session(db, user, deck.id, mode="due")
+    assert only_due["mode"] == "due" and only_due["size"] == 1
+    assert study.next_question(db, user, only_due["session_id"])["question"]["id"] == reviewed.id
+
+
+def test_mixed_is_the_default_mode(db: Session, user: User) -> None:
+    deck = make_deck(db, user)
+    make_questions(db, user, deck, 1)
+    assert study.start_session(db, user, deck.id)["mode"] == "mixed"
